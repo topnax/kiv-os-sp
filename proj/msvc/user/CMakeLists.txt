@@ -318,14 +318,17 @@ set(ALL_FILES
 ################################################################################
 # Target
 ################################################################################
-add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
 
-use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
-set(ROOT_NAMESPACE user)
+# commented out because CMake build resulted in error with following lines in use
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
-    VS_GLOBAL_KEYWORD "Win32Proj"
-)
+#add_library(${PROJECT_NAME} SHARED ${ALL_FILES})
+#
+#use_props(${PROJECT_NAME} "${CMAKE_CONFIGURATION_TYPES}" "${DEFAULT_CXX_PROPS}")
+#set(ROOT_NAMESPACE user)
+#
+#set_target_properties(${PROJECT_NAME} PROPERTIES
+#    VS_GLOBAL_KEYWORD "Win32Proj"
+#)
 ################################################################################
 # Output directory
 ################################################################################
