@@ -17,4 +17,8 @@ namespace kiv_os_rtl {
 	//vraci true, kdyz vse OK
 	//vraci true, kdyz vse OK
 
+
+	// TODO add parameters
+	bool Clone();
+
 }

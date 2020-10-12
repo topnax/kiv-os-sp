@@ -31,3 +31,15 @@ bool kiv_os_rtl::Write_File(const kiv_os::THandle file_handle, const char *buffe
 	written = regs.rax.r;
 	return result;
 }
+
+bool kiv_os_rtl::Clone() {
+    // TODO fill registers with data passed in function parameters (tbd)
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::Process, static_cast<uint8_t>(kiv_os::NOS_Process::Clone));
+    // regs.rdx.x = static_cast<decltype(regs.rdx.x)>(file_handle);
+    // regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(buffer);
+    // regs.rcx.r = buffer_size;
+
+    const bool result = kiv_os::Sys_Call(regs);
+    // written = regs.rax.r;
+    return result;
+}
