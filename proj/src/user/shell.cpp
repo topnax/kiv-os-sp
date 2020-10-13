@@ -2,12 +2,10 @@
 #include "shell.h"
 #include "rtl.h"
 
-void call_program(size_t (__stdcall echo)(const kiv_hal::TRegisters &regs), const kiv_hal::TRegisters &pRegisters) {
-    std::cout << "calling a fx" << std::endl;
-
-    kiv_os_rtl::Clone();
-
-    echo(pRegisters);
+void call_program(size_t (__stdcall tthread_proc)(const kiv_hal::TRegisters &regs), const kiv_hal::TRegisters &pRegisters, uint64_t data) {
+    // call clone from RTL
+    // RTL is used we do not have to set register values here
+    kiv_os_rtl::Clone(static_cast<kiv_os::TThread_Proc>(tthread_proc), data);
 }
 
 size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
@@ -33,13 +31,27 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
             const char *new_line = "\n";
             kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
-            kiv_os_rtl::Write_File(std_out, buffer, strlen(buffer), counter);    //a vypiseme ho
+            //kiv_os_rtl::Write_File(std_out, buffer, strlen(buffer), counter);    //a vypiseme ho
             kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
         } else
             break;    //EOF
 
-        if (strcmp(buffer, "echo") == 0) {
-            call_program(echo, regs);
+        // TODO improve parsing of shell commands
+        char *token1;
+        char *command;
+        // try to separate the command name
+        command = strtok_s(buffer, " ", &token1);
+
+        // if command name was provided
+        if (command) {
+            // separate command arguments
+            char *args = strtok_s(NULL, ",", &token1);
+
+            if (strcmp(command, "echo") == 0) {
+                if(args) {
+                    call_program(echo, regs, (uint64_t) args);
+                }
+            }
         }
     } while (strcmp(buffer, "exit") != 0);
 

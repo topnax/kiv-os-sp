@@ -18,7 +18,6 @@ namespace kiv_os_rtl {
 	//vraci true, kdyz vse OK
 
 
-	// TODO add parameters
-	bool Clone();
+	bool Clone(kiv_os::TThread_Proc thread_proc, uint64_t data);
 
 }
