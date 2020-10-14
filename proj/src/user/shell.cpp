@@ -2,10 +2,26 @@
 #include "shell.h"
 #include "rtl.h"
 
-void call_program(size_t (__stdcall tthread_proc)(const kiv_hal::TRegisters &regs), const kiv_hal::TRegisters &pRegisters, uint64_t data) {
+void
+call_program(size_t (__stdcall tthread_proc)(const kiv_hal::TRegisters &regs), const kiv_hal::TRegisters &pRegisters,
+             char *data) {
     // call clone from RTL
     // RTL is used we do not have to set register values here
-    kiv_os_rtl::Clone(static_cast<kiv_os::TThread_Proc>(tthread_proc), data);
+
+    // the handle of the created thread/process
+    kiv_os::THandle handle;
+
+    kiv_os_rtl::Clone(static_cast<kiv_os::TThread_Proc>(tthread_proc), data, handle);
+
+    kiv_os::THandle handles[] = {handle};
+
+    uint8_t handleThatSignalledIndex = 2;
+
+    // wait for the program to finish
+    kiv_os_rtl::Wait_For(handles, 1, handleThatSignalledIndex);
+
+    std::wcout << "Handle that signalled index: " << std::endl;
+    std::wcout << handleThatSignalledIndex << std::endl;
 }
 
 size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
@@ -46,10 +62,9 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         if (command) {
             // separate command arguments
             char *args = strtok_s(NULL, ",", &token1);
-
             if (strcmp(command, "echo") == 0) {
-                if(args) {
-                    call_program(echo, regs, (uint64_t) args);
+                if (args) {
+                    call_program(echo, regs, args);
                 }
             }
         }
