@@ -2,6 +2,7 @@
 // Created by Stanislav Král on 11.10.2020.
 //
 
+#include <thread>
 #include "../api/hal.h"
 #include "rtl.h"
 
@@ -17,6 +18,10 @@ extern "C" size_t __stdcall echo(const kiv_hal::TRegisters &regs) {
     // new line
     const char *new_line = "\n";
 
+    // TODO remove this in release
+    if (strcmp(text, "delayed_echo") == 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+    }
     // output the text
     kiv_os_rtl::Write_File(std_out, text, strlen(text), counter);
 

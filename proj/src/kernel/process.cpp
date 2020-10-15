@@ -13,7 +13,7 @@
 
 std::mutex Semaphores_Mutex;
 std::map<std::thread::id, kiv_os::THandle> Handle_To_THandle;
-std::map<kiv_os::THandle, std::deque<Semaphore*>> Thread_Semaphores;
+std::map<kiv_os::THandle, std::deque<Semaphore*>*> Thread_Semaphores;
 
 int Last_Semaphore_ID = 0;
 std::random_device rd_s;
@@ -37,8 +37,6 @@ void Handle_Process(kiv_hal::TRegisters &regs) {
 }
 
 void thread_entrypoint(kiv_hal::TRegisters &registers) {
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-
     // execute the TThread_Proc (the desired program, echo, md, ...)
     ((kiv_os::TThread_Proc) registers.rdx.r)(registers);
 
@@ -51,12 +49,16 @@ void thread_entrypoint(kiv_hal::TRegisters &registers) {
     kiv_os::THandle t_handle = Handle_To_THandle[std::this_thread::get_id()];
 
     // get all semaphores that are waiting for this thread
-    std::deque<Semaphore*> semaphores = Thread_Semaphores[t_handle];
+    auto resolved = Thread_Semaphores.find(t_handle);
 
-    // iterate over thread's semaphores
-    for (Semaphore *se : semaphores) {
-        // notify the semaphores of the thread
-        se->notify();
+    if (resolved != Thread_Semaphores.end()) {
+        // found semaphore list
+        std::deque<Semaphore *> *semaphores = Thread_Semaphores[t_handle];
+        // iterate over thread's semaphores
+        for (Semaphore *se : *semaphores) {
+            // notify the semaphores of the thread
+            se->notify();
+        }
     }
 
     // remove the THandle
@@ -110,10 +112,16 @@ void wait_for(kiv_hal::TRegisters &registers) {
         // load a handle from the array
         auto t_handle = t_handles[index];
 
+        // current thread has no list of semaphores - let's create one
+        if (!Thread_Semaphores[t_handle]) {
+            auto dq = new std::deque<Semaphore *>;
+            Thread_Semaphores[t_handle] = dq;
+        }
+
         // check whether the handle is valid
         if (Resolve_kiv_os_Handle(t_handle) != INVALID_HANDLE_VALUE) {
             // assign a semaphore to the THandle
-            Thread_Semaphores[t_handle].push_back(&s);
+            (*(Thread_Semaphores[t_handle])).push_back(&s);
         } else {
             // stop iterating over handles - we found a handle that is not valid
             anyHandleInvalid = true;
@@ -130,9 +138,16 @@ void wait_for(kiv_hal::TRegisters &registers) {
 
             // TODO we might use the ID of the semaphore to remove it
 
+            std::deque<Semaphore *> *sem_list = Thread_Semaphores[t_handle];
             // pop back one semaphore
             // this is the reason why we use a mutex to make sure the semaphore deque does not change while we loop over handles
-            Thread_Semaphores[t_handle].pop_back();
+            if (sem_list) {
+                sem_list->pop_back();
+                // if the semaphore list is empty, delete it from the thread to semaphores map
+                if (sem_list->empty()) {
+                    Thread_Semaphores.erase(t_handle);
+                }
+            }
         }
 
         // finally, unlock the mutex, finish the syscall
@@ -164,15 +179,16 @@ void wait_for(kiv_hal::TRegisters &registers) {
             // iterate over semaphores of the currently iterated handle
             auto current_handle_semaphores = Thread_Semaphores[t_handle];
 
-            std::deque<Semaphore*>::iterator it;
-            for (it = current_handle_semaphores.begin(); it != current_handle_semaphores.end(); ++it) {
-                Semaphore *sem = (*it);
+            int index_to_be_removed = 0;
+            for (Semaphore *sem : *current_handle_semaphores) {
                 // erase the semaphore that we have added
                 if (sem->get_id() == s.get_id()) {
-                    current_handle_semaphores.erase(it);
                     break;
                 }
+                index_to_be_removed++;
             }
+
+            current_handle_semaphores->erase(current_handle_semaphores->begin() + index_to_be_removed);
 
             // TODO should we delete (remove from heap) the created semaphore?
         }

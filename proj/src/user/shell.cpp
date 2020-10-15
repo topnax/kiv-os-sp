@@ -8,20 +8,42 @@ call_program(size_t (__stdcall tthread_proc)(const kiv_hal::TRegisters &regs), c
     // call clone from RTL
     // RTL is used we do not have to set register values here
 
-    // the handle of the created thread/process
-    kiv_os::THandle handle;
+    // TODO remove such test in release
+    if (strcmp(data, "test_handles") == 0) {
+        kiv_os::THandle handle2;
+        char* test = "delayed_echo";
+        kiv_os_rtl::Clone(static_cast<kiv_os::TThread_Proc>(echo), test, handle2);
 
-    kiv_os_rtl::Clone(static_cast<kiv_os::TThread_Proc>(tthread_proc), data, handle);
+        // the handle of the created thread/process
+        kiv_os::THandle handle;
 
-    kiv_os::THandle handles[] = {handle};
+        kiv_os_rtl::Clone(static_cast<kiv_os::TThread_Proc>(tthread_proc), data, handle);
 
-    uint8_t handleThatSignalledIndex = 2;
 
-    // wait for the program to finish
-    kiv_os_rtl::Wait_For(handles, 1, handleThatSignalledIndex);
+        kiv_os::THandle handles[] = {handle2, handle};
 
-    std::wcout << "Handle that signalled index: " << std::endl;
-    std::wcout << handleThatSignalledIndex << std::endl;
+        uint8_t handleThatSignalledIndex = 2;
+
+        // wait for the program to finish
+        kiv_os_rtl::Wait_For(handles, 2, handleThatSignalledIndex);
+
+        std::wcout << "Handle that signalled index: " << std::endl;
+        std::wcout << handleThatSignalledIndex << std::endl;
+    } else {
+        // the handle of the created thread/process
+        kiv_os::THandle handle;
+
+        // clone syscall to call a program (TThread_Proc)
+        kiv_os_rtl::Clone(static_cast<kiv_os::TThread_Proc>(tthread_proc), data, handle);
+
+        kiv_os::THandle handles[] = {handle};
+
+        uint8_t handleThatSignalledIndex = 0;
+
+        // wait for the program to finish
+        kiv_os_rtl::Wait_For(handles, 1, handleThatSignalledIndex);
+    }
+
 }
 
 size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
