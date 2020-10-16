@@ -122,7 +122,7 @@ set(Header_Files
     "../../src/kernel/handles.h"
     "../../src/kernel/io.h"
     "../../src/kernel/kernel.h"
-)
+        ../../src/kernel/process.h)
 source_group("Header Files" FILES ${Header_Files})
 
 set(Source_Files
@@ -130,13 +130,13 @@ set(Source_Files
     "../../src/kernel/handles.cpp"
     "../../src/kernel/io.cpp"
     "../../src/kernel/kernel.cpp"
-)
+        ../../src/kernel/process.cpp)
 source_group("Source Files" FILES ${Source_Files})
 
 set(ALL_FILES
     ${Header_Files}
     ${Source_Files}
-)
+        ../../src/kernel/semaphore.h)
 
 ################################################################################
 # Target

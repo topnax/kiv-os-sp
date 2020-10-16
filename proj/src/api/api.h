@@ -12,7 +12,7 @@ namespace kiv_os {
 #ifndef KERNEL
 	bool Sys_Call(kiv_hal::TRegisters &context);
 #endif	
-	using TThread_Proc = size_t(__stdcall *)(const kiv_hal::TRegisters &context);				//vstupni bod programu vlakna
+    using TThread_Proc = size_t(__stdcall *)(const kiv_hal::TRegisters &context);				//vstupni bod programu vlakna
 
 
 	using THandle = uint16_t;  //16-bitu, aby se zabranilo predavani instanci trid mezi jadrem a procesem 
@@ -170,7 +170,7 @@ namespace kiv_os {
 	//rezim otevreni noveho souboru
 	enum class NOpen_File : std::uint8_t {
 		fmOpen_Always = 1	//pokud je nastavena, pak soubor musi existovat, aby byl otevren
-								//není-li fmOpen_Always nastaveno, pak je soubor vždy vytvoøen - tj. i pøepsán starý soubor
+								//nenï¿½-li fmOpen_Always nastaveno, pak je soubor vï¿½dy vytvoï¿½en - tj. i pï¿½epsï¿½n starï¿½ soubor
 	};
 
 
