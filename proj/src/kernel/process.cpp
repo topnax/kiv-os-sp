@@ -13,7 +13,7 @@
 
 std::mutex Semaphores_Mutex;
 std::map<std::thread::id, kiv_os::THandle> Handle_To_THandle;
-std::map<kiv_os::THandle, std::deque<Semaphore*>*> Thread_Semaphores;
+std::map<kiv_os::THandle, std::deque<Semaphore *> *> Thread_Semaphores;
 
 int Last_Semaphore_ID = 0;
 std::random_device rd_s;
@@ -21,29 +21,39 @@ std::mt19937 gen_s(rd_s());
 std::uniform_int_distribution<> dis_s(1, 6);
 
 
-void Handle_Process(kiv_hal::TRegisters &regs) {
+void Handle_Process(kiv_hal::TRegisters &regs, HMODULE user_programs) {
     switch (static_cast<kiv_os::NOS_Process>(regs.rax.l)) {
 
         case kiv_os::NOS_Process::Clone: {
-            clone(regs);
+            clone(regs, user_programs);
         }
             break;
 
         case kiv_os::NOS_Process::Wait_For: {
             wait_for(regs);
         }
-        break;
+            break;
     }
 }
 
-void thread_entrypoint(kiv_hal::TRegisters &registers) {
+kiv_hal::TRegisters Prepare_Process_Context(unsigned short std_in, unsigned short std_out, char *args) {
+    kiv_hal::TRegisters regs;
+    regs.rax.x = std_in;
+    regs.rbx.x = std_out;
+    regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(args);
+    return regs;
+}
+
+void thread_entrypoint(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &registers) {
     // execute the TThread_Proc (the desired program, echo, md, ...)
-    ((kiv_os::TThread_Proc) registers.rdx.r)(registers);
+    t_threadproc(registers);
 
-    // the program is now executed
+    // the program is now executed - call thread post execute
+    thread_post_execute();
+}
 
-    // while cloning, the THandle is generated and assigned to the Handle_To_THandle map
-    // under the key which is the thread ID of the thread the TThread_Proc is run in
+void thread_post_execute() {// while cloning, the THandle is generated and assigned to the Handle_To_THandle map
+// under the key which is the thread ID of the thread the TThread_Proc is run in
 
     // get the kiv_os::THandle
     kiv_os::THandle t_handle = Handle_To_THandle[std::this_thread::get_id()];
@@ -68,9 +78,9 @@ void thread_entrypoint(kiv_hal::TRegisters &registers) {
     Handle_To_THandle.erase(std::this_thread::get_id());
 }
 
-void clone(kiv_hal::TRegisters &registers) {
+void run_in_a_thread(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &registers) {
     // spawn a new thread, in which a program at address inside rdx is run
-    std::thread t1(thread_entrypoint, registers);
+    std::thread t1(thread_entrypoint, t_threadproc, registers);
 
     // get the native handle of the spawned thread
     HANDLE native_handle = t1.native_handle();
@@ -88,6 +98,38 @@ void clone(kiv_hal::TRegisters &registers) {
 
     // detach the spawned thread - joining is done using semaphores
     t1.detach();
+}
+
+void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
+    switch (static_cast<kiv_os::NClone>(registers.rcx.l)) {
+        case kiv_os::NClone::Create_Thread: {
+            // run the TThreadProc in a new thread
+            run_in_a_thread(((kiv_os::TThread_Proc) registers.rdx.r), registers);
+            break;
+        }
+
+        case kiv_os::NClone::Create_Process: {
+            // load program name from arguments
+            char *program = (char *) registers.rdx.r;
+
+            // load program arguments
+            char *arguments = (char *) registers.rdi.r;
+
+            // load stdin
+            kiv_os::THandle std_in = (registers.rbx.e >> 16) & 0xFFFF;
+            // load stdout
+            kiv_os::THandle std_out = registers.rbx.e & 0xFFFF;
+
+            kiv_hal::TRegisters regs = Prepare_Process_Context(std_in, std_out, arguments);
+            kiv_os::TThread_Proc program_entrypoint = (kiv_os::TThread_Proc)GetProcAddress(user_programs, program);
+            if (program_entrypoint) {
+                run_in_a_thread(program_entrypoint, regs);
+                registers.rax.x = regs.rax.x;
+            }
+
+            break;
+        }
+    }
 }
 
 void wait_for(kiv_hal::TRegisters &registers) {
@@ -192,7 +234,6 @@ void wait_for(kiv_hal::TRegisters &registers) {
 
             // TODO should we delete (remove from heap) the created semaphore?
         }
-
         // save the index of the handle that has signalled the semaphore to the rax register according to the API specification
         registers.rax.l = handleThatSignalledIndex;
     }

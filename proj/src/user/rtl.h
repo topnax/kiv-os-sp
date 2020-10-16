@@ -18,7 +18,9 @@ namespace kiv_os_rtl {
 	//vraci true, kdyz vse OK
 
 
-	bool Clone(kiv_os::TThread_Proc thread_proc, char* data, kiv_os::THandle &t_handle);
+	bool Clone_Thread(kiv_os::TThread_Proc const thread_proc, char* data, kiv_os::THandle &t_handle);
+
+    bool Clone_Process(const char* program, const char* data, kiv_os::THandle std_in, kiv_os::THandle std_out, kiv_os::THandle &t_handle);
 
 	bool Wait_For(const kiv_os::THandle handles[], uint8_t handle_count, uint8_t &handleThatSignalledIndex);
 

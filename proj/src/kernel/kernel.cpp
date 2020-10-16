@@ -8,6 +8,8 @@
 HMODULE User_Programs;
 
 
+void run_shell(const kiv_hal::TRegisters &regs);
+
 void Initialize_Kernel() {
 	User_Programs = LoadLibraryW(L"user.dll");
 }
@@ -25,7 +27,7 @@ void __stdcall Sys_Call(kiv_hal::TRegisters &regs) {
 			break;
 
 	    case kiv_os::NOS_Service_Major::Process:
-	        Handle_Process(regs);
+	        Handle_Process(regs, User_Programs);
 	        break;
 
 	}
@@ -65,21 +67,50 @@ void __stdcall Bootstrap_Loader(kiv_hal::TRegisters &context) {
 
 		}
 
-		if (regs.rdx.l == 255) break;
-	}
+        if (regs.rdx.l == 255) break;
+    }
 
 	//spustime shell - v realnem OS bychom ovsem spousteli login
-	kiv_os::TThread_Proc shell = (kiv_os::TThread_Proc)GetProcAddress(User_Programs, "shell");
-	if (shell) {
-		//spravne se ma shell spustit pres clone!
-		//ale ten v kostre pochopitelne neni implementovan		
-		shell(regs);
-	}
-
+    run_shell(regs);
 
 	Shutdown_Kernel();
 }
 
+void run_shell(const kiv_hal::TRegisters &regs) {
+    kiv_hal::TRegisters shell_regs;
+
+    const kiv_os::THandle std_in = static_cast<kiv_os::THandle>(regs.rax.x);
+    const kiv_os::THandle std_out = static_cast<kiv_os::THandle>(regs.rbx.x);
+
+    // "shell" program should be run
+    shell_regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>("shell");
+
+    // with no arguments
+    shell_regs.rdi.r = reinterpret_cast<decltype(regs.rdx.r)>("");
+
+    // save std_in and std_out to rbx
+    shell_regs.rbx.e = (std_in << 16) | std_out;
+
+    // create a new process
+    shell_regs.rcx.l = static_cast<uint8_t>(kiv_os::NClone::Create_Process);
+
+    // perform clone
+    clone(shell_regs, User_Programs);
+
+    // created THandle is stored in rax
+    kiv_os::THandle handles[] = {(kiv_os::THandle) shell_regs.rax.x};
+
+    kiv_hal::TRegisters wait_for_regs;
+
+    // wait for this array of handles
+    wait_for_regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(handles);
+
+    // store the count of handles to registers
+    wait_for_regs.rcx.l = (uint8_t) 1;
+
+    // perform Wait_For
+    wait_for(wait_for_regs);
+}
 
 void Set_Error(const bool failed, kiv_hal::TRegisters &regs) {
 	if (failed) {

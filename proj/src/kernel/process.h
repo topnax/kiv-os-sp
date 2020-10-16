@@ -2,8 +2,13 @@
 
 #include "..\api\api.h"
 
-void Handle_Process(kiv_hal::TRegisters &regs);
+#include "Windows.h"
 
-void clone(kiv_hal::TRegisters &registers);
+
+void thread_post_execute();
+
+void Handle_Process(kiv_hal::TRegisters &regs, HMODULE user_programs);
+
+void clone(kiv_hal::TRegisters &registers, HMODULE user_programs);
 
 void wait_for(kiv_hal::TRegisters &registers);

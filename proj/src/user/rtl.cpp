@@ -32,7 +32,7 @@ bool kiv_os_rtl::Write_File(const kiv_os::THandle file_handle, const char *buffe
 	return result;
 }
 
-bool kiv_os_rtl::Clone(const kiv_os::TThread_Proc thread_proc, char* data, kiv_os::THandle &t_handle) {
+bool kiv_os_rtl::Clone_Thread(const kiv_os::TThread_Proc thread_proc, char* data, kiv_os::THandle &t_handle) {
     // TODO Clone should take into consideration Create_Process and Create_Thread
 
     // get syscall context (registers) - specifying we want the Process service and Clone task
@@ -43,6 +43,8 @@ bool kiv_os_rtl::Clone(const kiv_os::TThread_Proc thread_proc, char* data, kiv_o
 
     // set thread/process input data
     regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(data);
+
+    regs.rcx.l = static_cast<uint8_t>(kiv_os::NClone::Create_Thread);
 
     // regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(buffer);
     // regs.rcx.r = buffer_size;
@@ -56,13 +58,29 @@ bool kiv_os_rtl::Clone(const kiv_os::TThread_Proc thread_proc, char* data, kiv_o
     return result;
 }
 
+bool kiv_os_rtl::Clone_Process(const char* program, const char* data, kiv_os::THandle std_in, kiv_os::THandle std_out, kiv_os::THandle &t_handle) {
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::Process, static_cast<uint8_t>(kiv_os::NOS_Process::Clone));
+
+    // store the program to be run in rdx
+    regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(program);
+
+    // store the program arguments in rdi
+    regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(data);
+
+    // store stdin and stdout both in rbx
+    regs.rbx.e = (std_in << 16) | std_out;
+
+    regs.rcx.l = static_cast<uint8_t>(kiv_os::NClone::Create_Process);
+
+    const bool result = kiv_os::Sys_Call(regs);
+
+    // rax now contains the handle of the created thread
+    t_handle = regs.rax.x;
+
+    return result;
+}
+
 bool kiv_os_rtl::Wait_For(const kiv_os::THandle handles[], uint8_t handle_count, uint8_t &handleThatSignalledIndex) {
-    // TODO Clone should take into consideration Create_Process and Create_Thread
-    // Wait_For, //IN : rdx pointer na pole THandle, na ktere se ma cekat, rcx je pocet handlu
-            //funkce se vraci jakmile je signalizovan prvni handle
-            //OUT : rax je index handle, ktery byl signalizovan
-
-
     // get syscall context (registers) - specifying we want the Process service and Clone task
     kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::Process, static_cast<uint8_t>(kiv_os::NOS_Process::Wait_For));
 
@@ -75,6 +93,7 @@ bool kiv_os_rtl::Wait_For(const kiv_os::THandle handles[], uint8_t handle_count,
     // do syscall
     const bool result = kiv_os::Sys_Call(regs);
 
+    // rax now contains the index of the handle that signalled the semaphore
     handleThatSignalledIndex = regs.rax.l;
 
     return result;

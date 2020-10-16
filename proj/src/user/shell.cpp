@@ -1,40 +1,43 @@
-#include <iostream>
 #include "shell.h"
 #include "rtl.h"
 
-void
-call_program(size_t (__stdcall tthread_proc)(const kiv_hal::TRegisters &regs), const kiv_hal::TRegisters &pRegisters,
-             char *data) {
+void call_program(char *program, const kiv_hal::TRegisters &registers, char *data) {
     // call clone from RTL
     // RTL is used we do not have to set register values here
 
     // TODO remove such test in release
     if (strcmp(data, "test_handles") == 0) {
-        kiv_os::THandle handle2;
-        char* test = "delayed_echo";
-        kiv_os_rtl::Clone(static_cast<kiv_os::TThread_Proc>(echo), test, handle2);
-
         // the handle of the created thread/process
         kiv_os::THandle handle;
 
-        kiv_os_rtl::Clone(static_cast<kiv_os::TThread_Proc>(tthread_proc), data, handle);
+        // delayed echo
+        kiv_os::THandle test_handle;
+        kiv_os_rtl::Clone_Process(program, "delayed_echo", registers.rax.x, registers.rbx.x, test_handle);
 
+        // clone syscall to call a program (TThread_Proc)
+        kiv_os_rtl::Clone_Process(program, data, registers.rax.x, registers.rbx.x, handle);
 
-        kiv_os::THandle handles[] = {handle2, handle};
+        kiv_os::THandle handles[] = {test_handle, handle};
 
-        uint8_t handleThatSignalledIndex = 2;
+        uint8_t handleThatSignalledIndex = 0;
 
         // wait for the program to finish
         kiv_os_rtl::Wait_For(handles, 2, handleThatSignalledIndex);
 
-        std::wcout << "Handle that signalled index: " << std::endl;
-        std::wcout << handleThatSignalledIndex << std::endl;
+        printf("Handle that signalled first: %d\n", handleThatSignalledIndex);
+
+        kiv_os::THandle handles_test[] = {test_handle};
+        // wait for the program to finish
+        kiv_os_rtl::Wait_For(handles_test, 1, handleThatSignalledIndex);
+
+        printf("Second handle that signalled: %d\n", handleThatSignalledIndex);
+
     } else {
         // the handle of the created thread/process
         kiv_os::THandle handle;
 
         // clone syscall to call a program (TThread_Proc)
-        kiv_os_rtl::Clone(static_cast<kiv_os::TThread_Proc>(tthread_proc), data, handle);
+        kiv_os_rtl::Clone_Process(program, data, registers.rax.x, registers.rbx.x, handle);
 
         kiv_os::THandle handles[] = {handle};
 
@@ -57,7 +60,6 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
     const char *intro = "Vitejte v kostre semestralni prace z KIV/OS.\n" \
                         "Shell zobrazuje echo zadaneho retezce. Prikaz exit ukonci shell.\n";
     kiv_os_rtl::Write_File(std_out, intro, strlen(intro), counter);
-
 
     const char *prompt = "C:\\>";
     do {
@@ -86,7 +88,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             char *args = strtok_s(NULL, ",", &token1);
             if (strcmp(command, "echo") == 0) {
                 if (args) {
-                    call_program(echo, regs, args);
+                    call_program("echo", regs, args);
                 }
             }
         }
