@@ -14,6 +14,7 @@
 std::mutex Semaphores_Mutex;
 std::map<std::thread::id, kiv_os::THandle> Handle_To_THandle;
 std::map<kiv_os::THandle, std::deque<Semaphore *> *> Thread_Semaphores;
+std::map<kiv_os::THandle, kiv_os::NOS_Error> Pcb;
 
 int Last_Semaphore_ID = 0;
 std::random_device rd_s;
@@ -31,6 +32,16 @@ void Handle_Process(kiv_hal::TRegisters &regs, HMODULE user_programs) {
 
         case kiv_os::NOS_Process::Wait_For: {
             wait_for(regs);
+        }
+            break;
+
+        case kiv_os::NOS_Process::Exit: {
+            exit(regs);
+        }
+            break;
+
+        case kiv_os::NOS_Process::Read_Exit_Code: {
+            read_exit_code(regs);
         }
             break;
     }
@@ -57,6 +68,11 @@ void thread_post_execute() {// while cloning, the THandle is generated and assig
 
     // get the kiv_os::THandle
     kiv_os::THandle t_handle = Handle_To_THandle[std::this_thread::get_id()];
+
+    // if no exit code is found in the PCB table for the current THandle, implicitly set it to Success
+    if (Pcb.find(t_handle) == Pcb.end()) {
+        exit(t_handle, kiv_os::NOS_Error::Success);
+    }
 
     // get all semaphores that are waiting for this thread
     auto resolved = Thread_Semaphores.find(t_handle);
@@ -121,7 +137,7 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
             kiv_os::THandle std_out = registers.rbx.e & 0xFFFF;
 
             kiv_hal::TRegisters regs = Prepare_Process_Context(std_in, std_out, arguments);
-            kiv_os::TThread_Proc program_entrypoint = (kiv_os::TThread_Proc)GetProcAddress(user_programs, program);
+            kiv_os::TThread_Proc program_entrypoint = (kiv_os::TThread_Proc) GetProcAddress(user_programs, program);
             if (program_entrypoint) {
                 run_in_a_thread(program_entrypoint, regs);
                 registers.rax.x = regs.rax.x;
@@ -237,4 +253,55 @@ void wait_for(kiv_hal::TRegisters &registers) {
         // save the index of the handle that has signalled the semaphore to the rax register according to the API specification
         registers.rax.l = handleThatSignalledIndex;
     }
+}
+
+void exit(kiv_os::THandle handle, kiv_os::NOS_Error exit_code) {
+    // store the exit code into the PCB under the key of the handle
+    Pcb[handle] = exit_code;
+}
+
+void exit(kiv_hal::TRegisters &registers) {
+    auto exit_code = static_cast<kiv_os::NOS_Error>(registers.rcx.x);
+
+    // find the handle of the current thread
+    auto resolved = Handle_To_THandle.find(std::this_thread::get_id());
+    if (resolved != Handle_To_THandle.end()) {
+        // exit with the given exit code
+        exit(resolved->second, exit_code);
+    }
+
+    // TODO somehow terminate the thread? std::thread cannot be terminated however
+}
+
+void read_exit_code(kiv_hal::TRegisters &registers) {
+    kiv_os::THandle handle = registers.rdx.x;
+
+    // check whether the handle is still referencing an active thread
+    if (Resolve_kiv_os_Handle(handle) != INVALID_HANDLE_VALUE) {
+        kiv_hal::TRegisters regs;
+
+        kiv_os::THandle handles[] = {handle};
+
+        // save pointer to the THandle to registers
+        regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(handles);
+
+        // store the count of handles to registers
+        regs.rcx.l = 1;
+
+        // wait for the handle to finish
+        wait_for(regs);
+    }
+
+    kiv_os::NOS_Error exit_code = kiv_os::NOS_Error::Unknown_Error;
+
+    // the handle has finished now, find the exit code
+    auto resolved = Pcb.find(handle);
+    if (resolved != Pcb.end()) {
+        exit_code = resolved->second;
+        Pcb.erase(handle);
+    } else {
+        // TODO in this case EC is set to Unknown_Error, but what should we do, if the exit code has already been read?
+    }
+
+    registers.rcx.x = static_cast<decltype(registers.rcx.x)>(exit_code);
 }
