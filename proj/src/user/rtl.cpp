@@ -33,8 +33,6 @@ bool kiv_os_rtl::Write_File(const kiv_os::THandle file_handle, const char *buffe
 }
 
 bool kiv_os_rtl::Clone_Thread(const kiv_os::TThread_Proc thread_proc, char* data, kiv_os::THandle &t_handle) {
-    // TODO Clone should take into consideration Create_Process and Create_Thread
-
     // get syscall context (registers) - specifying we want the Process service and Clone task
     kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::Process, static_cast<uint8_t>(kiv_os::NOS_Process::Clone));
 
