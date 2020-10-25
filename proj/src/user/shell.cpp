@@ -6,7 +6,7 @@ void call_program(char *program, const kiv_hal::TRegisters &registers, char *dat
     // RTL is used we do not have to set register values here
 
     // TODO remove such test in release
-    if (strcmp(data, "test_handles") == 0) {
+    if (data && strcmp(data, "test_handles") == 0) {
         // the handle of the created thread/process
         kiv_os::THandle handle;
 
@@ -91,7 +91,11 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                     call_program("echo", regs, args);
                 }
             }
+            else if (strcmp(command, "freq") == 0) {
+                call_program("freq", regs, args);
+            }
         }
+
     } while (strcmp(buffer, "exit") != 0);
 
 

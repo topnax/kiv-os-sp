@@ -205,7 +205,7 @@ void wait_for(kiv_hal::TRegisters &registers) {
         s.wait();
 
         // find the index of the handle that has signalled the semaphore
-        uint8_t handleThatSignalledIndex;
+        uint8_t handleThatSignalledIndex = -1; // initialize the variable otherwise problems upon calling exit?
 
         // semaphore notified - remove all semaphores from each handle semaphore deque
         for (uint8_t i = 0; i < handleCount; i++) {
