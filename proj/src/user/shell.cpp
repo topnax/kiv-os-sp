@@ -39,12 +39,14 @@ void call_program(char *program, const kiv_hal::TRegisters &registers, char *dat
         // clone syscall to call a program (TThread_Proc)
         kiv_os_rtl::Clone_Process(program, data, registers.rax.x, registers.rbx.x, handle);
 
-        kiv_os::THandle handles[] = {handle};
+        // wait for the program to finish by attempting to read it's exit code
+        kiv_os::NOS_Error exit_code;
+        kiv_os_rtl::Read_Exit_Code(handle, exit_code);
 
-        uint8_t handleThatSignalledIndex = 0;
-
-        // wait for the program to finish
-        kiv_os_rtl::Wait_For(handles, 1, handleThatSignalledIndex);
+        if (exit_code != kiv_os::NOS_Error::Success) {
+            // TODO remove in release
+            printf("\nProgram resulted in %d\n", exit_code);
+        }
     }
 
 }
@@ -85,7 +87,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         // if command name was provided
         if (command) {
             // separate command arguments
-            char *args = strtok_s(NULL, ",", &token1);
+            char *args = strtok_s(NULL, " ", &token1);
             if (strcmp(command, "echo") == 0) {
                 if (args) {
                     call_program("echo", regs, args);

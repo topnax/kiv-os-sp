@@ -22,11 +22,17 @@ extern "C" size_t __stdcall echo(const kiv_hal::TRegisters &regs) {
     if (strcmp(text, "delayed_echo") == 0) {
         std::this_thread::sleep_for(std::chrono::milliseconds(2000));
     }
-    // output the text
-    kiv_os_rtl::Write_File(std_out, text, strlen(text), counter);
 
-    // append with new line
-    kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
+    // TODO remove for release
+    if (strcmp(text, "test_exit") == 0) {
+        kiv_os_rtl::Exit(kiv_os::NOS_Error::IO_Error);
+    } else {
+        // output the text
+        kiv_os_rtl::Write_File(std_out, text, strlen(text), counter);
+
+        // append with new line
+        kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
+    }
 
     return 0;
 }

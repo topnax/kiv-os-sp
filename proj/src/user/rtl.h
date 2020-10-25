@@ -22,6 +22,10 @@ namespace kiv_os_rtl {
 
     bool Clone_Process(const char* program, const char* data, kiv_os::THandle std_in, kiv_os::THandle std_out, kiv_os::THandle &t_handle);
 
-	bool Wait_For(const kiv_os::THandle handles[], uint8_t handle_count, uint8_t &handleThatSignalledIndex);
+	bool Wait_For(const kiv_os::THandle handles[], uint8_t handle_count, uint8_t &handle_that_has_signalled_index);
+
+	bool Read_Exit_Code(const kiv_os::THandle handle, kiv_os::NOS_Error &exit_code);
+
+	bool Exit(kiv_os::NOS_Error exit_code);
 
 }

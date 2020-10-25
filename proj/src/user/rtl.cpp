@@ -78,7 +78,7 @@ bool kiv_os_rtl::Clone_Process(const char* program, const char* data, kiv_os::TH
     return result;
 }
 
-bool kiv_os_rtl::Wait_For(const kiv_os::THandle handles[], uint8_t handle_count, uint8_t &handleThatSignalledIndex) {
+bool kiv_os_rtl::Wait_For(const kiv_os::THandle handles[], uint8_t handle_count, uint8_t &handle_that_has_signalled_index) {
     // get syscall context (registers) - specifying we want the Process service and Clone task
     kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::Process, static_cast<uint8_t>(kiv_os::NOS_Process::Wait_For));
 
@@ -92,7 +92,27 @@ bool kiv_os_rtl::Wait_For(const kiv_os::THandle handles[], uint8_t handle_count,
     const bool result = kiv_os::Sys_Call(regs);
 
     // rax now contains the index of the handle that signalled the semaphore
-    handleThatSignalledIndex = regs.rax.l;
+    handle_that_has_signalled_index = regs.rax.l;
 
     return result;
+}
+
+bool kiv_os_rtl::Read_Exit_Code(const kiv_os::THandle handle, kiv_os::NOS_Error &exit_code) {
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::Process, static_cast<uint8_t>(kiv_os::NOS_Process::Read_Exit_Code));
+
+    regs.rdx.x = static_cast<decltype(regs.rdx.x)>(handle);
+
+    const bool result = kiv_os::Sys_Call(regs);
+
+    exit_code = static_cast<kiv_os::NOS_Error>(regs.rcx.x);
+
+    return result;
+}
+
+bool kiv_os_rtl::Exit(kiv_os::NOS_Error exit_code) {
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::Process, static_cast<uint8_t>(kiv_os::NOS_Process::Exit));
+
+    regs.rcx.x = static_cast<decltype(regs.rcx.x)>(exit_code);
+
+    return kiv_os::Sys_Call(regs);
 }
