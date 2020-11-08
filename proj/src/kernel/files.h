@@ -4,8 +4,8 @@
 #include <map>
 #include <memory>
 
-#include "Generic_File.h"
-#include "Pipe_File.h"
+#include "generic_file.h"
+#include "pipe_file.h"
 
 // a class representing the file table
 class File_Table {

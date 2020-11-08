@@ -1,9 +1,9 @@
 #include <mutex>
 #include <random>
 #include "files.h"
-#include "Pipe_File.h"
-#include "Vga_File.h"
-#include "Keyboard_File.h"
+#include "pipe_file.h"
+#include "vga_file.h"
+#include "keyboard_file.h"
 
 namespace Files {
     std::mutex Open_Guard;

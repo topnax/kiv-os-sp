@@ -3,7 +3,7 @@
 //
 
 #include <cstdio>
-#include "Keyboard_File.h"
+#include "keyboard_file.h"
 #include "../api/hal.h"
 
 size_t Keyboard_File::write(char *buffer, size_t size) {

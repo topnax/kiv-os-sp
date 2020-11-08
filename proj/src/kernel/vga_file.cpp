@@ -3,7 +3,7 @@
 //
 
 #include <cstdio>
-#include "Vga_File.h"
+#include "vga_file.h"
 #include "../api/hal.h"
 
 size_t Vga_File::write(char *buffer, size_t size) {

@@ -5,15 +5,17 @@
 #pragma once
 
 #include <cstddef>
-#include "Generic_File.h"
+#include "generic_file.h"
 
 /**
- * Wrapper over the VGA driver
+ * Wrapper over the keyboard driver
  */
-class Vga_File: public Generic_File {
+class Keyboard_File: public Generic_File {
 public:
     size_t write(char *buffer, size_t size) override;
 
     size_t read(size_t size, char *out_buffer) override;
 
+private:
+    static size_t Read_Line_From_Console(char *buffer, size_t buffer_size);
 };

@@ -1,7 +1,7 @@
 #include <map>
 #include <random>
 #include "pipes.h"
-#include "Pipe_File.h"
+#include "pipe_file.h"
 #include "files.h"
 
 const size_t PIPE_BUFFER_SIZE_BYTES = 64000;

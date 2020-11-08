@@ -2,7 +2,7 @@
 // Created by Stanislav Král on 06.11.2020.
 //
 
-#include "Pipe_File.h"
+#include "pipe_file.h"
 
 // Pipe_In_File method implementations
 Pipe_In_File::Pipe_In_File(std::shared_ptr<Pipe> p) : pipe(std::move(p)) {}
