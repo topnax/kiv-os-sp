@@ -17,8 +17,9 @@ bool kiv_os_rtl::Read_File(const kiv_os::THandle file_handle, char* const buffer
 	regs.rcx.r = buffer_size;
 
 	const bool result = kiv_os::Sys_Call(regs);
+
 	read = regs.rax.r;
-	return result;
+	return read > 0;
 }
 
 bool kiv_os_rtl::Write_File(const kiv_os::THandle file_handle, const char *buffer, const size_t buffer_size, size_t &written) {
@@ -29,7 +30,9 @@ bool kiv_os_rtl::Write_File(const kiv_os::THandle file_handle, const char *buffe
 
 	const bool result = kiv_os::Sys_Call(regs);
 	written = regs.rax.r;
-	return result;
+
+	// return result;
+    return written > 0;
 }
 
 bool kiv_os_rtl::Clone_Thread(const kiv_os::TThread_Proc thread_proc, char* data, kiv_os::THandle &t_handle) {
@@ -115,4 +118,24 @@ bool kiv_os_rtl::Exit(kiv_os::NOS_Error exit_code) {
     regs.rcx.x = static_cast<decltype(regs.rcx.x)>(exit_code);
 
     return kiv_os::Sys_Call(regs);
+}
+
+
+bool kiv_os_rtl::Create_Pipe(const kiv_os::THandle *handles) {
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::File_System, static_cast<uint8_t>(kiv_os::NOS_File_System::Create_Pipe));
+
+    regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(handles);
+
+    return kiv_os::Sys_Call(regs);
+}
+
+
+bool kiv_os_rtl::Close_Handle(const kiv_os::THandle handle) {
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::File_System, static_cast<uint8_t>(kiv_os::NOS_File_System::Close_Handle));
+
+    regs.rdx.x = static_cast<decltype(regs.rdx.x)>(handle);
+
+    const bool result = kiv_os::Sys_Call(regs);
+
+    return result;
 }

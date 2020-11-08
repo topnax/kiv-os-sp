@@ -3,7 +3,9 @@
 #include "kernel.h"
 #include "io.h"
 #include "process.h"
+#include "files.h"
 #include <Windows.h>
+#include <string>
 
 HMODULE User_Programs;
 
@@ -22,7 +24,7 @@ void __stdcall Sys_Call(kiv_hal::TRegisters &regs) {
 
 	switch (static_cast<kiv_os::NOS_Service_Major>(regs.rax.h)) {
 	
-		case kiv_os::NOS_Service_Major::File_System:		
+		case kiv_os::NOS_Service_Major::File_System:
 			Handle_IO(regs);
 			break;
 
@@ -48,10 +50,11 @@ void __stdcall Bootstrap_Loader(kiv_hal::TRegisters &context) {
 			
 		if (!regs.flags.carry) {
 			auto print_str = [](const char* str) {
-				kiv_hal::TRegisters regs;
+    			kiv_hal::TRegisters regs;
 				regs.rax.l = static_cast<uint8_t>(kiv_os::NOS_File_System::Write_File);
 				regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(str);
 				regs.rcx.r = strlen(str);
+                return;
 				Handle_IO(regs);
 			};
 
@@ -61,9 +64,10 @@ void __stdcall Bootstrap_Loader(kiv_hal::TRegisters &context) {
 			hexa[1] = dec_2_hex[regs.rdx.l & 0xf];
 			hexa[2] = 0;
 
-			print_str("Nalezen disk: 0x");
-			print_str(hexa);
-			print_str("\n");
+			// VGA not initialised at this moment
+			// print_str("Nalezen disk: 0x");
+			// print_str(hexa);
+			// print_str("\n");
 
 		}
 
@@ -79,8 +83,13 @@ void __stdcall Bootstrap_Loader(kiv_hal::TRegisters &context) {
 void run_shell(const kiv_hal::TRegisters &regs) {
     kiv_hal::TRegisters shell_regs;
 
-    const kiv_os::THandle std_in = static_cast<kiv_os::THandle>(regs.rax.x);
-    const kiv_os::THandle std_out = static_cast<kiv_os::THandle>(regs.rbx.x);
+    // open a VGA as the STDOUT for the shell
+    std::string vga = "/dev/vga";
+    auto std_out = Open_File(vga.c_str(), 0, 0);
+
+    // open keyboard as the STDIN for shell
+    std::string kb = "/dev/kb";
+    auto std_in = Open_File(kb.c_str(), 0, 0);
 
     // "shell" program should be run
     shell_regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>("shell");
@@ -101,6 +110,8 @@ void run_shell(const kiv_hal::TRegisters &regs) {
     kiv_os::THandle handles[] = {(kiv_os::THandle) shell_regs.rax.x};
 
     kiv_hal::TRegisters wait_for_regs;
+
+    // TODO change to Handle_Process instead of calling wait_for directly
 
     // wait for this array of handles
     wait_for_regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(handles);

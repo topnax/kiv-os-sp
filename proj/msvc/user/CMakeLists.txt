@@ -126,13 +126,13 @@ set(Source_Files
     "../../src/api/api.cpp"
     "../../src/user/rtl.cpp"
     "../../src/user/shell.cpp"
-        ../../src/user/echo.cpp)
+        ../../src/user/echo.cpp ../../src/user/rgen.cpp)
 source_group("Source Files" FILES ${Source_Files})
 
 set(ALL_FILES
     ${Header_Files}
     ${Source_Files}
-)
+        ../../src/user/argparser.h ../../src/user/argparser.cpp ../../src/user/rgen.cpp)
 
 ################################################################################
 # Target

@@ -122,7 +122,7 @@ set(Header_Files
     "../../src/kernel/handles.h"
     "../../src/kernel/io.h"
     "../../src/kernel/kernel.h"
-        ../../src/kernel/process.h)
+        ../../src/kernel/process.h ../../src/kernel/pipe.h ../../src/kernel/pipes.h ../../src/kernel/files.h)
 source_group("Header Files" FILES ${Header_Files})
 
 set(Source_Files
@@ -130,13 +130,13 @@ set(Source_Files
     "../../src/kernel/handles.cpp"
     "../../src/kernel/io.cpp"
     "../../src/kernel/kernel.cpp"
-        ../../src/kernel/process.cpp)
+        ../../src/kernel/process.cpp ../../src/kernel/pipe.cpp ../../src/kernel/pipes.cpp ../../src/kernel/files.cpp)
 source_group("Source Files" FILES ${Source_Files})
 
 set(ALL_FILES
     ${Header_Files}
     ${Source_Files}
-        ../../src/kernel/semaphore.h)
+        ../../src/kernel/semaphore.h ../../src/kernel/Generic_File.h ../../src/kernel/Pipe_File.cpp ../../src/kernel/Pipe_File.h ../../src/kernel/Vga_File.cpp ../../src/kernel/Vga_File.h ../../src/kernel/Keyboard_File.cpp ../../src/kernel/Keyboard_File.h)
 
 ################################################################################
 # Target

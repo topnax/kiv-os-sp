@@ -83,7 +83,8 @@ namespace kiv_os {
 
 		Create_Pipe,					//IN : rdx je pointer na pole dvou Thandle - prvni zapis a druhy pro cteni z pipy
 
-		
+		// TK note: procesy při použití rour spouštět odzadu!
+
 	};
 
 
@@ -113,6 +114,9 @@ namespace kiv_os {
 							//IN: cx je exit code
 
 		Shutdown,			//nema parametry, nejprve korektne ukonci vsechny bezici procesy a pak kernel, cimz se preda rizeni do boot.exe, ktery provede simulaci vypnuti pocitace pres ACPI
+
+		// TK note: SHUTDOWN má poslat End of Transmission všem procesům na jejich STDIN
+
 		Register_Signal_Handler		//IN: rcx NSignal_Id, rdx 
 						//	a) pointer na TThread_Proc, kde pri jeho volani context.rcx bude id signalu
 						//	b) 0 a pak si OS dosadi defualtni obsluhu signalu
@@ -137,6 +141,8 @@ namespace kiv_os {
 
 	enum class NSignal_Id : uint8_t {
 		Terminate = 15		//SIGTERM
+
+		        // TK note: do RDX dá pointer na obsluhu toho signálu, do rcx 15, signály volá jádro, program jen registruje handlery
 	};
 
 	//atributy souboru

@@ -5,7 +5,7 @@
 #include "Windows.h"
 
 
-void thread_post_execute();
+void thread_post_execute(bool is_process);
 
 void Handle_Process(kiv_hal::TRegisters &regs, HMODULE user_programs);
 

@@ -1,6 +1,7 @@
 //
 // Created by Stanislav Král on 11.10.2020.
 //
+#include <memory>
 #include <thread>
 #include "../api/hal.h"
 #include "../api/api.h"
@@ -11,9 +12,19 @@
 #include "semaphore.h"
 #include "process.h"
 
+class Semaphores {
+public:
+    std::map<kiv_os::THandle, std::unique_ptr<std::vector<Semaphore *>>> Thread_Semaphores;
+};
+
+namespace Process {
+    Semaphores *semaphores = new Semaphores();
+}
+
+// TODO move to Process namespace
+
 std::mutex Semaphores_Mutex;
 std::map<std::thread::id, kiv_os::THandle> Handle_To_THandle;
-std::map<kiv_os::THandle, std::deque<Semaphore *> *> Thread_Semaphores;
 std::map<kiv_os::THandle, kiv_os::NOS_Error> Pcb;
 
 int Last_Semaphore_ID = 0;
@@ -55,31 +66,37 @@ kiv_hal::TRegisters Prepare_Process_Context(unsigned short std_in, unsigned shor
     return regs;
 }
 
-void thread_entrypoint(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &registers) {
+void thread_entrypoint(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &registers, bool is_process) {
     // execute the TThread_Proc (the desired program, echo, md, ...)
     t_threadproc(registers);
 
     // the program is now executed - call thread post execute
-    thread_post_execute();
+    thread_post_execute(is_process);
 }
 
-void thread_post_execute() {// while cloning, the THandle is generated and assigned to the Handle_To_THandle map
+void thread_post_execute(bool is_process) {// while cloning, the THandle is generated and assigned to the Handle_To_THandle map
 // under the key which is the thread ID of the thread the TThread_Proc is run in
 
     // get the kiv_os::THandle
     kiv_os::THandle t_handle = Handle_To_THandle[std::this_thread::get_id()];
 
-    // if no exit code is found in the PCB table for the current THandle, implicitly set it to Success
-    if (Pcb.find(t_handle) == Pcb.end()) {
-        exit(t_handle, kiv_os::NOS_Error::Success);
+    if (is_process) {
+        // if no exit code is found in the PCB table for the current THandle, implicitly set it to Success
+        if (Pcb.find(t_handle) == Pcb.end()) {
+            exit(t_handle, kiv_os::NOS_Error::Success);
+        }
     }
 
     // get all semaphores that are waiting for this thread
-    auto resolved = Thread_Semaphores.find(t_handle);
+    auto resolved = Process::semaphores->Thread_Semaphores.find(t_handle);
 
-    if (resolved != Thread_Semaphores.end()) {
+
+    // remove the THandle before notifying semaphores
+    Remove_Handle(t_handle);
+
+    if (resolved != Process::semaphores->Thread_Semaphores.end()) {
         // found semaphore list
-        std::deque<Semaphore *> *semaphores = Thread_Semaphores[t_handle];
+        auto *semaphores = Process::semaphores->Thread_Semaphores[t_handle].get();
         // iterate over thread's semaphores
         for (Semaphore *se : *semaphores) {
             // notify the semaphores of the thread
@@ -87,16 +104,13 @@ void thread_post_execute() {// while cloning, the THandle is generated and assig
         }
     }
 
-    // remove the THandle
-    Remove_Handle(t_handle);
-
     // remove the std::thread::id to kiv_os::THandle mapping
     Handle_To_THandle.erase(std::this_thread::get_id());
 }
 
-void run_in_a_thread(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &registers) {
+void run_in_a_thread(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &registers, bool is_process) {
     // spawn a new thread, in which a program at address inside rdx is run
-    std::thread t1(thread_entrypoint, t_threadproc, registers);
+    std::thread t1(thread_entrypoint, t_threadproc, registers, is_process);
 
     // get the native handle of the spawned thread
     HANDLE native_handle = t1.native_handle();
@@ -120,7 +134,7 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
     switch (static_cast<kiv_os::NClone>(registers.rcx.l)) {
         case kiv_os::NClone::Create_Thread: {
             // run the TThreadProc in a new thread
-            run_in_a_thread(((kiv_os::TThread_Proc) registers.rdx.r), registers);
+            run_in_a_thread(((kiv_os::TThread_Proc) registers.rdx.r), registers, false);
             break;
         }
 
@@ -139,7 +153,7 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
             kiv_hal::TRegisters regs = Prepare_Process_Context(std_in, std_out, arguments);
             kiv_os::TThread_Proc program_entrypoint = (kiv_os::TThread_Proc) GetProcAddress(user_programs, program);
             if (program_entrypoint) {
-                run_in_a_thread(program_entrypoint, regs);
+                run_in_a_thread(program_entrypoint, regs, true);
                 registers.rax.x = regs.rax.x;
             }
 
@@ -171,15 +185,14 @@ void wait_for(kiv_hal::TRegisters &registers) {
         auto t_handle = t_handles[index];
 
         // current thread has no list of semaphores - let's create one
-        if (!Thread_Semaphores[t_handle]) {
-            auto dq = new std::deque<Semaphore *>;
-            Thread_Semaphores[t_handle] = dq;
+        if (!Process::semaphores->Thread_Semaphores[t_handle]) {
+            Process::semaphores->Thread_Semaphores[t_handle] = std::make_unique<std::vector<Semaphore *>>();
         }
 
         // check whether the handle is valid
         if (Resolve_kiv_os_Handle(t_handle) != INVALID_HANDLE_VALUE) {
             // assign a semaphore to the THandle
-            (*(Thread_Semaphores[t_handle])).push_back(&s);
+            (*(Process::semaphores->Thread_Semaphores[t_handle])).push_back(&s);
         } else {
             // stop iterating over handles - we found a handle that is not valid
             anyHandleInvalid = true;
@@ -196,14 +209,14 @@ void wait_for(kiv_hal::TRegisters &registers) {
 
             // TODO we might use the ID of the semaphore to remove it
 
-            std::deque<Semaphore *> *sem_list = Thread_Semaphores[t_handle];
+            std::vector<Semaphore *> *sem_list = Process::semaphores->Thread_Semaphores[t_handle].get();
             // pop back one semaphore
             // this is the reason why we use a mutex to make sure the semaphore deque does not change while we loop over handles
             if (sem_list) {
                 sem_list->pop_back();
                 // if the semaphore list is empty, delete it from the thread to semaphores map
                 if (sem_list->empty()) {
-                    Thread_Semaphores.erase(t_handle);
+                    Process::semaphores->Thread_Semaphores.erase(t_handle);
                 }
             }
         }
@@ -235,7 +248,7 @@ void wait_for(kiv_hal::TRegisters &registers) {
             }
 
             // iterate over semaphores of the currently iterated handle
-            auto current_handle_semaphores = Thread_Semaphores[t_handle];
+            auto current_handle_semaphores = Process::semaphores->Thread_Semaphores[t_handle].get();
 
             int index_to_be_removed = 0;
             for (Semaphore *sem : *current_handle_semaphores) {
@@ -245,10 +258,10 @@ void wait_for(kiv_hal::TRegisters &registers) {
                 }
                 index_to_be_removed++;
             }
-
-            current_handle_semaphores->erase(current_handle_semaphores->begin() + index_to_be_removed);
-
-            // TODO should we delete (remove from heap) the created semaphore?
+            auto se = current_handle_semaphores->erase(current_handle_semaphores->begin() + index_to_be_removed);
+            if (current_handle_semaphores->empty()) {
+                Process::semaphores->Thread_Semaphores.erase(t_handle);
+            }
         }
         // save the index of the handle that has signalled the semaphore to the rax register according to the API specification
         registers.rax.l = handleThatSignalledIndex;
