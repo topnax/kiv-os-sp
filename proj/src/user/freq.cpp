@@ -1,5 +1,5 @@
 //
-// Created by Eliöka Mourycov· on 16.10.2020.
+// Created by Eli≈°ka Mourycov√° on 16.10.2020.
 //
 
 #include <thread>
