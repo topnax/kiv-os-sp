@@ -1,12 +1,41 @@
 #include "shell.h"
 #include "rtl.h"
+#include "argparser.h"
+
+
+int pipe_test(kiv_os::THandle std_in, kiv_os::THandle std_out) {
+    printf("pipe test :)\n");
+
+    kiv_os::THandle pipe[2];
+    kiv_os_rtl::Create_Pipe(pipe);
+
+    kiv_os::THandle rgen_handle;
+    kiv_os_rtl::Clone_Process("rgen", "", std_in, pipe[0], rgen_handle);
+
+    // freq not implemented
+    kiv_os::THandle freq_handle;
+    kiv_os_rtl::Clone_Process("freq", "", pipe[1], std_out, freq_handle);
+
+
+    kiv_os::NOS_Error exit_code;
+    kiv_os_rtl::Read_Exit_Code(rgen_handle, exit_code);
+    printf("rgen stopped\n");
+
+    kiv_os_rtl::Close_Handle(pipe[0]);
+
+    kiv_os_rtl::Read_Exit_Code(freq_handle, exit_code);
+    printf("freq stopped\n");
+
+    kiv_os_rtl::Close_Handle(pipe[1]);
+    return 0;
+}        
 
 void call_program(char *program, const kiv_hal::TRegisters &registers, char *data) {
     // call clone from RTL
     // RTL is used we do not have to set register values here
 
     // TODO remove such test in release
-    if (strcmp(data, "test_handles") == 0) {
+    if (false && strcmp(data, "test_handles") == 0) {
         // the handle of the created thread/process
         kiv_os::THandle handle;
 
@@ -93,9 +122,18 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                     call_program("echo", regs, args);
                 }
             }
+            if (strcmp(command, "rgen") == 0) {
+                    call_program("rgen", regs, args);
+            }
+            if (strcmp(command, "pipetest") == 0) {
+                pipe_test(std_in, std_out);
+            }
         }
     } while (strcmp(buffer, "exit") != 0);
 
 
     return 0;
 }
+
+
+

@@ -28,4 +28,7 @@ namespace kiv_os_rtl {
 
 	bool Exit(kiv_os::NOS_Error exit_code);
 
+    bool Create_Pipe(const kiv_os::THandle *handles);
+
+    bool Close_Handle(const kiv_os::THandle handle);
 }
