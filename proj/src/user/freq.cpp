@@ -31,9 +31,9 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters & regs) {
     do {
         if (kiv_os_rtl::Read_File(std_in, buffer, buffer_size, counter)) {
 
-            if (counter < buffer_size) {
-                doContinue = false; // this is here so that we quit when there is nothing more to read - ok?
-            }
+            //if (counter < buffer_size) {
+            //    doContinue = false; // this is here so that we quit when there is nothing more to read - ok?
+            //}
 
             // build the frequency table:
             for (int i = 0; i < counter; i++) {
@@ -41,6 +41,7 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters & regs) {
 
                 // check for EOT:
                 if (static_cast<kiv_hal::NControl_Codes>(buffer[i]) == kiv_hal::NControl_Codes::EOT) {
+                    doContinue = false;
                     break; // EOT
                 }
 
