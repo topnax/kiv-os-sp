@@ -43,24 +43,22 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
                     break; // EOT
                 }
                 // go through the chars to see if we've got the current one stored already:
-                for (int j = 0; j < chars.size(); j++) {
-                    auto c = buffer[i];
-                    frequencies[c + 128]++;
-                    //if (buffer[i] == chars[j]) {
+                auto c = buffer[i];
+                frequencies[c + 128]++;
+                //if (buffer[i] == chars[j]) {
 
-                    //    // if we know this char, only increase the frequency and set found flag to true
-                    //    frequencies[j]++;
-                    //    found = true;
-                    //    break;
-                    //}
-                }
-                //if (!found) {
-                //    // if we haven't found anything, add new record with a frequency set to 1
-                //    frequencies.push_back(1);
-                //    chars.push_back(buffer[i]);
+                //    // if we know this char, only increase the frequency and set found flag to true
+                //    frequencies[j]++;
+                //    found = true;
+                //    break;
                 //}
-
             }
+            //if (!found) {
+            //    // if we haven't found anything, add new record with a frequency set to 1
+            //    frequencies.push_back(1);
+            //    chars.push_back(buffer[i]);
+            //}
+
         } else {
             break; // EOF
         }
