@@ -12,7 +12,6 @@ int pipe_test(kiv_os::THandle std_in, kiv_os::THandle std_out) {
     kiv_os::THandle rgen_handle;
     kiv_os_rtl::Clone_Process("rgen", "", std_in, pipe[0], rgen_handle);
 
-    // freq not implemented
     kiv_os::THandle freq_handle;
     kiv_os_rtl::Clone_Process("freq", "", pipe[1], std_out, freq_handle);
 
