@@ -30,6 +30,7 @@
     <ClCompile Include="..\..\src\user\argparser.cpp" />
     <ClCompile Include="..\..\src\user\echo.cpp" />
     <ClCompile Include="..\..\src\user\rgen.cpp" />
+    <ClCompile Include="..\..\src\user\freq.cpp" />
     <ClCompile Include="..\..\src\user\rtl.cpp" />
     <ClCompile Include="..\..\src\user\shell.cpp" />
   </ItemGroup>

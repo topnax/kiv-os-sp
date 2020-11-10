@@ -28,14 +28,14 @@ int pipe_test(kiv_os::THandle std_in, kiv_os::THandle std_out) {
 
     kiv_os_rtl::Close_Handle(pipe[1]);
     return 0;
-}        
+}
 
 void call_program(char *program, const kiv_hal::TRegisters &registers, char *data) {
     // call clone from RTL
     // RTL is used we do not have to set register values here
 
     // TODO remove such test in release
-    if (false && strcmp(data, "test_handles") == 0) {
+    if (data && strcmp(data, "test_handles") == 0) {
         // the handle of the created thread/process
         kiv_os::THandle handle;
 
@@ -128,12 +128,12 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             if (strcmp(command, "pipetest") == 0) {
                 pipe_test(std_in, std_out);
             }
+            if (strcmp(command, "freq") == 0) {
+                call_program("freq", regs, args);
+            }
         }
     } while (strcmp(buffer, "exit") != 0);
 
 
     return 0;
 }
-
-
-
