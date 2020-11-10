@@ -16,10 +16,10 @@ public:
     // the pipe should be deleted once both file objects are destroyed
     explicit Pipe_In_File(std::shared_ptr<Pipe> pipe);
 
-    size_t write(char *buffer, size_t size) override;
+    bool write(char *buffer, size_t size, size_t &written) override;
 
-    size_t read(size_t size, char *out_buffer) override {
-        return -1;
+    bool read(size_t size, char *out_buffer, size_t &read) override {
+        return false;
     };
 
     void close() override;
@@ -36,11 +36,11 @@ public:
     // the pipe should be deleted once both file objects are destroyed
     explicit Pipe_Out_File(std::shared_ptr<Pipe>);
 
-    size_t write(char *buffer, size_t size) override {
-        return -1;
+    bool write(char *buffer, size_t size, size_t &written) override {
+        return false;
     };
 
-    size_t read(size_t size, char *out_buffer) override;
+    bool read(size_t size, char *out_buffer, size_t &read) override;
 
     void close() override;
 

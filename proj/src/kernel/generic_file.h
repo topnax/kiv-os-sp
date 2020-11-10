@@ -10,10 +10,10 @@ class Generic_File {
 public:
 
     // writes `size` bytes from `buffer` to this file
-    virtual size_t write(char *buffer, size_t size) = 0;
+    virtual bool write(char *buffer, size_t size, size_t &written) = 0;
 
     // reads `size` bytes from this file to the `out_buffer`
-    virtual size_t read(size_t size, char *out_buffer) = 0;
+    virtual bool read(size_t size, char *out_buffer, size_t &read) = 0;
 
     // closes this file
     virtual void close() { }

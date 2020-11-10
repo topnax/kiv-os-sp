@@ -6,7 +6,7 @@
 #include "keyboard_file.h"
 #include "../api/hal.h"
 
-size_t Keyboard_File::write(char *buffer, size_t size) {
+bool Keyboard_File::write(char *buffer, size_t size, size_t &written) {
    // kiv_hal::TRegisters registers;
 
    // size_t pos = 0;
@@ -24,7 +24,7 @@ size_t Keyboard_File::write(char *buffer, size_t size) {
    // }
     // return pos;
 
-    return -1; // cannot write to keyboard
+    return false; // cannot write to keyboard
 }
 
 size_t Keyboard_File::Read_Line_From_Console(char *buffer, const size_t buffer_size) {
@@ -73,6 +73,7 @@ size_t Keyboard_File::Read_Line_From_Console(char *buffer, const size_t buffer_s
 
 }
 
-size_t Keyboard_File::read(size_t size, char *out_buffer) {
-    return Read_Line_From_Console(reinterpret_cast<char*>(out_buffer), size);
+bool Keyboard_File::read(size_t size, char *out_buffer, size_t &read) {
+    read = Read_Line_From_Console(reinterpret_cast<char*>(out_buffer), size);
+    return true;
 }

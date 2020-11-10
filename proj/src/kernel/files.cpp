@@ -90,9 +90,16 @@ void Write_File(kiv_hal::TRegisters &regs) {
 
     Generic_File *file = Resolve_THandle_To_File(handle);
     if (file != nullptr) {
-        regs.rax.r = file->write(buff, bytes);
+        size_t written;
+        bool res = file->write(buff, bytes, written);
+        regs.rax.r = written;
+        if (!res) {
+            // some error has happened
+            regs.flags.carry = 1;
+        }
     } else {
-        regs.rax.r = -1;
+        regs.rax.r = 0;
+        regs.flags.carry = 1;
     }
 }
 
@@ -104,9 +111,15 @@ void Read_File(kiv_hal::TRegisters &regs) {
     if (file != nullptr) {
         size_t buff_size = regs.rcx.r;
         char *buff = reinterpret_cast<char *>(regs.rdi.r);
-        size_t read = file->read(buff_size, buff);
+        size_t read;
+        bool res = file->read(buff_size, buff, read);
         regs.rax.r = read;
+        if (!res) {
+            // some error has happened
+            regs.flags.carry = 1;
+        }
     } else {
-        regs.rax.r = -1;
+        regs.rax.r = 0;
+        regs.flags.carry = 1;
     }
 }

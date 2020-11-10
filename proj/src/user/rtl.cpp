@@ -19,7 +19,7 @@ bool kiv_os_rtl::Read_File(const kiv_os::THandle file_handle, char* const buffer
 	const bool result = kiv_os::Sys_Call(regs);
 
 	read = regs.rax.r;
-	return read > 0;
+	return result;
 }
 
 bool kiv_os_rtl::Write_File(const kiv_os::THandle file_handle, const char *buffer, const size_t buffer_size, size_t &written) {
@@ -31,8 +31,7 @@ bool kiv_os_rtl::Write_File(const kiv_os::THandle file_handle, const char *buffe
 	const bool result = kiv_os::Sys_Call(regs);
 	written = regs.rax.r;
 
-	// return result;
-    return written > 0;
+    return result;
 }
 
 bool kiv_os_rtl::Clone_Thread(const kiv_os::TThread_Proc thread_proc, char* data, kiv_os::THandle &t_handle) {

@@ -7,9 +7,10 @@
 // Pipe_In_File method implementations
 Pipe_In_File::Pipe_In_File(std::shared_ptr<Pipe> p) : pipe(std::move(p)) {}
 
-size_t Pipe_In_File::write(char *buffer, size_t size) {
+bool Pipe_In_File::write(char *buffer, size_t size, size_t &written) {
     // convert char* to vector<char>
-    return pipe->Write(std::vector<char>(buffer, buffer + size));
+    written =  pipe->Write(std::vector<char>(buffer, buffer + size));
+    return true;
 }
 
 void Pipe_In_File::close() {
@@ -20,13 +21,14 @@ void Pipe_In_File::close() {
 // Pipe_Out_File method implementations
 Pipe_Out_File::Pipe_Out_File(std::shared_ptr<Pipe> p) : pipe(std::move(p)) {}
 
-size_t Pipe_Out_File::read(size_t size, char *out_buffer) {
+bool Pipe_Out_File::read(size_t size, char *out_buffer, size_t &written) {
     // write contents of vector<char> to the given buffer
     auto data = pipe->Read(size / sizeof(char));
     for (int i = 0; i < data.size(); i++) {
         out_buffer[i] = data.at(i);
     }
-    return data.size() * sizeof(char);
+    written = data.size() * sizeof(char);
+    return true;
 }
 
 void Pipe_Out_File::close() {
