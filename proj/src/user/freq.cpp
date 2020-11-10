@@ -13,8 +13,7 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
     char buffer[buffer_size];
     const char *new_line = "\n";
 
-    // two arrays for remembering the frequencies of chars: 
-    std::vector<unsigned char> chars(256);
+    // an array for remembering the frequencies of chars - the index coresponds to the char: 
     std::vector<unsigned int> frequencies(256);
 
     // memset the buffer to empty, just to be safe:
@@ -24,8 +23,6 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
     const auto std_out = static_cast<kiv_os::THandle>(regs.rbx.x);
     const auto std_in = static_cast<kiv_os::THandle>(regs.rax.x);
 
-
-    bool found = false;     // flag to keep track of if a char has been encountered
     bool doContinue = true; // flag to tell if we should break out of the reading cycle
     do {
         if (kiv_os_rtl::Read_File(std_in, buffer, buffer_size, counter)) {
@@ -35,29 +32,17 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
 
             // build the frequency table:
             for (int i = 0; i < counter; i++) {
-                found = false; // reset the flag
 
                 // check for EOT:
                 if (static_cast<kiv_hal::NControl_Codes>(buffer[i]) == kiv_hal::NControl_Codes::EOT) {
                     doContinue = false;
                     break; // EOT
                 }
-                // go through the chars to see if we've got the current one stored already:
+
+                // increase the frequency of current char
                 auto c = buffer[i];
                 frequencies[c + 128]++;
-                //if (buffer[i] == chars[j]) {
-
-                //    // if we know this char, only increase the frequency and set found flag to true
-                //    frequencies[j]++;
-                //    found = true;
-                //    break;
-                //}
             }
-            //if (!found) {
-            //    // if we haven't found anything, add new record with a frequency set to 1
-            //    frequencies.push_back(1);
-            //    chars.push_back(buffer[i]);
-            //}
 
         } else {
             break; // EOF
@@ -73,12 +58,11 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
     // printing the gathered frequencies:
     size_t n = 0;
 
-    for (int i = 0; i < chars.size(); i++) {
-        // format it in the way that was assigned:
+    for (int i = 0; i < frequencies.size(); i++) {
         if (frequencies[i] > 0) {
             memset(buffer, 0, buffer_size);
+            // format it in the way that was requested:
             n = sprintf_s(buffer, "0x%hhx : %d", i, frequencies[i]);
-
 
             kiv_os_rtl::Write_File(std_out, buffer, strlen(buffer), n);
             kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
