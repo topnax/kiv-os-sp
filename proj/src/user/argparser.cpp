@@ -75,11 +75,11 @@ std::vector<program> parse_programs2(char* input/*, program* programs, int* leng
     char curr_prog_name[NAME_LEN];
     memset(curr_prog_name, 0, NAME_LEN);
 
-    bool in_found = false;
-    bool out_found = false;
-    int j = 0;
-    int prog_count = 0;
-    int actual_prog_count = 0;
+    int j = 0; // pointer to buffer containing one program's name (and potentially data)
+    int prog_count = 0; // number of programs but also files in the whole pipeline
+    int actual_prog_count = 0; // number of programs alone in the pipeline
+
+    // this cycle goes through the user input and saves names and data of programs and names of files
     for (int i = 0; i < len; ++i) {
 
         
@@ -97,46 +97,41 @@ std::vector<program> parse_programs2(char* input/*, program* programs, int* leng
             curr_p.output = out;
 
 
-            // --- TAKING CARE OF NAME AND DATA: ---
             if (i == len - 1) {
                 // add the last character if we're at the end
                 curr_prog_name[j] = input[i];
             }
 
             
-
-            
-            // check if there's data:
+            // check if there're any arguments:
             char* data;
-            char* actual_name = strtok_s(curr_prog_name, " ", &data);
+            char* actual_name = strtok_s(curr_prog_name, " ", &data); // actual_name is the name of the program
 
             // trim the name and the data
             strtrim(actual_name);
             strtrim(data);
             
-            // copy the name and the data in
+            // copy the name and the data into the structure
             strncpy_s(curr_p.name, actual_name, NAME_LEN);
             strncpy_s(curr_p.data, data, DATA_LEN);
-            // --- ---
-
 
             
             if (i != len - 1) {
                 delims.push_back(input[i]); // save the delimiter, we'll need it later for io assigning
             }
             
-            j = 0; // reset the pointer to curr_name
-            i++; // skip this char, bc it's the delimiter
-
+            
             //programs[prog_count] = curr_p;
-            programs_vec.push_back(curr_p);
+            programs_vec.push_back(curr_p); // save the program to the vector
             prog_count++;
             actual_prog_count++;
-            if (input[i - 1] == in_symb || input[i - 1] == out_symb) {
-                actual_prog_count--;
+            if (input[i] == in_symb || input[i] == out_symb) {
+                actual_prog_count--; // keeping track of how many runnable programs we have
             }
 
-            memset(curr_prog_name, 0, NAME_LEN);
+            j = 0; // reset the pointer to curr_name
+            i++; // skip this char, bc it's the delimiter
+            memset(curr_prog_name, 0, NAME_LEN); // null the name
         }
 
         curr_prog_name[j] = input[i];
@@ -146,42 +141,29 @@ std::vector<program> parse_programs2(char* input/*, program* programs, int* leng
 
 
 
-    // go through the programs and assign correct inputs and outputs to them
-    int delims_count = delims.size(); // delims.size should be equal to prog_count - 1
-    int del = 0;
-    size_t new_prog_count = prog_count;
-
-    // preparing such flow at the beginning - can be changed later in the cycle
-    //programs[0].input.type = ProgramHandleType::Standard;
-    //programs[prog_count - 1].output.type = ProgramHandleType::Standard;
-
+    // go through the programs and assign correct inputs and outputs to them:
     for (int i = 0; i < prog_count - 1; ++i) {
-
-        // ---  TAKING CARE OF I/O ---
-        /*io curr_in = io{};
-        io curr_out = io{};*/
 
         memset(programs_vec[i].input.name, 0, NAME_LEN);
         memset(programs_vec[i].output.name, 0, NAME_LEN);
-
-        //programs[i].input.type = programs[i - 1].output.type;
-        //strncpy_s(programs[i].input.name, programs[i - 1].name, NAME_LEN);
         
         if (i == 0) {
             // first program, because they are saved in the order they appered
+            // assign std in to the first program and std out to the last program - this may change as we go through the pipeline
             programs_vec[i].input.type = ProgramHandleType::Standard;
             programs_vec[actual_prog_count - 1].output.type = ProgramHandleType::Standard;
 
         }
         else {
-            
+            // assign the input of the current program as the output of the previous one
             programs_vec[i].input.type = programs_vec[i - 1].output.type;
             strncpy_s(programs_vec[i].input.name, programs_vec[i - 1].name, NAME_LEN);
-            /*if(del < delims_count - 1)
-                del++;*/
         }
 
         if (delims[i] == pipe_symb) {
+            // if there is a | symbol between current program and the next one:
+            // set the output type of the current program to pipe and to which program it connects (the next one)
+            // the same is done for the input of the next program
             programs_vec[i].output.type = ProgramHandleType::Pipe;
             strncpy_s(programs_vec[i].output.name, programs_vec[i + 1].name, NAME_LEN);
             
@@ -189,32 +171,26 @@ std::vector<program> parse_programs2(char* input/*, program* programs, int* leng
             strncpy_s(programs_vec[i + 1].input.name, programs_vec[i].name, NAME_LEN);
         }
         else if (delims[i] == out_symb) {
+            // if there is > symbol between current program and the next one:
+            // set the output type of the current program to file and the name of the file
             programs_vec[i].output.type = ProgramHandleType::File;
             strncpy_s(programs_vec[i].output.name, programs_vec[i + 1].name, NAME_LEN);
 
-            new_prog_count--; // todo destory the structs already created even for the files?
+            //new_prog_count--; // todo destory the structs already created even for the files?
         }
         else if (delims[i] == in_symb) {
+            // if there is < symbol between current program and the next one:
+            // set the input type of the first program to file and the name of the file
             programs_vec[0].input.type = ProgramHandleType::File;
             strncpy_s(programs_vec[0].input.name, programs_vec[i + 1].name, NAME_LEN);
 
-            new_prog_count--;
+            //new_prog_count--;
         }
 
     }
 
-    /*programs = (program*)malloc(new_prog_count * sizeof(program));
-    for (int i = 0; i < new_prog_count; i++) {
-        programs[i] = programs_vec[i];
-    }*/
-
-
-
-    //programs = programs_vec.data(); // &programs_vec[0];
-    //*length = new_prog_count;//programs_vec.size();
-
-    programs_vec.resize(new_prog_count);
-
+    // remove the files, if there were any they must be at the end:
+    programs_vec.resize(actual_prog_count); 
     return programs_vec;
 }
 
