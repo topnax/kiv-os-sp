@@ -62,14 +62,12 @@ void parse_programs(char *input, program *programs, int *length) {
 }
 
 
-void parse_programs2(char* input, program* programs, int* length) {
+std::vector<program> parse_programs2(char* input/*, program* programs, int* length*/) {
 
-    //std::vector<program> programs_vec;
+    std::vector<program> programs_vec;
     const char in_symb = '<';
     const char out_symb = '>';
     const char pipe_symb = '|';
-    //auto last_input = ProgramHandleType::Standard;
-    //auto last_output = ProgramHandleType::Standard;
     std::vector<char> delims;
 
     size_t len = strlen(input);
@@ -81,6 +79,7 @@ void parse_programs2(char* input, program* programs, int* length) {
     bool out_found = false;
     int j = 0;
     int prog_count = 0;
+    int actual_prog_count = 0;
     for (int i = 0; i < len; ++i) {
 
         
@@ -123,14 +122,19 @@ void parse_programs2(char* input, program* programs, int* length) {
 
             
             if (i != len - 1) {
-                delims.push_back(input[i]); // save the delimiter
+                delims.push_back(input[i]); // save the delimiter, we'll need it later for io assigning
             }
             
             j = 0; // reset the pointer to curr_name
             i++; // skip this char, bc it's the delimiter
 
-            programs[prog_count] = curr_p;
+            //programs[prog_count] = curr_p;
+            programs_vec.push_back(curr_p);
             prog_count++;
+            actual_prog_count++;
+            if (input[i - 1] == in_symb || input[i - 1] == out_symb) {
+                actual_prog_count--;
+            }
 
             memset(curr_prog_name, 0, NAME_LEN);
         }
@@ -157,76 +161,60 @@ void parse_programs2(char* input, program* programs, int* length) {
         /*io curr_in = io{};
         io curr_out = io{};*/
 
-        memset(programs[i].input.name, 0, NAME_LEN);
-        memset(programs[i].output.name, 0, NAME_LEN);
+        memset(programs_vec[i].input.name, 0, NAME_LEN);
+        memset(programs_vec[i].output.name, 0, NAME_LEN);
 
-        programs[i].input.type = programs[i - 1].output.type;
-        strncpy_s(programs[i].input.name, programs[i - 1].name, NAME_LEN);
+        //programs[i].input.type = programs[i - 1].output.type;
+        //strncpy_s(programs[i].input.name, programs[i - 1].name, NAME_LEN);
         
         if (i == 0) {
             // first program, because they are saved in the order they appered
-            programs[i].input.type = ProgramHandleType::Standard;
-            programs[prog_count - 1].output.type = ProgramHandleType::Standard;
+            programs_vec[i].input.type = ProgramHandleType::Standard;
+            programs_vec[actual_prog_count - 1].output.type = ProgramHandleType::Standard;
 
         }
         else {
             
-            programs[i].input.type = programs[i - 1].output.type;
-            strncpy_s(programs[i].input.name, programs[i - 1].name, NAME_LEN);
+            programs_vec[i].input.type = programs_vec[i - 1].output.type;
+            strncpy_s(programs_vec[i].input.name, programs_vec[i - 1].name, NAME_LEN);
             /*if(del < delims_count - 1)
                 del++;*/
         }
 
         if (delims[i] == pipe_symb) {
-            programs[i].output.type = ProgramHandleType::Pipe;
-            strncpy_s(programs[i].output.name, programs[i + 1].name, NAME_LEN);
+            programs_vec[i].output.type = ProgramHandleType::Pipe;
+            strncpy_s(programs_vec[i].output.name, programs_vec[i + 1].name, NAME_LEN);
             
-            programs[i + 1].input.type = ProgramHandleType::Pipe;
-            strncpy_s(programs[i + 1].input.name, programs[i].name, NAME_LEN);
+            programs_vec[i + 1].input.type = ProgramHandleType::Pipe;
+            strncpy_s(programs_vec[i + 1].input.name, programs_vec[i].name, NAME_LEN);
         }
         else if (delims[i] == out_symb) {
-            programs[i].output.type = ProgramHandleType::File;
-            strncpy_s(programs[i].output.name, programs[i + 1].name, NAME_LEN);
+            programs_vec[i].output.type = ProgramHandleType::File;
+            strncpy_s(programs_vec[i].output.name, programs_vec[i + 1].name, NAME_LEN);
 
             new_prog_count--; // todo destory the structs already created even for the files?
         }
         else if (delims[i] == in_symb) {
-            programs[0].input.type = ProgramHandleType::File;
-            strncpy_s(programs[0].input.name, programs[i + 1].name, NAME_LEN);
+            programs_vec[0].input.type = ProgramHandleType::File;
+            strncpy_s(programs_vec[0].input.name, programs_vec[i + 1].name, NAME_LEN);
 
             new_prog_count--;
         }
 
     }
 
+    /*programs = (program*)malloc(new_prog_count * sizeof(program));
+    for (int i = 0; i < new_prog_count; i++) {
+        programs[i] = programs_vec[i];
+    }*/
+
+
 
     //programs = programs_vec.data(); // &programs_vec[0];
-    *length = new_prog_count;//programs_vec.size();
+    //*length = new_prog_count;//programs_vec.size();
+
+    programs_vec.resize(new_prog_count);
+
+    return programs_vec;
 }
-
-
-
-//char* progHandleType_to_string(ProgramHandleType type) {
-//
-//    char* ret = (char*)malloc(NAME_LEN * sizeof(char));
-//    memset(ret, 0, NAME_LEN);
-//
-//    switch (type)
-//    {
-//    case ProgramHandleType::Standard:
-//        strcpy(ret, "Standard");
-//        break;
-//    case ProgramHandleType::Pipe:
-//        strcpy(ret, "Pipe");
-//        break;
-//    case ProgramHandleType::File:
-//        strcpy(ret, "File");
-//        break;
-//    default:
-//        strcpy(ret, "default?");
-//        break;
-//    }
-//
-//    return ret;
-//}
 

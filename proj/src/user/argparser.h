@@ -5,6 +5,7 @@
 
 
 #include <cstdint>
+#include <vector>
 
 const size_t NAME_LEN = 200;
 const size_t DATA_LEN = 200;
@@ -32,5 +33,4 @@ struct program {
 };
 
 void parse_programs(char *input, program *programs, int *length);
-void parse_programs2(char* input, program* programs, int* length);
-//char* progHandleType_to_string(ProgramHandleType type);
+std::vector<program> parse_programs2(char* input/*, program* programs, int* length*/);

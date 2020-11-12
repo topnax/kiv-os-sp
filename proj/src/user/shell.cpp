@@ -1,6 +1,7 @@
 #include "shell.h"
 #include "rtl.h"
 #include "argparser.h"
+#include <vector>
 
 
 int pipe_test(kiv_os::THandle std_in, kiv_os::THandle std_out) {
@@ -121,11 +122,11 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         }
 
         if (io_chain) {
-            program* programs = (program*)malloc(10 * sizeof(program)); // todo the size will have to be resolved by argparser?
-            int* program_count = (int*)malloc(1 * sizeof(int));
-            parse_programs2(buffer, programs, program_count);
+            //program* programs = (program*)malloc(10 * sizeof(program)); // todo the size will have to be resolved by argparser?
+            //int* program_count = (int*)malloc(1 * sizeof(int));
+            std::vector<program> programs = parse_programs2(buffer/*, programs, program_count*/);
 
-            for (int i = 0; i < *program_count; i++) {
+            for (int i = 0; i < programs.size()/**program_count*/; i++) {
                 char* name = programs[i].name;
                 char* data = programs[i].data;
                 io in = programs[i].input;
