@@ -108,6 +108,41 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         } else
             break;    //EOF
 
+        // checking for program piping - TODO make this more elegant
+        bool io_chain = false;
+        int input_len = strlen(buffer);
+        for (int i = 0; i < input_len; i++) {
+            if (buffer[i] == '|' ||
+                buffer[i] == '>' ||
+                buffer[i] == '<') {
+                io_chain = true;
+                break;
+            }
+        }
+
+        if (io_chain) {
+            program* programs = (program*)malloc(10 * sizeof(program)); // todo the size will have to be resolved by argparser?
+            int* program_count = (int*)malloc(1 * sizeof(int));
+            parse_programs2(buffer, programs, program_count);
+
+            for (int i = 0; i < *program_count; i++) {
+                char* name = programs[i].name;
+                char* data = programs[i].data;
+                io in = programs[i].input;
+                io out = programs[i].output;
+
+                printf("%d name: %s\n", i, name);
+                printf("%d data: %s\n", i, data);
+                printf("%d input type: %d\n", i, in.type);
+                printf("%d input name: %s\n", i, in.name);
+                printf("%d output type: %d\n", i, out.type);
+                printf("%d output name: %s\n", i, out.name);
+                printf("\n");
+            }
+
+        }
+
+
         // TODO improve parsing of shell commands
         char *token1;
         char *command;
