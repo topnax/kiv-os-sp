@@ -55,7 +55,7 @@ bool Read_Char(decltype(kiv_hal::TRegisters::rax.x) &result_ch) {
 
 		return replay;
 	};
-	
+
 	//nejprve prehrajeme, co mohl programator vlozit do bufferu klavesnice
 	if (check_and_replay_buffer())
 		return true;
@@ -64,8 +64,7 @@ bool Read_Char(decltype(kiv_hal::TRegisters::rax.x) &result_ch) {
 	DWORD read;
 
 	Std_In_Is_Open = ReadFile(hConsoleInput, &ch, 1, &read, NULL);
-
-	if (Std_In_Is_Open)	//ReadConsoleA by neprecetlo presmerovany vstup ze souboru 
+	if (Std_In_Is_Open)	//ReadConsoleA by neprecetlo presmerovany vstup ze souboru
 		result_ch = read > 0 ? ch : static_cast<std::remove_reference<decltype(result_ch)>::type>(kiv_hal::NControl_Codes::NUL);
 	else {
 		if (check_and_replay_buffer()) Std_In_Is_Open = true;
@@ -83,7 +82,8 @@ bool Write_Char(const decltype(kiv_hal::TRegisters::rax.x)& input_ch) {
 		return false;
 
 	Keyboard_Buffer.push(input_ch);
-	CancelIo(hConsoleInput);
+	// cancel all pending IO operations pending all threads
+	CancelIoEx(hConsoleInput, NULL);
 	return true;
 }
 

@@ -43,7 +43,7 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
                 auto c = buffer[i];
                 frequencies[c + 128]++;
             }
-
+            // kiv_os_rtl::Close_Handle(std_in);
         } else {
             break; // EOF
         }

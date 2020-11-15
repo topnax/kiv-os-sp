@@ -10,7 +10,7 @@ Pipe_In_File::Pipe_In_File(std::shared_ptr<Pipe> p) : pipe(std::move(p)) {}
 bool Pipe_In_File::write(char *buffer, size_t size, size_t &written) {
     // convert char* to vector<char>
     written =  pipe->Write(std::vector<char>(buffer, buffer + size));
-    return true;
+    return written > 0;
 }
 
 void Pipe_In_File::close() {

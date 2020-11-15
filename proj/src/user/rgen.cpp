@@ -75,9 +75,10 @@ extern "C" size_t __stdcall rgen(const kiv_hal::TRegisters &regs) {
     };
 
     // spawn a thread that checks whether EOT has been written to stdin
-    kiv_os::THandle handle;
-    kiv_os_rtl::Clone_Thread(stdin_guard, reinterpret_cast<char *>(&parameters), handle);
+    kiv_os::THandle guard_handle;
+    kiv_os_rtl::Clone_Thread(stdin_guard, reinterpret_cast<char *>(&parameters), guard_handle);
 
+    // TODO random_device causes a memory leak, move it to a static namespace?
     std::random_device rd; // obtain a random number from hardware
     std::mt19937 gen(rd()); // seed the generator
     std::uniform_int_distribution<> distr(-128, 127); // define the range
@@ -100,14 +101,17 @@ extern "C" size_t __stdcall rgen(const kiv_hal::TRegisters &regs) {
         }
     }
 
-    if (!is_generating && *generate) {
-        // TODO out handle might have been closed, notify the guard thread
+    // check whether std_in guard has not yet signalled us to stop generating
+    // and check whether we have stopped generating due to write failure
+    if (*generate && !is_generating) {
+        // write EOT to the std_in of the guard thread, signalling it to end
+        char eot = static_cast<char>(kiv_hal::NControl_Codes::EOT);
+        kiv_os_rtl::Write_File(std_in, &eot, 1, counter);
 
-        // this should shutdown the guard thread, but keyboard does not support writing characters to it
-        // there is no way of stopping the guard thread at this moment
-
-        // char eot = static_cast<char>(kiv_hal::NControl_Codes::EOT);
-        //kiv_os_rtl::Write_File(std_in, &eot, 1, counter);
+        // wait for the guard to finish
+        kiv_os::THandle handles[] = {guard_handle};
+        uint8_t index = 0;
+        kiv_os_rtl::Wait_For(handles, 1, index);
     }
 
     return 0;
