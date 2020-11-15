@@ -137,7 +137,7 @@
         \item \textbf{Stanislav Král}
         \begin{itemize}
             \setlength\itemsep{0.1em}
-            \item úvodní studium projektu 
+            \item úvodní studium projektu (rozchození sestavení přes CMake$\,\to\,$\textbf{CLion})
             \item implementace programu \texttt{echo}
             \item implementace sys. volání z \texttt{Process} a obecná práce na kernelu
             \item implementace rour a tabulky souborů
@@ -147,8 +147,41 @@
 \end{frame}
 
 \begin{frame}[fragile]
-\frametitle{Implementace mkdir}
-    content
+\frametitle{Hotové úkoly}
+
+\begin{itemize}
+    \item všechna sys. volání ze skupiny \texttt{Process} (kromě \texttt{shutdown} sys. volání, blokováno \texttt{keyboard.cpp})
+    \item programy \texttt{echo}, \texttt{rgen} a \texttt{freq}
+    \item obecná tabulka souborů a její využití při IO
+    \item objekt roury a její využití pro kombinaci \texttt{rgen} a \texttt{freq}
+    \item parser pro příkazy shellu 
+    \begin{verbatim}
+        rgen | freq > freq_result.txt
+    \end{verbatim}
+    \item přečtení FAT tabulky na disketě
+    \item přečtení souborů umístěných na disketě
+    \item výpis souborů relativní k dané složce
+\end{itemize}
+
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Implementace \texttt{Wait\_For}}
+    \begin{itemize}
+        \item seznam semaforů, které čekají na daný \textit{handle}
+        \item na začátku volání vytvořen nový semafor a přidán pro každý handle do seznamu semaforů
+        \item při ukončení spuštěného vlákna/procesu notifikace semaforů
+        \item původní idea: \textit{vlákno, které skončilo jistě probudilo semafor}
+        \begin{itemize}
+            \item zdá se jednoduché, ale řada nevýhod
+            \item vyžaduje důkladnou ochranu KS a zamezení časového souběhu
+        \end{itemize}
+        \item při notifikaci také rovnou předávat informaci, který handle notifikoval
+        \begin{itemize}
+            \item \textit{uložit handle vedle semaforu, který notifikujeme}
+        \end{itemize}   
+    \end{itemize}
 \end{frame}
 
 \begin{frame}
