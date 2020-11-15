@@ -1,0 +1,160 @@
+\documentclass[xcolor=dvipsnames]{beamer}
+%\usepackage[utf8]{inputenc}
+%\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows,shapes}
+\usepackage{caption}
+%\usepackage[utf8]{inputenc}
+\usepackage[czech]{babel}
+%\usepackage[utf8]{vietnam}
+\usepackage{pdfpages}
+\usepackage{color}
+\usepackage{booktabs}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\usepackage{lipsum}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{pgf}
+\usepackage{etex}
+\usepackage{tikz,pgfplots}
+
+\tikzstyle{every picture}+=[remember picture]
+% By default all math in TikZ nodes are set in inline mode. Change this to
+% displaystyle so that we don't get small fractions.
+\everymath{\displaystyle}
+
+
+\usetheme{Madrid}
+%\usetheme{Madrid}
+%\usecolortheme[named=Maroon]{structure}
+%\usecolortheme{crane}
+\usefonttheme{professionalfonts}
+\useoutertheme{infolines}
+\useinnertheme{circles}
+
+\newtheorem*{bem}{Bemerkung}
+
+\usepackage{tikz}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\usepackage{listings}
+\usepackage{color}
+
+\definecolor{dkgreen}{rgb}{1,0.6,0}
+\definecolor{gray}{rgb}{1,1,0}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\beamertemplatenavigationsymbolsempty 
+
+\title[1. prezentace SP] %optional
+{Simulace operačního systému}
+
+\subtitle{1. prezentace semestrální práce z předmětu KIV/OS}
+
+% \title[Západočeská univerzita v Plzni]{\includegraphics[width=\textwidth/4]{img/logo.png}}
+
+\institute[ZČU FAV] % (optional)
+{
+    Západočeská univerzita v Plzni
+    \and
+    Fakulta aplikovaných věd
+}
+
+\author[Eliška, Ondřej, Stanislav] % (optional, for multiple authors)
+{Eliška Mourycová, Ondřej Drtina, Stanislav Král}
+
+%\logo{\includegraphics[height=1.5cm]{img/KIV\_ram\_cerna.pdf}}
+
+\logo{\pgfimage[height=0.5cm]{img/kiv-logo.pdf}}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}
+\frametitle{Rozdělení bodů}
+	\begin{itemize}
+        \item \textbf{Eliška Mourycová} - 1/3 bodů
+        \item \textbf{Ondřej Drtina} - 1/3 bodů
+        \item \textbf{Stanislav Král} - 1/3 bodů
+  	\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Organizace projektu}
+	\begin{itemize}
+        \item umístěn na GitHub repozitáři
+            \begin{itemize}
+                \item využití systému úkolů (\textit{issues})
+                \item 1 úkol = 1 větev (řešitel a reviewer)
+                \item před mergem do masteru schválení PR (kontrola funkčnosti, formátování kódu, komentářů, \ldots)
+            \end{itemize}
+            \item stav repozitáře v současné chvíli:
+            \begin{itemize}
+                \item \textbf{18} otevřených issue 
+                \item \textbf{12} uzavřených issue
+                \item \textbf{8} schválených PR
+                \item \textbf{1} čekající PR
+            \end{itemize}
+  	\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Rozdělení práce na projektu}
+    \begingroup
+    \small
+	\begin{itemize}
+        \setlength\itemsep{0.1em}
+        \item \textbf{Eliška Mourycová}
+        \begin{itemize}
+            \setlength\itemsep{0.1em}
+            \item práce na programech v uživatelském prostoru (\texttt{freq}, argparser shellu, \textit{pipeline orchestration}, \ldots)
+            \item kontrola a schvalování PR
+        \end{itemize}
+        \item \textbf{Ondřej Drtina}
+        \begin{itemize}
+            \setlength\itemsep{0.1em}
+            \item studium FAT12 
+            \item vytvoření PoC demonstrující práci s obrazem diskety
+            \item vytvoření modulu pro práci se souborovým systémem
+        \end{itemize}
+        \item \textbf{Stanislav Král}
+        \begin{itemize}
+            \setlength\itemsep{0.1em}
+            \item úvodní studium projektu 
+            \item implementace programu \texttt{echo}
+            \item implementace sys. volání z \texttt{Process} a obecná práce na kernelu
+            \item implementace rour a tabulky souborů
+        \end{itemize}
+  	\end{itemize}
+    \endgroup
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Implementace mkdir}
+    content
+\end{frame}
+
+\begin{frame}
+\frametitle{Závěr}
+
+\end{frame}
+
+\end{document}
+
