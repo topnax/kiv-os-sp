@@ -1,3 +1,6 @@
 ﻿  fat_demo.cpp
-C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(55,23): warning C4018: <: signed/unsigned – neshoda
+C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(48,23): warning C4018: <: signed/unsigned – neshoda
+C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(63,14): warning C4018: <: signed/unsigned – neshoda
+C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(130,23): warning C4018: <: signed/unsigned – neshoda
+C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(271,23): warning C4018: <: signed/unsigned – neshoda
   fat_demo.vcxproj -> C:\Users\Ondrej\source\repos\fat_demo\Debug\fat_demo.exe
