@@ -31,7 +31,7 @@ extern "C" size_t __stdcall echo(const kiv_hal::TRegisters &regs) {
         kiv_os_rtl::Write_File(std_out, text, strlen(text), counter);
 
         // append with new line
-        kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
+        //kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
     }
 
     return 0;

@@ -62,7 +62,7 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
         if (frequencies[i] > 0) {
             memset(buffer, 0, buffer_size);
             // format it in the way that was requested:
-            n = sprintf_s(buffer, "0x%hhx : %d", i, frequencies[i]);
+            n = sprintf_s(buffer, "0x%hhx : %d", i - 128, frequencies[i]);
 
             kiv_os_rtl::Write_File(std_out, buffer, strlen(buffer), n);
             kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);

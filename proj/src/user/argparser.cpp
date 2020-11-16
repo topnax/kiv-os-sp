@@ -235,6 +235,9 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
         }
         else {
             // else connect it correctly
+            kiv_os::THandle handle;
+            kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[2 * i - 1], pipe_handles[2 * i], handle);
+            handles.push_back(handle);
         }
     }
 
