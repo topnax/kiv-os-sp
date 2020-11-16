@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <cstring>
 #include <vector>
+#include "rtl.h"
 #include "argparser.h"
 
 // TODO basic argparser implementation
@@ -192,5 +193,75 @@ std::vector<program> parse_programs2(char* input/*, program* programs, int* leng
     // remove the files, if there were any they must be at the end:
     programs_vec.resize(actual_prog_count); 
     return programs_vec;
+}
+
+// todo rename class or move this to separate .cpp file
+void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters& registers) {
+
+    printf("running piped programs\n");
+
+    // get references to std_in and out from respective registers:
+    const auto std_out = static_cast<kiv_os::THandle>(registers.rbx.x);
+    const auto std_in = static_cast<kiv_os::THandle>(registers.rax.x);
+
+    int pipes_num = programs.size() - 1; // we will need -1 number of pipes
+    std::vector<kiv_os::THandle> pipe_handles; 
+    std::vector<kiv_os::THandle> handles;
+
+    for (int i = 0; i < pipes_num; i++) {
+
+        kiv_os::THandle pipe[2];
+        kiv_os_rtl::Create_Pipe(pipe);
+
+        pipe_handles.push_back(pipe[0]);
+        pipe_handles.push_back(pipe[1]);
+    }
+
+
+
+    for (int i = 0; i < programs.size(); i++) {
+        if (i == 0) {
+            // first program gets std in as input and first pipe's in as output
+            kiv_os::THandle first_handle;
+            kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, std_in, pipe_handles[0], first_handle);
+            handles.push_back(first_handle);
+
+        }
+        else if (i == programs.size() - 1) {
+            // the last program gets std out as output
+            kiv_os::THandle last_handle;
+            kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[pipe_handles.size() - 1], std_out, last_handle);
+            handles.push_back(last_handle);
+        }
+        else {
+            // else connect it correctly
+        }
+    }
+
+    uint8_t handleThatSignalledIndex = 0;
+    int running_progs_num = programs.size();
+
+    while (running_progs_num > 0) {
+        kiv_os_rtl::Wait_For(handles.data(), handles.size(), handleThatSignalledIndex);
+        
+        if (handleThatSignalledIndex == 0) {
+            kiv_os_rtl::Close_Handle(pipe_handles[0]);
+        }
+        else if (handleThatSignalledIndex == handles.size() - 1) {
+            kiv_os_rtl::Close_Handle(pipe_handles[handles.size() - 1]);
+        }
+        else {
+            kiv_os_rtl::Close_Handle(pipe_handles[2 * handleThatSignalledIndex]);
+            kiv_os_rtl::Close_Handle(pipe_handles[2 * handleThatSignalledIndex - 1]);
+        }
+        
+        handles.erase(handles.begin() + handleThatSignalledIndex);
+        running_progs_num--;
+    }
+
+
+    
+
+
 }
 

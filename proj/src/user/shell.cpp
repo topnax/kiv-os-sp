@@ -82,6 +82,8 @@ void call_program(char *program, const kiv_hal::TRegisters &registers, char *dat
 
 }
 
+
+
 size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
     const kiv_os::THandle std_in = static_cast<kiv_os::THandle>(regs.rax.x);
     const kiv_os::THandle std_out = static_cast<kiv_os::THandle>(regs.rbx.x);
@@ -132,15 +134,17 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 io in = programs[i].input;
                 io out = programs[i].output;
 
-                printf("%d name: %s\n", i, name);
-                printf("%d data: %s\n", i, data);
+                printf("%d name: '%s'\n", i, name);
+                printf("%d data: '%s'\n", i, data);
                 printf("%d input type: %d\n", i, in.type);
-                printf("%d input name: %s\n", i, in.name);
+                printf("%d input name: '%s'\n", i, in.name);
                 printf("%d output type: %d\n", i, out.type);
-                printf("%d output name: %s\n", i, out.name);
+                printf("%d output name: '%s'\n", i, out.name);
                 printf("\n");
             }
 
+            call_piped_programs(programs, regs);
+            continue;
         }
 
 
