@@ -76,7 +76,7 @@ void thread_entrypoint(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &r
 
 void thread_post_execute(bool is_process) {// while cloning, the THandle is generated and assigned to the Handle_To_THandle map
 // under the key which is the thread ID of the thread the TThread_Proc is run in
-
+    Semaphores_Mutex.lock();
     // get the kiv_os::THandle
     kiv_os::THandle t_handle = Handle_To_THandle[std::this_thread::get_id()];
 
@@ -102,10 +102,18 @@ void thread_post_execute(bool is_process) {// while cloning, the THandle is gene
             // notify the semaphores of the thread
             se->notify();
         }
+
+        // after all semaphores have been notified, we can clear the list
+        semaphores->clear();
+
+        // erase the list from the map
+        Process::semaphores->Thread_Semaphores.erase(t_handle);
     }
 
     // remove the std::thread::id to kiv_os::THandle mapping
     Handle_To_THandle.erase(std::this_thread::get_id());
+
+    Semaphores_Mutex.unlock();
 }
 
 void run_in_a_thread(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &registers, bool is_process) {
@@ -184,13 +192,12 @@ void wait_for(kiv_hal::TRegisters &registers) {
         // load a handle from the array
         auto t_handle = t_handles[index];
 
-        // current thread has no list of semaphores - let's create one
-        if (!Process::semaphores->Thread_Semaphores[t_handle]) {
-            Process::semaphores->Thread_Semaphores[t_handle] = std::make_unique<std::vector<Semaphore *>>();
-        }
-
         // check whether the handle is valid
         if (Resolve_kiv_os_Handle(t_handle) != INVALID_HANDLE_VALUE) {
+            // current thread has no list of semaphores - let's create one
+            if (!Process::semaphores->Thread_Semaphores[t_handle]) {
+                Process::semaphores->Thread_Semaphores[t_handle] = std::make_unique<std::vector<Semaphore *>>();
+            }
             // assign a semaphore to the THandle
             (*(Process::semaphores->Thread_Semaphores[t_handle])).push_back(&s);
         } else {
@@ -203,6 +210,7 @@ void wait_for(kiv_hal::TRegisters &registers) {
     // an invalid handle was found, remove all semaphores (rollback)
     if (anyHandleInvalid) {
         // iterate to the last index we have added a semaphore to
+        // TODO might be <= index???
         for (int i = 0; i < index; i++) {
             // load a handle
             auto t_handle = t_handles[i];
@@ -223,7 +231,6 @@ void wait_for(kiv_hal::TRegisters &registers) {
 
         // finally, unlock the mutex, finish the syscall
         Semaphores_Mutex.unlock();
-
         // set the rax register to handleCount (error result - our own convention, not specified in the API)
         registers.rax.l = handleCount;
     } else {
@@ -240,27 +247,11 @@ void wait_for(kiv_hal::TRegisters &registers) {
         for (uint8_t i = 0; i < handleCount; i++) {
             // load a handle
             auto t_handle = t_handles[i];
-
             if (Resolve_kiv_os_Handle(t_handle) == INVALID_HANDLE_VALUE) {
+                // TODO the handle of the thread that notified our semaphore should be somehow be bound to the semaphore - this implementation might be unreliable
                 // cannot resolve THandle to native_handle - this is the handle that signalled the semaphore
                 // because the handle is removed once the thread has finished
                 handleThatSignalledIndex = i;
-            }
-
-            // iterate over semaphores of the currently iterated handle
-            auto current_handle_semaphores = Process::semaphores->Thread_Semaphores[t_handle].get();
-
-            int index_to_be_removed = 0;
-            for (Semaphore *sem : *current_handle_semaphores) {
-                // erase the semaphore that we have added
-                if (sem->get_id() == s.get_id()) {
-                    break;
-                }
-                index_to_be_removed++;
-            }
-            auto se = current_handle_semaphores->erase(current_handle_semaphores->begin() + index_to_be_removed);
-            if (current_handle_semaphores->empty()) {
-                Process::semaphores->Thread_Semaphores.erase(t_handle);
             }
         }
         // save the index of the handle that has signalled the semaphore to the rax register according to the API specification

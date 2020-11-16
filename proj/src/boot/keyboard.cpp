@@ -46,34 +46,44 @@ bool Peek_Char() {
 }
 
 bool Read_Char(decltype(kiv_hal::TRegisters::rax.x) &result_ch) {
-	if (!Keyboard_Buffer.empty()) {		//nejprve prehrajeme, co mohl programator vlozit du bufferu klavesnice
-		result_ch = Keyboard_Buffer.front();
-		Keyboard_Buffer.pop();
-		return true;
-	}
+	auto check_and_replay_buffer = [&result_ch]()->bool {
+		const bool replay = !Keyboard_Buffer.empty();
+		if (replay) {
+			result_ch = Keyboard_Buffer.front();
+			Keyboard_Buffer.pop();
+		}
 
+		return replay;
+	};
+
+	//nejprve prehrajeme, co mohl programator vlozit do bufferu klavesnice
+	if (check_and_replay_buffer())
+		return true;
 
 	char ch;
 	DWORD read;
 
 	Std_In_Is_Open = ReadFile(hConsoleInput, &ch, 1, &read, NULL);
-
-	if (Std_In_Is_Open)	//ReadConsoleA by neprecetlo presmerovany vstup ze souboru 
+	if (Std_In_Is_Open)	//ReadConsoleA by neprecetlo presmerovany vstup ze souboru
 		result_ch = read > 0 ? ch : static_cast<std::remove_reference<decltype(result_ch)>::type>(kiv_hal::NControl_Codes::NUL);
-	else 
-		result_ch = static_cast<std::remove_reference<decltype(result_ch)>::type>(kiv_hal::NControl_Codes::EOT);	//chyba, patrne je zavren vstupni handle			
+	else {
+		if (check_and_replay_buffer()) Std_In_Is_Open = true;
+		   else result_ch = static_cast<std::remove_reference<decltype(result_ch)>::type>(kiv_hal::NControl_Codes::EOT);	//chyba, patrne je zavren vstupni handle			
+	}
 	
 	return Std_In_Is_Open;
 }
 
 bool Write_Char(const decltype(kiv_hal::TRegisters::rax.x)& input_ch) {
-	if (Keyboard_Buffer.size() >= Max_Keyboard_Buffer_Size)
-		return false;
-
 	if (!Std_In_Is_Open) 
 		return false;
 
+	if (Keyboard_Buffer.size() >= Max_Keyboard_Buffer_Size)
+		return false;
+
 	Keyboard_Buffer.push(input_ch);
+	// cancel all pending IO operations pending all threads
+	CancelIoEx(hConsoleInput, NULL);
 	return true;
 }
 
