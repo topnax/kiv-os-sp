@@ -243,19 +243,24 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
 
     uint8_t handleThatSignalledIndex = 0;
     int running_progs_num = programs.size();
+    std::vector<kiv_os::THandle> orig_handles = handles;
 
     while (running_progs_num > 0) {
         kiv_os_rtl::Wait_For(handles.data(), handles.size(), handleThatSignalledIndex);
+
+        // find the index of this element in the original list of handles:
+        auto it = std::find(orig_handles.begin(), orig_handles.end(), handles[handleThatSignalledIndex]);
+        int ind = it - orig_handles.begin();
         
-        if (handleThatSignalledIndex == 0) {
+        if (ind == 0) {
             kiv_os_rtl::Close_Handle(pipe_handles[0]);
         }
-        else if (handleThatSignalledIndex == handles.size() - 1) {
-            kiv_os_rtl::Close_Handle(pipe_handles[handles.size() - 1]);
+        else if (ind == orig_handles.size() - 1) {
+            kiv_os_rtl::Close_Handle(pipe_handles[orig_handles.size() - 1]);
         }
         else {
-            kiv_os_rtl::Close_Handle(pipe_handles[2 * handleThatSignalledIndex]);
-            kiv_os_rtl::Close_Handle(pipe_handles[2 * handleThatSignalledIndex - 1]);
+            kiv_os_rtl::Close_Handle(pipe_handles[2 * ind]);
+            kiv_os_rtl::Close_Handle(pipe_handles[2 * ind - 1]);
         }
         
         handles.erase(handles.begin() + handleThatSignalledIndex);
