@@ -1,0 +1,283 @@
+\documentclass[xcolor=dvipsnames]{beamer}
+%\usepackage[utf8]{inputenc}
+%\usepackage{xcolor}
+\usepackage[pdftex]{graphicx}
+\usepackage{tikz}
+\usetikzlibrary{arrows,shapes}
+\usepackage{caption}
+%\usepackage[utf8]{inputenc}
+\usepackage[czech]{babel}
+%\usepackage[utf8]{vietnam}
+\usepackage{pdfpages}
+\usepackage{color}
+\usepackage{booktabs}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\usepackage{lipsum}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\usepackage{pgf}
+\usepackage{etex}
+\usepackage{tikz,pgfplots}
+
+\tikzstyle{every picture}+=[remember picture]
+% By default all math in TikZ nodes are set in inline mode. Change this to
+% displaystyle so that we don't get small fractions.
+\everymath{\displaystyle}
+
+
+\usetheme{Madrid}
+%\usetheme{Madrid}
+%\usecolortheme[named=Maroon]{structure}
+%\usecolortheme{crane}
+\usefonttheme{professionalfonts}
+\useoutertheme{infolines}
+\useinnertheme{circles}
+
+\newtheorem*{bem}{Bemerkung}
+
+\usepackage{tikz}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%\usepackage{listings}
+\usepackage{color}
+
+\definecolor{dkgreen}{rgb}{1,0.6,0}
+\definecolor{gray}{rgb}{1,1,0}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\beamertemplatenavigationsymbolsempty 
+
+\title[1. prezentace SP] %optional
+{Simulace operačního systému}
+
+\subtitle{1. prezentace semestrální práce z předmětu KIV/OS}
+
+% \title[Západočeská univerzita v Plzni]{\includegraphics[width=\textwidth/4]{img/logo.png}}
+
+\institute[ZČU FAV] % (optional)
+{
+    Západočeská univerzita v Plzni
+    \and
+    Fakulta aplikovaných věd
+}
+
+\author[Eliška, Ondřej, Stanislav] % (optional, for multiple authors)
+{Eliška Mourycová, Ondřej Drtina, Stanislav Král}
+
+%\logo{\includegraphics[height=1.5cm]{img/KIV\_ram\_cerna.pdf}}
+
+\logo{\pgfimage[height=0.5cm]{img/kiv-logo.pdf}}
+
+
+\begin{document}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}
+\frametitle{Rozdělení bodů}
+	\begin{itemize}
+        \item \textbf{Eliška Mourycová} - 1/3 bodů
+        \item \textbf{Ondřej Drtina} - 1/3 bodů
+        \item \textbf{Stanislav Král} - 1/3 bodů
+  	\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Organizace projektu}
+	\begin{itemize}
+        \item umístěn na GitHub repozitáři
+            \begin{itemize}
+                \item využití systému úkolů (\textit{issues})
+                \item 1 úkol = 1 větev (řešitel a reviewer)
+                \item před mergem do masteru schválení PR (kontrola funkčnosti, formátování kódu, komentářů, \ldots)
+            \end{itemize}
+            \item stav repozitáře v současné chvíli:
+            \begin{itemize}
+                \item \textbf{18} otevřených issue 
+                \item \textbf{12} uzavřených issue
+                \item \textbf{8} schválených PR
+                \item \textbf{1} čekající PR
+            \end{itemize}
+  	\end{itemize}
+\end{frame}
+
+\begin{frame}
+\frametitle{Rozdělení práce na projektu}
+    \begingroup
+    \small
+	\begin{itemize}
+        \setlength\itemsep{0.1em}
+        \item \textbf{Eliška Mourycová}
+        \begin{itemize}
+            \setlength\itemsep{0.1em}
+            \item práce na programech v uživatelském prostoru (\texttt{freq}, argparser shellu, \textit{pipeline orchestration}, \ldots)
+            \item kontrola a schvalování PR
+        \end{itemize}
+        \item \textbf{Ondřej Drtina}
+        \begin{itemize}
+            \setlength\itemsep{0.1em}
+            \item studium FAT12 
+            \item vytvoření PoC demonstrující práci s obrazem diskety
+            \item vytvoření modulu pro práci se souborovým systémem
+        \end{itemize}
+        \item \textbf{Stanislav Král}
+        \begin{itemize}
+            \setlength\itemsep{0.1em}
+            \item úvodní studium projektu (rozchození sestavení přes CMake\footnote{\url{https://github.com/pavelliavonau/cmakeconverter}}$\,\to\,$\textbf{CLion})
+            \item implementace programu \texttt{echo}
+            \item implementace sys. volání z \texttt{Process} a obecná práce na kernelu
+            \item implementace rour a tabulky souborů
+        \end{itemize}
+  	\end{itemize}
+    \endgroup
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Hotové úkoly}
+
+\begin{itemize}
+    \item všechna sys. volání ze skupiny \texttt{Process} (kromě \texttt{shutdown} sys. volání, blokováno \texttt{keyboard.cpp})
+    \item programy \texttt{echo}, \texttt{rgen} a \texttt{freq}
+    \item obecná tabulka souborů a její využití při IO
+    \item objekt roury a její využití pro kombinaci \texttt{rgen} a \texttt{freq}
+    \item parser pro příkazy shellu 
+    \begin{verbatim}
+        rgen | freq > freq_result.txt
+    \end{verbatim}
+    \item přečtení FAT tabulky na disketě
+    \item přečtení souborů umístěných na disketě
+    \item výpis souborů relativní k dané složce
+\end{itemize}
+
+
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Implementace \texttt{Wait\_For}}
+    \begin{itemize}
+        \item seznam semaforů, které čekají na daný \textit{handle}
+        \item na začátku volání vytvořen nový semafor a přidán pro každý handle do seznamu semaforů
+        \item při ukončení spuštěného vlákna/procesu \textbf{notifikace semaforů}
+        \item původní idea: \textit{vlákno, které skončilo, jistě probudilo semafor}
+        \begin{itemize}
+            \item zdá se jednoduché, ale řada nevýhod
+            \item vyžaduje důkladnou ochranu KS a zamezení časového souběhu
+        \end{itemize}
+        \item při notifikaci také rovnou \textbf{předávat informaci}, který handle notifikoval
+        \begin{itemize}
+            \item \textit{uložit handle vedle semaforu, který notifikujeme}
+        \end{itemize}   
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Implementace souborové tabulky}
+    \begin{itemize}
+        \item původní návrh byl inspirován Unixem (3 tabulky)
+        \begin{itemize}
+            \item byl částečně implementován
+            \item z důvodu složitosti ale \textbf{zahozen}
+        \end{itemize}
+        \item nakonec implementováno pouze jednou tabulkou (\texttt{std::map})
+        %\item před spuštěním shellu otevřeny soubory \texttt{/dev/vga} a \texttt{/dev/keyboard}
+    \end{itemize}
+    \begin{table}[]
+    \begin{tabular}{|l|l|}
+        \hline
+        \textbf{THandle} & \textbf{Generic\_File}   \\ \hline \hline
+        0       & \texttt{Pipe\_In\_File}  \\ \hline
+        1       & \texttt{Pipe\_Out\_File} \\ \hline
+        2       & \texttt{Vga\_File}       \\ \hline
+    \end{tabular}
+    \end{table}       
+    \begin{itemize}
+        \item do tabulky se přidávají položky pomocí sys. volání \texttt{Open\_File}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}[fragile]
+\frametitle{Třída \texttt{Generic\_File}}
+    \begin{itemize}
+        \item abstraktní třída představující obecný soubor (\textit{file object})
+        \item její instance \textbf{uloženy v tabulce souborů}
+        \item definuje virtuální metody \texttt{write}, \texttt{read} a \texttt{close} 
+        \item vytvoření potomci: \texttt{Vga\_File}, \texttt{Keyboard\_File} a \texttt{Pipe\_In\_File}/\texttt{Pipe\_Out\_File}
+        \item \textbf{před spuštěním} shellu vytvořeny instance \texttt{Vga\_File} a \texttt{Keyboard\_File}
+        \item musí definovat virtuální destruktor (jinak nefunkčnost \texttt{std::unique\_ptr})
+    \end{itemize}
+        \begingroup
+        \small
+        \begin{verbatim}        
+   
+    // deleting child class instances invokes child destructor
+    virtual ~Generic_File() = default;
+        \end{verbatim}
+       \endgroup
+\end{frame}
+
+\begin{frame}
+\frametitle{Implementace rour}
+    \begin{itemize}
+        \item problém \textbf{producent/konzument}
+        \item instance třídy \texttt{Pipe} obalovaná souborovými objekty \texttt{Pipe\_In\_File}/\texttt{Pipe\_Out\_File}
+        \item v třídě \texttt{Pipe}
+        \begin{itemize}
+            \item řešení problému P\&K \textbf{pomocí semaforů}
+            \item upravené tak, aby šlo zapsat/přečíst najednou \texttt{n} bytů
+            \item buffer (64k) pomocí \texttt{std::vector} + 2 ukazatele (\texttt{read} a \texttt{write})
+        \end{itemize}
+        \item možnost uzavření vstupu/výstupu (\texttt{EOT}) 
+    \end{itemize}
+    \begin{figure}[!ht]
+    \centering
+    {\includegraphics[width=0.85\textwidth]{pdf/pipe.pdf}}
+    \caption{Diagram obalení roury.}
+    \label{fig:screen-transition-diagram}
+    \end{figure}
+\end{frame}
+
+%\begin{frame}
+%\frametitle{Použití argparseru a orchestrace rour}
+%    \begin{itemize}
+%        \item shell musí umět chytře spouštět programy tak, aby šlo použít operátorů \texttt{>}, \texttt{<} a \texttt{|} 
+%        \item vytvořit potřebné množství rour
+%        \item před spuštěním nastavit správně \texttt{std\_in} a \texttt{std\_out}
+%        \item iterativně volat \texttt{Wait\_For} na spuštěné procesy a uzavírat roury/\textit{file handly}
+%    \end{itemize}
+%\end{frame}
+
+\begin{frame}
+\frametitle{Závěr}
+    \begin{itemize}
+        \item značná část práce již hotova 
+        \item dokončené v nejbližší době bude
+        \begin{itemize}
+            \item použití argparseru a orchestrace rour
+            \item výpis obsahu složky 
+            \item systémové volání  \texttt{shutdown}
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}
+\center
+Děkuji za pozornost,
+nyní je prostor pro otázky
+\end{frame}
+
+\end{document}
+
