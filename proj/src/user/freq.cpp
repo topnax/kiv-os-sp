@@ -57,12 +57,25 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
 
     // printing the gathered frequencies:
     size_t n = 0;
-
-    for (int i = 0; i < frequencies.size(); i++) {
+    //int c = -1;
+    for (int i = 128; i < frequencies.size(); i++) {
         if (frequencies[i] > 0) {
             memset(buffer, 0, buffer_size);
+
             // format it in the way that was requested:
             n = sprintf_s(buffer, "0x%hhx : %d", i - 128, frequencies[i]);
+
+            kiv_os_rtl::Write_File(std_out, buffer, strlen(buffer), n);
+            kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
+        }
+    }
+
+    for (int i = 0; i <= 127; i++) {
+        if (frequencies[i] > 0) {
+            memset(buffer, 0, buffer_size);
+
+             // format it in the way that was requested:
+            n = sprintf_s(buffer, "0x%hhx : %d", i + 128, frequencies[i]);
 
             kiv_os_rtl::Write_File(std_out, buffer, strlen(buffer), n);
             kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);

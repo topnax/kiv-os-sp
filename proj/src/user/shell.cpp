@@ -172,6 +172,9 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             if (strcmp(command, "freq") == 0) {
                 call_program("freq", regs, args);
             }
+            if (strcmp(command, "charcnt") == 0) {
+                call_program("charcnt", regs, args);
+            }
         }
     } while (strcmp(buffer, "exit") != 0);
 
