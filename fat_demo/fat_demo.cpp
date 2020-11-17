@@ -8,6 +8,9 @@
 #include <fstream>
 #include <vector>
 #include <math.h>
+#include <sstream>
+#include <iterator>
+#include <algorithm>
 
 #include "def_fs_structs.h"
 
@@ -31,16 +34,16 @@ void perform_md(int working_dir_sector, std::string dir_name);
 void perform_rd(int working_dir_sector, std::string dir_name);
 void perform_type(int working_dir_sector, std::string filename);
 
-std::string working_dir_name; //nazev aktualni slozky
-int working_dir_sector; //sektor, na kterem je ulozeny obsah dane slozky
+std::string working_dir_name_glob; //nazev aktualni slozky
+int working_dir_sector_glob; //sektor, na kterem je ulozeny obsah dane slozky
 
 std::ifstream floppy_img_file; //nacteny obraz s disketou
 std::vector<int> fat_table_dec; //fat tabulka
 
 int main()
 {
-    working_dir_name = "\\"; //na zacatku budeme v rootu
-    working_dir_sector = 19; //root slozka je na sektorech 19-32
+    working_dir_name_glob = "\\"; //na zacatku budeme v rootu
+    working_dir_sector_glob = 19; //root slozka je na sektorech 19-32
 
     char floppy_filename[] = "fdos1_2_floppy.img"; //nazev souboru s disketou - fat12
     floppy_img_file = open_bin_floppy(floppy_filename);
@@ -92,9 +95,8 @@ void enter_command_loop() {
     std::string user_input; //vstup od uzivatele, ocekavame prikazy
 
     while (true) {
-        std::cout << working_dir_name;
-        std::cin >> user_input;
-        
+        std::getline(std::cin, user_input);
+   
         commander_fs(user_input);
     }
 }
@@ -103,25 +105,42 @@ void enter_command_loop() {
 * Slouzi jako "rozcestnik" pro jednotlive mozne prikazy - na zaklade zadaneho uzivatelskeho prikazu zajisti provedeni odpovidajici operace.
 /**/
 void commander_fs(std::string user_input) {
-    int position_delim = user_input.find(" ");
-    std::string command = user_input.substr(0, position_delim); //cd, type atp., typ prikazu
-    //std::string dir_file = user_input.substr(position_delim, user_input.length()); //nazev souboru ci slozky, se kterym ma prikaz pracovat
-    std::string dir_file = "ds";
+    std::string command = ""; //cd, type atp., typ prikazu
+    std::string dir_file = ""; //nazev souboru ci slozky, se kterym ma prikaz pracovat
+
+    std::stringstream string_s(user_input);
+    std::string token; //jedno slovo na vstupu
+
+    int word_counter = 0;
+    while (std::getline(string_s, token, ' ')) {
+        word_counter++;
+
+        if (word_counter == 1) { //na prvni pozici ocekavan prikaz (dir, cd...)
+            command = token;
+        }
+        else if (word_counter == 2) { //na druhe pozici ocekavan soubor, slozka - par. prikazu
+            dir_file = token;
+        }
+        else { //zadano slov nez 2 => chyba...
+            break;
+        }
+    }
+
     if (command.compare("cd") == 0) {
-        perform_cd(working_dir_sector, dir_file);
+        perform_cd(working_dir_sector_glob, dir_file);
     }
     else if (command.compare("dir") == 0) {
-        perform_dir(working_dir_sector, dir_file);
+        perform_dir(working_dir_sector_glob, dir_file);
     }
     else if (command.compare("md") == 0) {
-        perform_md(working_dir_sector, dir_file);
+        perform_md(working_dir_sector_glob, dir_file);
     }
     else if (command.compare("rd") == 0) {
-        perform_rd(working_dir_sector, dir_file);
+        perform_rd(working_dir_sector_glob, dir_file);
     }
     else if (command.compare("type") == 0) {
-        perform_type(working_dir_sector, dir_file);
-    }
+        perform_type(working_dir_sector_glob, dir_file);
+    }   
 }
 
 /*
@@ -130,16 +149,30 @@ void commander_fs(std::string user_input) {
 * dir_name - nazev pozadovane slozky
 /**/
 void perform_cd(int working_dir_sector, std::string dir_name) {
-    //nejprve zjisteni, zda dana slozka existuje - START
+    //nejprve zjisteni, zda dana slozka existuje
+    int dir_item_number = -1; //poradi slozky do ktere se ma uzivatel presunout; v ramci vectoru cur_folder_items
 
     std::vector<directory_item> cur_folder_items = retrieve_folders_cur_folder(working_dir_sector); //nactu obsah aktualni slozky
-    for (int i = 0; i < cur_folder_items.size(); i++) { //projdu prvky slozky => zjisteni, zda obsahuje pozadovanou podslozku
+
+    int i = 0;
+    for (; i < cur_folder_items.size(); i++) { //projdu prvky slozky => zjisteni, zda obsahuje pozadovanou podslozku
         directory_item dir_item = cur_folder_items.at(i);
 
-        //if(dir_item.filename.compare())
+        if (dir_item.filename.compare(dir_name) == 0 && dir_item.extension.length() == 0 && dir_item.filezise == 0) { //pokud sedi nazev a nejedna se o soubor
+            dir_item_number = i;
+            break; //vice slozek se stejnym nazev byt nemuze
+        }
     }
 
-    //nejprve zjisteni, zda dana slozka existuje - END
+    if (dir_item_number != -1) { //slozka nalezena, switch do ni
+        directory_item dir_item = cur_folder_items.at(dir_item_number);
+
+        working_dir_sector_glob = dir_item.first_cluster;
+        working_dir_name_glob = dir_item.filename;
+    }
+    else {
+        std::cout << "System nemuze nalezt uvedenou cestu.\n";
+    }
 }
 
 /*
@@ -152,9 +185,21 @@ void perform_dir(int working_dir_sector, std::string dir_name) {
         std::vector<unsigned char> root_dir_cont = read_from_fs(floppy_img_file, 19 - 31, SECTOR_SIZE_B * 14); //ziskani bajtu slozky v ramci jednoho sektoru (fce pricita 31, pocita s dat. sektory, proto odecteme 31);
         std::vector<directory_item> directory_content = get_dir_items(14, root_dir_cont); //ziskani obsahu slozky (struktury directory_item, ktere reprezentuji jednu entry ve slozce)
 
+        directory_item dir_item;
+        std::string type;
+
+        std::cout << "dir size is: " << directory_content.size();
         for (int i = 0; i < directory_content.size(); i++) {
-            directory_item dir_item = directory_content.at(i);
-            printf("Obsah: %s.%s, velikost %d, prvni cluster %d\n", dir_item.filename, dir_item.extension, dir_item.filezise, dir_item.first_cluster);
+            dir_item = directory_content.at(i);
+
+            if (dir_item.extension.length() == 0 && dir_item.filezise == 0) { //pokud se jedna o slozku
+                type = "<SLOZKA>";
+            }
+            else {
+                type = "<SOUBOR>";
+            }
+
+            std::cout << type << "  " << dir_item.filezise << "  " << dir_item.filename << "\n";
         }
     }
     else { //slozka neni rootovska, velikost neni fixni, nevime clustery - data nacist z FAT tabulky
@@ -162,17 +207,24 @@ void perform_dir(int working_dir_sector, std::string dir_name) {
         std::vector<unsigned char> retrieved_data; //obsahuje data jednoho clusteru
         int bytes_read = 0;
 
+        directory_item dir_item;
+        std::string type;
         for (int i = 0; i < sectors_nums_data.size(); i++) { //projdeme nactene clustery
             retrieved_data = read_from_fs(floppy_img_file, sectors_nums_data[i], SECTOR_SIZE_B); //ziskani bajtu slozky v ramci jednoho sektoru
             std::vector<directory_item> directory_content = get_dir_items(1, retrieved_data); //prevod na struktury, kazda reprez. jednu slozku
 
-            printf("NAZEV    TYP    VELIKOST\n");
             for (int i = 0; i < directory_content.size(); i++) { //vypis obsahu jednotlivych struktur
-                directory_item dir_item = directory_content.at(i);
-                printf("Obsah: %s.%s, velikost %d, prvni cluster %d\n", dir_item.filename, dir_item.extension, dir_item.filezise, dir_item.first_cluster);
-            }
+                dir_item = directory_content.at(i);
+                
+                if (dir_item.extension.length() == 0 && dir_item.filezise == 0) { //pokud se jedna o slozku
+                    type = "<SLOZKA>";
+                }
+                else {
+                    type = "<SOUBOR>";
+                }
 
-            printf("Mam cluster: %d \n", sectors_nums_data[i]);
+                std::cout << type << "  " << dir_item.filezise << "  " << dir_item.filename << "\n";
+            }
         }
     }
 }
@@ -345,7 +397,7 @@ std::vector<directory_item> get_dir_items(int num_sectors, std::vector<unsigned 
 
         directory_item dir_item; //nova entry
 
-        dir_item.filename = (char*)malloc(DIR_FILENAME_SIZE_B + 1);
+        dir_item.filename = "";
 
         int j = 0;
         bool end_encountered = false; //true pokud narazime na konec nazvu (fatka ma fix na 8 byt)
@@ -355,26 +407,24 @@ std::vector<directory_item> get_dir_items(int num_sectors, std::vector<unsigned 
                 i += DIR_FILENAME_SIZE_B - j; //preskoceni nevyuzitych vyhrazenych clusteru (dopocet do 8 byt)
             }
             else {
-                dir_item.filename[j] = root_dir_cont[i++];
+                dir_item.filename.push_back(root_dir_cont[i++]);
                 j++;
             }
         }
-        dir_item.filename[j] = '\0';
 
         j = 0;
         end_encountered = false;
-        dir_item.extension = (char*)malloc(DIR_EXTENSION_SIZE_B + 1);
+        dir_item.extension = "";
         while (j < DIR_EXTENSION_SIZE_B && !end_encountered) { //cteni pripony
             if ((int)root_dir_cont[i] == 32) { //konec pripony souboru (fix na 3 byt)
                 end_encountered = true;
                 i += DIR_EXTENSION_SIZE_B - j; //preskoceni nevyuzitych vyhrazenych clusteru (dopocet do 3 byt)
             }
             else {
-                dir_item.extension[j] = root_dir_cont[i++];
+                dir_item.extension.push_back(root_dir_cont[i++]);
                 j++;
             }
         }
-        dir_item.extension[j] = '\0';
 
         i += 15; //preskocit 15 bytu, nepotrebne info (datum vytvoreni atp.)
 

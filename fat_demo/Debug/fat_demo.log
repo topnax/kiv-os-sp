@@ -1,11 +1,11 @@
 ﻿  fat_demo.cpp
-C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(71,14): warning C4018: <: signed/unsigned – neshoda
-C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(136,23): warning C4018: <: signed/unsigned – neshoda
-C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(155,27): warning C4018: <: signed/unsigned – neshoda
-C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(165,27): warning C4018: <: signed/unsigned – neshoda
-C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(170,31): warning C4018: <: signed/unsigned – neshoda
-C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(196,27): warning C4018: <: signed/unsigned – neshoda
-C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(200,31): warning C4018: <: signed/unsigned – neshoda
-C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(288,23): warning C4018: <: signed/unsigned – neshoda
-C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(429,23): warning C4018: <: signed/unsigned – neshoda
+C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(74,14): warning C4018: <: signed/unsigned – neshoda
+C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(158,14): warning C4018: <: signed/unsigned – neshoda
+C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(192,27): warning C4018: <: signed/unsigned – neshoda
+C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(212,27): warning C4018: <: signed/unsigned – neshoda
+C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(216,31): warning C4018: <: signed/unsigned – neshoda
+C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(248,27): warning C4018: <: signed/unsigned – neshoda
+C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(252,31): warning C4018: <: signed/unsigned – neshoda
+C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(340,23): warning C4018: <: signed/unsigned – neshoda
+C:\Users\Ondrej\source\repos\fat_demo\fat_demo.cpp(479,23): warning C4018: <: signed/unsigned – neshoda
   fat_demo.vcxproj -> C:\Users\Ondrej\source\repos\fat_demo\Debug\fat_demo.exe
