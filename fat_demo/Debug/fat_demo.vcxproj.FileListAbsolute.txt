@@ -1,0 +1,2 @@
+C:\Users\Ondrej\source\repos\fat_demo\Debug\fat_demo.exe
+C:\Users\Ondrej\source\repos\fat_demo\Debug\fat_demo.pdb
