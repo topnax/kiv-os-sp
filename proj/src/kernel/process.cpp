@@ -12,13 +12,9 @@
 #include "semaphore.h"
 #include "process.h"
 
-class Semaphores {
-public:
-    std::map<kiv_os::THandle, std::unique_ptr<std::vector<Semaphore *>>> Thread_Semaphores;
-};
 
 namespace Process {
-    Semaphores *semaphores = new Semaphores();
+    Thread_Control_Block *Tcb = new Thread_Control_Block();
 }
 
 // TODO move to Process namespace
@@ -26,11 +22,6 @@ namespace Process {
 std::mutex Semaphores_Mutex;
 std::map<std::thread::id, kiv_os::THandle> Handle_To_THandle;
 std::map<kiv_os::THandle, kiv_os::NOS_Error> Pcb;
-
-int Last_Semaphore_ID = 0;
-std::random_device rd_s;
-std::mt19937 gen_s(rd_s());
-std::uniform_int_distribution<> dis_s(1, 6);
 
 
 void Handle_Process(kiv_hal::TRegisters &regs, HMODULE user_programs) {
@@ -76,7 +67,8 @@ void thread_entrypoint(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &r
 
 void thread_post_execute(bool is_process) {// while cloning, the THandle is generated and assigned to the Handle_To_THandle map
 // under the key which is the thread ID of the thread the TThread_Proc is run in
-    Semaphores_Mutex.lock();
+    std::lock_guard<std::mutex> guard(Semaphores_Mutex);
+
     // get the kiv_os::THandle
     kiv_os::THandle t_handle = Handle_To_THandle[std::this_thread::get_id()];
 
@@ -87,33 +79,33 @@ void thread_post_execute(bool is_process) {// while cloning, the THandle is gene
         }
     }
 
-    // get all semaphores that are waiting for this thread
-    auto resolved = Process::semaphores->Thread_Semaphores.find(t_handle);
+    // get all listeners that are waiting for this thread
+    auto resolved = Process::Tcb->Wait_For_Listeners.find(t_handle);
 
 
-    // remove the THandle before notifying semaphores
+    // remove the THandle before notifying listeners
     Remove_Handle(t_handle);
 
-    if (resolved != Process::semaphores->Thread_Semaphores.end()) {
-        // found semaphore list
-        auto *semaphores = Process::semaphores->Thread_Semaphores[t_handle].get();
-        // iterate over thread's semaphores
-        for (Semaphore *se : *semaphores) {
-            // notify the semaphores of the thread
-            se->notify();
+    if (resolved != Process::Tcb->Wait_For_Listeners.end()) {
+        // found a listener list
+        auto *listeners = Process::Tcb->Wait_For_Listeners[t_handle].get();
+        // iterate over thread's listeners
+        for (auto *listener : *listeners) {
+            // notify the listeners of the thread
+            listener->semaphore->notify();
+            listener->handle_that_notified = t_handle;
+            listener->notified = true;
         }
 
-        // after all semaphores have been notified, we can clear the list
-        semaphores->clear();
+        // after all listeners have been notified, we can clear the list
+        listeners->clear();
 
         // erase the list from the map
-        Process::semaphores->Thread_Semaphores.erase(t_handle);
+        Process::Tcb->Wait_For_Listeners.erase(t_handle);
     }
 
     // remove the std::thread::id to kiv_os::THandle mapping
     Handle_To_THandle.erase(std::this_thread::get_id());
-
-    Semaphores_Mutex.unlock();
 }
 
 void run_in_a_thread(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &registers, bool is_process) {
@@ -177,29 +169,31 @@ void wait_for(kiv_hal::TRegisters &registers) {
     // load handle count from rcx
     uint8_t handleCount = registers.rcx.l;
 
-    // TODO is it really necessary to assign the semaphore an unique ID?
+    std::unique_lock<std::mutex> lock(Semaphores_Mutex);
 
-    // create a semaphore with an ID so we are able to delete it later
-    Last_Semaphore_ID += dis_s(gen_s);
-    Semaphore s(0, Last_Semaphore_ID);
+    Semaphore semaphore(0);
+    Wait_For_Listener wait_for_listener {
+        &semaphore,
+        0,
+        false
+    };
 
-    Semaphores_Mutex.lock();
     int index = 0;
     bool anyHandleInvalid = false;
 
-    // try to add the semaphore for each thread handle passed in the handles array
+    // try to add the listener for each thread handle passed in the handles array
     for (index = 0; index < handleCount; index++) {
         // load a handle from the array
         auto t_handle = t_handles[index];
 
         // check whether the handle is valid
         if (Resolve_kiv_os_Handle(t_handle) != INVALID_HANDLE_VALUE) {
-            // current thread has no list of semaphores - let's create one
-            if (!Process::semaphores->Thread_Semaphores[t_handle]) {
-                Process::semaphores->Thread_Semaphores[t_handle] = std::make_unique<std::vector<Semaphore *>>();
+            // current thread has no list of listeners - let's create one
+            if (!Process::Tcb->Wait_For_Listeners[t_handle]) {
+                Process::Tcb->Wait_For_Listeners[t_handle] = std::make_unique<std::vector<Wait_For_Listener *>>();
             }
-            // assign a semaphore to the THandle
-            (*(Process::semaphores->Thread_Semaphores[t_handle])).push_back(&s);
+            // assign a listener to the THandle
+            (*(Process::Tcb->Wait_For_Listeners[t_handle])).push_back(&wait_for_listener);
         } else {
             // stop iterating over handles - we found a handle that is not valid
             anyHandleInvalid = true;
@@ -207,54 +201,56 @@ void wait_for(kiv_hal::TRegisters &registers) {
         }
     }
 
-    // an invalid handle was found, remove all semaphores (rollback)
+    // an invalid handle was found, remove all listeners (rollback)
     if (anyHandleInvalid) {
-        // iterate to the last index we have added a semaphore to
+        // iterate to the last index we have added the listener to
         // TODO might be <= index???
         for (int i = 0; i < index; i++) {
             // load a handle
             auto t_handle = t_handles[i];
 
-            // TODO we might use the ID of the semaphore to remove it
-
-            std::vector<Semaphore *> *sem_list = Process::semaphores->Thread_Semaphores[t_handle].get();
-            // pop back one semaphore
-            // this is the reason why we use a mutex to make sure the semaphore deque does not change while we loop over handles
-            if (sem_list) {
-                sem_list->pop_back();
-                // if the semaphore list is empty, delete it from the thread to semaphores map
-                if (sem_list->empty()) {
-                    Process::semaphores->Thread_Semaphores.erase(t_handle);
+            std::vector<Wait_For_Listener *> *wait_for_listeners = Process::Tcb->Wait_For_Listeners[t_handle].get();
+            // pop back one listener
+            // this is the reason why we use a mutex to make sure the listener vector does not change while we loop over handles
+            if (wait_for_listeners) {
+                wait_for_listeners->pop_back();
+                // if the listener list is empty, delete it from the thread to listeners map
+                if (wait_for_listeners->empty()) {
+                    Process::Tcb->Wait_For_Listeners.erase(t_handle);
                 }
             }
         }
 
         // finally, unlock the mutex, finish the syscall
-        Semaphores_Mutex.unlock();
+        lock.unlock();
         // set the rax register to handleCount (error result - our own convention, not specified in the API)
         registers.rax.l = handleCount;
     } else {
         // no invalid handle found - unlock the mutex
-        Semaphores_Mutex.unlock();
+        lock.unlock();
 
-        // wait for any thread to notify the semaphore
-        s.wait();
+        // wait for any thread to notify this semaphore
+        semaphore.wait();
 
-        // find the index of the handle that has signalled the semaphore
+        // find the index of the handle that has signalled the listener
         uint8_t handleThatSignalledIndex = -1; // initialize the variable otherwise problems upon calling exit?
 
-        // semaphore notified - remove all semaphores from each handle semaphore deque
-        for (uint8_t i = 0; i < handleCount; i++) {
-            // load a handle
-            auto t_handle = t_handles[i];
-            if (Resolve_kiv_os_Handle(t_handle) == INVALID_HANDLE_VALUE) {
-                // TODO the handle of the thread that notified our semaphore should be somehow be bound to the semaphore - this implementation might be unreliable
-                // cannot resolve THandle to native_handle - this is the handle that signalled the semaphore
-                // because the handle is removed once the thread has finished
-                handleThatSignalledIndex = i;
+        if (!wait_for_listener.notified) {
+            // TODO remove for release
+            printf("semaphore not notified!!!\n");
+            handleThatSignalledIndex = handleCount;
+        } else {
+            for (uint8_t i = 0; i < handleCount; i++) {
+                // load a handle
+                auto t_handle = t_handles[i];
+                if (t_handle == wait_for_listener.handle_that_notified) {
+                    handleThatSignalledIndex = i;
+                    break;
+                }
             }
         }
-        // save the index of the handle that has signalled the semaphore to the rax register according to the API specification
+
+        // save the index of the handle that has notified the listener to the rax register according to the API specification
         registers.rax.l = handleThatSignalledIndex;
     }
 }

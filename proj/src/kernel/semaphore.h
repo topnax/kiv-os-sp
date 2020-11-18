@@ -10,9 +10,8 @@
 
 class Semaphore {
 public:
-    Semaphore(size_t count_, size_t id_) {
+    explicit Semaphore(size_t count_) {
         count = count_;
-        id = id_;
     }
 
     inline void notify()
@@ -31,14 +30,9 @@ public:
         count--;
     }
 
-    size_t get_id()  {
-        return id;
-    }
-
 private:
     mutable std::mutex mtx; // needs to be mutable
 
     std::condition_variable cv;
     size_t count;
-    size_t id;
 };
