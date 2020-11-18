@@ -128,20 +128,20 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             //int* program_count = (int*)malloc(1 * sizeof(int));
             std::vector<program> programs = parse_programs2(buffer/*, programs, program_count*/);
 
-            for (int i = 0; i < programs.size()/**program_count*/; i++) {
-                char* name = programs[i].name;
-                char* data = programs[i].data;
-                io in = programs[i].input;
-                io out = programs[i].output;
+            //for (int i = 0; i < programs.size()/**program_count*/; i++) {
+            //    char* name = programs[i].name;
+            //    char* data = programs[i].data;
+            //    io in = programs[i].input;
+            //    io out = programs[i].output;
 
-                printf("%d name: '%s'\n", i, name);
-                printf("%d data: '%s'\n", i, data);
-                printf("%d input type: %d\n", i, in.type);
-                printf("%d input name: '%s'\n", i, in.name);
-                printf("%d output type: %d\n", i, out.type);
-                printf("%d output name: '%s'\n", i, out.name);
-                printf("\n");
-            }
+            //    printf("%d name: '%s'\n", i, name);
+            //    printf("%d data: '%s'\n", i, data);
+            //    printf("%d input type: %d\n", i, in.type);
+            //    printf("%d input name: '%s'\n", i, in.name);
+            //    printf("%d output type: %d\n", i, out.type);
+            //    printf("%d output name: '%s'\n", i, out.name);
+            //    printf("\n");
+            //}
 
             call_piped_programs(programs, regs);
             continue;

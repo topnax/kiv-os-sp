@@ -198,7 +198,7 @@ std::vector<program> parse_programs2(char* input/*, program* programs, int* leng
 // todo rename class or move this to separate .cpp file
 void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters& registers) {
 
-    printf("running piped programs\n");
+    //printf("running piped programs\n");
 
     // get references to std_in and out from respective registers:
     const auto std_out = static_cast<kiv_os::THandle>(registers.rbx.x);
@@ -244,23 +244,34 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
     uint8_t handleThatSignalledIndex = 0;
     int running_progs_num = programs.size();
     std::vector<kiv_os::THandle> orig_handles = handles;
+    int num_of_handles_closed = 0;
 
     while (running_progs_num > 0) {
         kiv_os_rtl::Wait_For(handles.data(), handles.size(), handleThatSignalledIndex);
+        kiv_os::NOS_Error exit_code;
+        kiv_os_rtl::Read_Exit_Code(handles[handleThatSignalledIndex], exit_code);
+        printf("Exit code for handle %d = %d\n", handles[handleThatSignalledIndex], exit_code);
 
         // find the index of this element in the original list of handles:
         auto it = std::find(orig_handles.begin(), orig_handles.end(), handles[handleThatSignalledIndex]);
-        int ind = it - orig_handles.begin();
+        int ind = it - orig_handles.begin(); // index to original handles coresponding to the returned index
         
         if (ind == 0) {
+            printf("closing handle %d (ind %d)\n", pipe_handles[0], 0);
             kiv_os_rtl::Close_Handle(pipe_handles[0]);
+            num_of_handles_closed++;
         }
         else if (ind == orig_handles.size() - 1) {
-            kiv_os_rtl::Close_Handle(pipe_handles[orig_handles.size() - 1]);
+            printf("closing handle %d (ind %d)\n", pipe_handles[pipe_handles.size() - 1], pipe_handles.size() - 1);
+            kiv_os_rtl::Close_Handle(pipe_handles[pipe_handles.size() - 1]);
+            num_of_handles_closed++;
         }
         else {
+            printf("closing handles %d (ind %d) and %d (ind %d)\n", pipe_handles[2 * ind], 2 * ind, pipe_handles[2 * ind - 1], 2* ind - 1);
             kiv_os_rtl::Close_Handle(pipe_handles[2 * ind]);
             kiv_os_rtl::Close_Handle(pipe_handles[2 * ind - 1]);
+            num_of_handles_closed++;
+            num_of_handles_closed++;
         }
         
         handles.erase(handles.begin() + handleThatSignalledIndex);
@@ -269,7 +280,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
 
 
     
-
+    printf("num_of_handles_closed: %d\n", num_of_handles_closed);
 
 }
 
