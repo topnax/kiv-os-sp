@@ -48,17 +48,19 @@ void call_program(char *program, const kiv_hal::TRegisters &registers, char *dat
         kiv_os::THandle handles[] = {test_handle, handle};
 
         uint8_t handleThatSignalledIndex = 0;
+        kiv_os::NOS_Error exit_code;
 
         // wait for the program to finish
         kiv_os_rtl::Wait_For(handles, 2, handleThatSignalledIndex);
-
-        printf("Handle that signalled first: %d\n", handleThatSignalledIndex);
+        kiv_os_rtl::Read_Exit_Code(handles[handleThatSignalledIndex], exit_code);
+        printf("Handle that signalled first: %d, exit_code=%d\n", handleThatSignalledIndex, exit_code);
 
         kiv_os::THandle handles_test[] = {test_handle};
         // wait for the program to finish
         kiv_os_rtl::Wait_For(handles_test, 1, handleThatSignalledIndex);
+        kiv_os_rtl::Read_Exit_Code(handles[handleThatSignalledIndex], exit_code);
 
-        printf("Second handle that signalled: %d\n", handleThatSignalledIndex);
+        printf("Second handle that signalled: %d, exit_code=%d\n", handleThatSignalledIndex, exit_code);
 
     } else {
         // the handle of the created thread/process

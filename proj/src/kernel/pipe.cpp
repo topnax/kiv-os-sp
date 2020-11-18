@@ -2,7 +2,7 @@
 
 
 Pipe::Pipe(size_t capacity) :
-        fill_count(0, 0), empty_count(capacity, 1), capacity(capacity) {
+        fill_count(0), empty_count(capacity), capacity(capacity) {
     this->buffer.resize(capacity);
 }
 
