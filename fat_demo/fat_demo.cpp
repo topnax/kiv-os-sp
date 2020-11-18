@@ -26,6 +26,7 @@ std::vector<int> convert_fat_table_to_dec(std::vector<unsigned char> fat_table_h
 std::vector<directory_item> get_dir_items(int num_sectors, std::vector<unsigned char> root_dir_cont);
 std::vector<directory_item> retrieve_folders_cur_folder(int working_dir_sector);
 directory_item retrieve_dir_items(int start_sector, std::vector<std::string> path);
+directory_item retrieve_file_dir_item(int start_clust_folder, std::string filename);
 
 void enter_command_loop();
 void commander_fs(std::string user_input);
@@ -33,7 +34,7 @@ void perform_cd(int working_dir_sector, std::vector<std::string> dir_name);
 void perform_dir(int working_dir_sector, std::vector<std::string> dir_name);
 void perform_md(int working_dir_sector, std::string dir_name);
 void perform_rd(int working_dir_sector, std::string dir_name);
-void perform_type(int working_dir_sector, std::string filename);
+void perform_type(int working_dir_sector, std::vector<std::string> filename);
 
 std::string working_dir_name_glob; //nazev aktualni slozky
 int working_dir_sector_glob; //sektor, na kterem je ulozeny obsah dane slozky
@@ -63,29 +64,6 @@ int main()
     }
 
     fat_table_dec = convert_fat_table_to_dec(first_fat_cont); //prevod fat tabulky z hex formatu na dec, pro snazsi vyhledavani
-    
-    printf("Printing AUTOEXEC.BAT - START\n");
-    std::vector<int> sectors_nums_data = retrieve_sectors_nums_fs(fat_table_dec, 2579);
-
-    //nacteni dat ze ziskaneho seznamu sektoru
-    int bytes_read = 0;
-    std::vector<unsigned char> retrieved_data;
-
-    int i = 0;
-    for (; i < sectors_nums_data.size() - 1; i++) { //krome posledniho cist cely sektor
-        retrieved_data = read_from_fs(floppy_img_file, sectors_nums_data[i], SECTOR_SIZE_B);
-
-        bytes_read += SECTOR_SIZE_B;
-        for (int j = 0; j < SECTOR_SIZE_B; j++) {
-            //printf("%c", retrieved_data[j]);
-        }
-    }
-
-    retrieved_data = read_from_fs(floppy_img_file, sectors_nums_data[i], 1870 - bytes_read); //zbytek bytu, nebude se cist cely sektor
-    for (int j = 0; j < 1870 - bytes_read; j++) {
-        //printf("%c", retrieved_data[j]);
-    }
-    printf("Printing AUTOEXEC.BAT - END\n");
     enter_command_loop();
 }
 
@@ -149,7 +127,7 @@ void commander_fs(std::string user_input) {
         perform_rd(working_dir_sector_glob, dir_file);
     }
     else if (command.compare("type") == 0) {
-        perform_type(working_dir_sector_glob, dir_file);
+        perform_type(working_dir_sector_glob, folders_in_path);
     }   
 }
 
@@ -202,7 +180,13 @@ void perform_dir(int working_dir_sector, std::vector<std::string> dir_name) {
                 type = "<SOUBOR>";
             }
 
-            std::cout << type << "  " << dir_item.filezise << "  " << dir_item.filename << "\n";
+            std::cout << type << "  " << dir_item.filezise << "  " << dir_item.filename;
+
+            if (!dir_item.extension.empty()) { //vypis pripony
+                std::cout << "." << dir_item.extension << ", clust: " << dir_item.first_cluster;
+            }
+
+            std::cout << "\n";
         }
     }
     else { //nektera ze slozek v ceste nebyla nalezena, err
@@ -241,7 +225,7 @@ std::vector<directory_item> retrieve_folders_cur_folder(int working_dir_sector) 
 }
 
 /*
-* Vrati objekt directory_item reprezentujici pozadovanou slozku, pokud zadana cesta neexistuje. Pokud neexistuje, pak bude cluster == -1.
+* Vrati objekt directory_item reprezentujici pozadovanou slozku, pokud zadana cesta existuje. Pokud neexistuje, pak bude cluster == -1.
 * start_sector - sektor, na kterem zacina aktualne prochazena slozka
 * path - cesta zadana uzivatelem, muze byt i relativni
 /**/
@@ -300,7 +284,7 @@ directory_item retrieve_dir_items(int start_sector, std::vector<std::string> pat
 * dir_name - nazev nove slozky
 /**/ 
 void perform_md(int working_dir_sector, std::string dir_name) {
-
+   
 }
 
 /*
@@ -313,12 +297,94 @@ void perform_rd(int working_dir_sector, std::string dir_name) {
 }
 
 /*
-* Provede prikaz type - smaze slozku s odpovidajicim nazvem.
+* Provede prikaz type - vypise soubor s odpovidajicim nazvem.
 * working_dir_sector - cislo sektoru, na kterem zacina prave prochazena slozka
-* filename - nazev souboru, jehoz obsah ma byt vypsan
+* path_filename - cesta k souboru, jez ma byt vypsan
 /**/
-void perform_type(int working_dir_sector, std::string filename) {
+void perform_type(int working_dir_sector, std::vector<std::string> path_filename) {
+    int cluster_to_search = -1; //pocatecni cluster slozky, ktera ma byt prohledana (vyskytuje se v ni hledany soubor)
 
+    if (path_filename.size() == 1) { //soubor se nachazi v aktualni slozce
+        cluster_to_search = working_dir_sector;
+    } 
+    else{ //relativni cesta, nalezeni slozky
+        //zjisteni, zda existuje slozka, ve ktere se ma soubor nachazet
+        std::vector<std::string> folders_in_path;
+
+        for (int i = 0; i < path_filename.size() - 1; i++) { //posledni je nazev souboru
+            folders_in_path.push_back(path_filename.at(i));
+        }
+
+        directory_item target_folder = retrieve_dir_items(working_dir_sector, folders_in_path); //reprezentuje cilovou slozku v ceste
+        cluster_to_search = target_folder.first_cluster;
+    }
+
+    directory_item file_dir_it = retrieve_file_dir_item(cluster_to_search, path_filename.at(path_filename.size() - 1)); //nalezeni pocatecniho clusteru pozadovaneho souboru v ramci slozky
+    
+    if (file_dir_it.first_cluster == -1) { //soubor neexistuje
+        std::cout << "System nemuze nalezt uvedenou cestu.\n";
+        return;
+    }
+
+   //soubor existuje => vypis
+    std::cout << "target is: " << file_dir_it.first_cluster << "\n";
+    
+    std::vector<int> sectors_nums_data = retrieve_sectors_nums_fs(fat_table_dec, file_dir_it.first_cluster); //seznam sektoru, na kterych se soubor nachazi
+    //nacteni dat ze ziskaneho seznamu sektoru
+    int bytes_read = 0;
+    std::vector<unsigned char> retrieved_data;
+
+    int i = 0;
+    for (; i < sectors_nums_data.size() - 1; i++) { //krome posledniho cist cely sektor
+        retrieved_data = read_from_fs(floppy_img_file, sectors_nums_data[i], SECTOR_SIZE_B);
+
+        bytes_read += SECTOR_SIZE_B;
+        for (int j = 0; j < SECTOR_SIZE_B; j++) {
+            printf("%c", retrieved_data[j]);
+        }
+    }
+
+    retrieved_data = read_from_fs(floppy_img_file, sectors_nums_data[i], file_dir_it.filezise - bytes_read); //zbytek bytu, nebude se cist cely sektor
+    for (int j = 0; j < file_dir_it.filezise - bytes_read; j++) {
+        printf("%c", retrieved_data[j]);
+    }
+}
+
+/*
+* Zkontroluje, zda v zadane slozce existuje soubor s pozadovanym nazvem a pokud ano, vrati odpovidajici directory_item reprezentujici soubor. Pokud soubor neexistuje, pak bude cluster == -1.
+* start_clust_folder - cluster, na kterem zacina slozka, v ramci ktere se ma soubor hledat
+/**/
+directory_item retrieve_file_dir_item(int start_clust_folder, std::string filename) {
+    std::vector<directory_item> folder_items = retrieve_folders_cur_folder(start_clust_folder); //reprez polozky ve slozce
+    int dir_item_num = -1; //poradi pozadovaneho souboru vzhledem k folder_items
+
+    std::string filename_ext = ""; //nazev souboru (s pripadnou priponou)
+    int i = 0;
+    while (dir_item_num == -1 && i < folder_items.size()) {
+        directory_item dir_item = folder_items.at(i); //jedna polozka ve slozce (soubor ci podslozka)
+
+        filename_ext = dir_item.filename;
+        if (!dir_item.extension.empty()) {
+            filename_ext += "." + dir_item.extension;
+        }
+
+        if (filename_ext.compare(filename) == 0 && dir_item.filezise != 0) { //pokud sedi nazev+pripona a nejedna se o slozku (velikost != 0), pak je soubor nalezen
+            dir_item_num = i;
+        }
+        
+        i++;
+    }
+
+    directory_item dir_item;
+    if (dir_item_num != -1) { //soubor nalezen, ok
+        dir_item = folder_items.at(dir_item_num);
+    }
+    else { //soubor nebyl nalezen, err
+        dir_item.first_cluster = -1;
+        dir_item.filezise = -1;
+    }
+
+    return dir_item;
 }
 
 /*
