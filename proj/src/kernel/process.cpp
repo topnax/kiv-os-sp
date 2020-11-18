@@ -223,8 +223,16 @@ void wait_for(kiv_hal::TRegisters &registers) {
 
         // finally, unlock the mutex, finish the syscall
         lock.unlock();
-        // set the rax register to handleCount (error result - our own convention, not specified in the API)
-        registers.rax.l = handleCount;
+
+        auto invalid_handle = t_handles[index];
+        // check whether the invalid handle has a record in the PCB table
+        if (Pcb.find(invalid_handle) != Pcb.end()) {
+            // if yes, then return the invalid handle index
+            registers.rax.l = index;
+        } else {
+            // set the rax register to handleCount (error result - our own convention, not specified in the API)
+            registers.rax.l = handleCount;
+        }
     } else {
         // no invalid handle found - unlock the mutex
         lock.unlock();
