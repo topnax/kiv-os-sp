@@ -92,9 +92,9 @@ void thread_post_execute(bool is_process) {// while cloning, the THandle is gene
         // iterate over thread's listeners
         for (auto *listener : *listeners) {
             // notify the listeners of the thread
-            listener->semaphore->notify();
             listener->handle_that_notified = t_handle;
             listener->notified = true;
+            listener->semaphore->notify();
         }
 
         // after all listeners have been notified, we can clear the list
