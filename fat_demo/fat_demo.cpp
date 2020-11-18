@@ -28,7 +28,7 @@ std::vector<directory_item> retrieve_folders_cur_folder(int working_dir_sector);
 
 void enter_command_loop();
 void commander_fs(std::string user_input);
-void perform_cd(int working_dir_sector, std::string dir_name);
+void perform_cd(int working_dir_sector, std::vector<std::string> dir_name);
 void perform_dir(int working_dir_sector, std::string dir_name);
 void perform_md(int working_dir_sector, std::string dir_name);
 void perform_rd(int working_dir_sector, std::string dir_name);
@@ -126,8 +126,17 @@ void commander_fs(std::string user_input) {
         }
     }
 
+    //dir_file muze byt slozeno z vice slozek, program podporuje relativni cesty => rozdeleni dle "\"
+    std::vector<std::string> folders_in_path; //vector obsahuje veskere slozky v relativni ceste
+    std::stringstream dir_file_string_s(dir_file);
+
+    while (std::getline(dir_file_string_s, token, '\\')) { //rozdeleni na indiv. slozky
+        folders_in_path.push_back(token);
+        std::cout << "pushing: " << token << "\n";
+    }
+
     if (command.compare("cd") == 0) {
-        perform_cd(working_dir_sector_glob, dir_file);
+        perform_cd(working_dir_sector_glob, folders_in_path);
     }
     else if (command.compare("dir") == 0) {
         perform_dir(working_dir_sector_glob, dir_file);
@@ -148,29 +157,51 @@ void commander_fs(std::string user_input) {
 * working_dir_sector - cislo sektoru, na kterem zacina prave prochazena slozka
 * dir_name - nazev pozadovane slozky
 /**/
-void perform_cd(int working_dir_sector, std::string dir_name) {
-    //nejprve zjisteni, zda dana slozka existuje
-    int dir_item_number = -1; //poradi slozky do ktere se ma uzivatel presunout; v ramci vectoru cur_folder_items
+void perform_cd(int working_dir_sector, std::vector<std::string> dir_name) {
+    int traversed_sector_folder = working_dir_sector; //cislo sektoru, na kterem zacina aktualne prochazena slozka
+    int dir_item_number = -1; //poradi hledane slozky v ramci prave prochazene slozky
+    std::vector<directory_item> cur_folder_items; //obsahuje polozky nachazejici se v prave prochazene slozce (slozek bude vice, pokud relativni cesta)
 
-    std::vector<directory_item> cur_folder_items = retrieve_folders_cur_folder(working_dir_sector); //nactu obsah aktualni slozky
+    std::cout << "size is: " << dir_name.size();
+    for (int i = 0; i < dir_name.size(); i++) { //pruchod slozkami (muze jich byt vice, relativni cesta)
+        dir_item_number = -1; //poradi slozky do ktere se mam presunout; v ramci vectoru cur_folder_items
+        cur_folder_items = retrieve_folders_cur_folder(traversed_sector_folder); //nactu obsah aktualni slozky
 
-    int i = 0;
-    for (; i < cur_folder_items.size(); i++) { //projdu prvky slozky => zjisteni, zda obsahuje pozadovanou podslozku
-        directory_item dir_item = cur_folder_items.at(i);
+        int j = 0;
+        while (dir_item_number == -1 && j < cur_folder_items.size()) { //dokud nebyla nalezena slozka s odpovidajicim nazvem
+            directory_item dir_item = cur_folder_items.at(j);
 
-        if (dir_item.filename.compare(dir_name) == 0 && dir_item.extension.length() == 0 && dir_item.filezise == 0) { //pokud sedi nazev a nejedna se o soubor
-            dir_item_number = i;
-            break; //vice slozek se stejnym nazev byt nemuze
+            if (dir_item.filename.compare(dir_name.at(i)) == 0 && dir_item.extension.length() == 0 && dir_item.filezise == 0) { //pokud sedi nazev a nejedna se o soubor => nalezena odpovidajici slozka v ceste
+                dir_item_number = j;
+            }
+
+            j++;
+        }
+
+        if (dir_item_number != -1) { //slozka v ceste, pokracovat hledanim dalsi slozky
+            directory_item dir_item = cur_folder_items.at(dir_item_number);
+            traversed_sector_folder = dir_item.first_cluster;
+
+            if (dir_item.first_cluster == 0) { //pokud se jedna o root slozku, vyjimka
+                dir_item.first_cluster = 19;
+            }
+        }
+        else {
+            break;
         }
     }
-
-    if (dir_item_number != -1) { //slozka nalezena, switch do ni
+    
+    if (dir_item_number != -1) {
         directory_item dir_item = cur_folder_items.at(dir_item_number);
+
+        if (dir_item.first_cluster == 0) { //pokud se jedna o root slozku, vyjimka
+            dir_item.first_cluster = 19;
+        }
 
         working_dir_sector_glob = dir_item.first_cluster;
         working_dir_name_glob = dir_item.filename;
     }
-    else {
+    else { //nektera ze slozek v ceste nebyla nalezena, err
         std::cout << "System nemuze nalezt uvedenou cestu.\n";
     }
 }
@@ -188,7 +219,6 @@ void perform_dir(int working_dir_sector, std::string dir_name) {
         directory_item dir_item;
         std::string type;
 
-        std::cout << "dir size is: " << directory_content.size();
         for (int i = 0; i < directory_content.size(); i++) {
             dir_item = directory_content.at(i);
 
