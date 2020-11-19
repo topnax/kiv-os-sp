@@ -13,9 +13,14 @@
  */
 struct Wait_For_Listener {
     /**
-     * Thread to be notified once any specified thread finishes
+     * ID of this listener
      */
-    Semaphore *semaphore;
+     kiv_os::THandle id;
+
+    /**
+     * Semaphore to be notified once any specified thread finishes
+     */
+    std::unique_ptr<Semaphore> semaphore;
 
     /**
      * An attribute containing the handle of the thread that has notified the semaphore
