@@ -29,6 +29,20 @@ std::map<std::thread::id, kiv_os::THandle> Handle_To_THandle;
 std::map<kiv_os::THandle, kiv_os::NOS_Error> Pcb;
 
 
+size_t __stdcall default_signal_handler(const kiv_hal::TRegisters &regs) {
+    auto signal_id = static_cast<kiv_os::NSignal_Id>(regs.rcx.l);
+    auto resolved = Handle_To_THandle.find(std::this_thread::get_id());
+
+    if (resolved != Handle_To_THandle.end()) {
+        auto process = Proc::Pcb->operator[](resolved->second);
+        if (process != nullptr) {
+            // TODO remove for release
+            printf("Default handler of signal=%hhu for process=%d executed...", signal_id, process->handle);
+        }
+    }
+    return 0;
+}
+
 void Handle_Process(kiv_hal::TRegisters &regs, HMODULE user_programs) {
     switch (static_cast<kiv_os::NOS_Process>(regs.rax.l)) {
 
@@ -49,6 +63,11 @@ void Handle_Process(kiv_hal::TRegisters &regs, HMODULE user_programs) {
 
         case kiv_os::NOS_Process::Read_Exit_Code: {
             read_exit_code(regs);
+        }
+            break;
+
+        case kiv_os::NOS_Process::Register_Signal_Handler: {
+            register_signal_handler(regs);
         }
             break;
     }
@@ -169,7 +188,7 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
                 run_in_a_thread(program_entrypoint, regs, true);
                 auto process = Proc::Pcb->Add_Process(regs.rax.x, std_in, std_out, program);
                 process->status = Process_Status::Running;
-                //process->signal_handlers[kiv_os::NSignal_Id::Terminate] = default_terminate_handler;
+                process->signal_handlers[kiv_os::NSignal_Id::Terminate] = default_signal_handler;
                 registers.rax.x = regs.rax.x;
             }
 
@@ -377,4 +396,36 @@ void read_exit_code(kiv_hal::TRegisters &registers) {
     }
 
     registers.rcx.x = static_cast<decltype(registers.rcx.x)>(exit_code);
+}
+
+void register_signal_handler(kiv_hal::TRegisters &registers) {
+    auto signal_id = static_cast<kiv_os::NSignal_Id>(registers.rcx.l);
+    auto thread_proc = reinterpret_cast<kiv_os::TThread_Proc>(registers.rdx.r);
+
+    // find the handle of the current thread
+    auto resolved = Handle_To_THandle.find(std::this_thread::get_id());
+    if (resolved != Handle_To_THandle.end()) {
+        auto process = Proc::Pcb->operator[](resolved->second);
+        // check whether the current handle is a process (has an entry in the PCB table)
+        if (process != nullptr) {
+            // register the given thread_proc in case of non-zero thread_proc passed via registers
+            process->signal_handlers[signal_id] = thread_proc ? thread_proc : default_signal_handler;
+        }
+    }
+}
+
+void signal_all_processes(kiv_os::NSignal_Id signal_id) {
+    // iterate over all processes and signal the given signal
+    for (Process *process : Proc::Pcb->Get_Processes()) {
+        signal(signal_id, process);
+    }
+}
+
+void signal(kiv_os::NSignal_Id signal_id, Process *process) {
+    if (process->signal_handlers[signal_id] != nullptr) {
+        kiv_hal::TRegisters regs;
+        regs.rcx.l = static_cast<decltype(regs.rcx.l)>(signal_id);
+        // execute the handler of the given signal for the given process
+        process->signal_handlers[signal_id](regs);
+    }
 }

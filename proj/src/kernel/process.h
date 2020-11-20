@@ -7,6 +7,7 @@
 #include "memory"
 #include "vector"
 #include "semaphore.h"
+#include "process/process_entry.h"
 
 /**
  *  A structure representing a Wait_For listener waiting for a thread to notify it
@@ -51,3 +52,9 @@ void exit(kiv_hal::TRegisters &registers);
 void exit(kiv_os::THandle handle, kiv_os::NOS_Error exit_code);
 
 void read_exit_code(kiv_hal::TRegisters &registers);
+
+void register_signal_handler(kiv_hal::TRegisters &registers);
+
+void signal_all_processes(kiv_os::NSignal_Id signal);
+
+void signal(kiv_os::NSignal_Id signal_id, Process *process);
