@@ -31,4 +31,6 @@ namespace kiv_os_rtl {
     bool Create_Pipe(const kiv_os::THandle *handles);
 
     bool Close_Handle(const kiv_os::THandle handle);
+
+    bool Register_Signal_Handler(const kiv_os::NSignal_Id signal, kiv_os::TThread_Proc const thread_proc);
 }
