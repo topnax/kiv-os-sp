@@ -2,6 +2,8 @@
 
 #include "..\api\api.h"
 #include "rtl.h"
+#include <set>
+#include <string>
 
 extern "C" size_t __stdcall shell(const kiv_hal::TRegisters &regs);
 
@@ -19,6 +21,7 @@ extern "C" size_t __stdcall rgen(const kiv_hal::TRegisters &regs);
 extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs);
 extern "C" size_t __stdcall tasklist(const kiv_hal::TRegisters &regs) { return 0; }
 extern "C" size_t __stdcall shutdown(const kiv_hal::TRegisters &regs) { return 0; }
+void fill_supported_commands_set(std::set<std::string>&);
 extern "C" size_t __stdcall charcnt(const kiv_hal::TRegisters & regs) { // todo remove this whole thing + name from user.def
     size_t counter;
     const size_t buffer_size = 256;

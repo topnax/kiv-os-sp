@@ -8,8 +8,6 @@
 #include "rtl.h"
 #include "argparser.h"
 
-// TODO basic argparser implementation
-
 void strtrim(char *str) {
     int start = 0; // number of leading spaces
     char *buffer = str;
@@ -23,7 +21,7 @@ void strtrim(char *str) {
     while ((*buffer++ = *str++));  // remove leading spaces: K&R
 }
 
-void parse_programs(char *input, program *programs, int *length) {
+void parse_programs_unused(char *input, program *programs, int *length) {
 
     auto last_input = ProgramHandleType::Standard;
     auto last_output = ProgramHandleType::Standard;
@@ -63,7 +61,7 @@ void parse_programs(char *input, program *programs, int *length) {
 }
 
 
-std::vector<program> parse_programs2(char* input/*, program* programs, int* length*/) {
+std::vector<program> parse_programs(char* input) {
 
     std::vector<program> programs_vec;
     const char in_symb = '<';
@@ -193,94 +191,5 @@ std::vector<program> parse_programs2(char* input/*, program* programs, int* leng
     // remove the files, if there were any they must be at the end:
     programs_vec.resize(actual_prog_count); 
     return programs_vec;
-}
-
-// todo rename class or move this to separate .cpp file
-void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters& registers) {
-
-    //printf("running piped programs\n");
-
-    // get references to std_in and out from respective registers:
-    const auto std_out = static_cast<kiv_os::THandle>(registers.rbx.x);
-    const auto std_in = static_cast<kiv_os::THandle>(registers.rax.x);
-
-    int pipes_num = programs.size() - 1; // we will need -1 number of pipes
-    std::vector<kiv_os::THandle> pipe_handles; 
-    std::vector<kiv_os::THandle> handles;
-
-    for (int i = 0; i < pipes_num; i++) {
-
-        kiv_os::THandle pipe[2];
-        kiv_os_rtl::Create_Pipe(pipe);
-
-        pipe_handles.push_back(pipe[0]);
-        pipe_handles.push_back(pipe[1]);
-    }
-
-
-
-    for (int i = 0; i < programs.size(); i++) {
-        if (i == 0) {
-            // first program gets std in as input and first pipe's in as output
-            kiv_os::THandle first_handle;
-            kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, std_in, pipe_handles[0], first_handle);
-            handles.push_back(first_handle);
-
-        }
-        else if (i == programs.size() - 1) {
-            // the last program gets std out as output
-            kiv_os::THandle last_handle;
-            kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[pipe_handles.size() - 1], std_out, last_handle);
-            handles.push_back(last_handle);
-        }
-        else {
-            // else connect it correctly
-            kiv_os::THandle handle;
-            kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[2 * i - 1], pipe_handles[2 * i], handle);
-            handles.push_back(handle);
-        }
-    }
-
-    uint8_t handleThatSignalledIndex = 0;
-    int running_progs_num = programs.size();
-    std::vector<kiv_os::THandle> orig_handles = handles;
-    int num_of_handles_closed = 0;
-
-    while (running_progs_num > 0) {
-        kiv_os_rtl::Wait_For(handles.data(), handles.size(), handleThatSignalledIndex);
-        kiv_os::NOS_Error exit_code;
-        kiv_os_rtl::Read_Exit_Code(handles[handleThatSignalledIndex], exit_code);
-        printf("Exit code for handle %d = %d\n", handles[handleThatSignalledIndex], exit_code);
-
-        // find the index of this element in the original list of handles:
-        auto it = std::find(orig_handles.begin(), orig_handles.end(), handles[handleThatSignalledIndex]);
-        int ind = it - orig_handles.begin(); // index to original handles coresponding to the returned index
-        
-        if (ind == 0) {
-            printf("closing handle %d (ind %d)\n", pipe_handles[0], 0);
-            kiv_os_rtl::Close_Handle(pipe_handles[0]);
-            num_of_handles_closed++;
-        }
-        else if (ind == orig_handles.size() - 1) {
-            printf("closing handle %d (ind %d)\n", pipe_handles[pipe_handles.size() - 1], pipe_handles.size() - 1);
-            kiv_os_rtl::Close_Handle(pipe_handles[pipe_handles.size() - 1]);
-            num_of_handles_closed++;
-        }
-        else {
-            printf("closing handles %d (ind %d) and %d (ind %d)\n", pipe_handles[2 * ind], 2 * ind, pipe_handles[2 * ind - 1], 2* ind - 1);
-            kiv_os_rtl::Close_Handle(pipe_handles[2 * ind]);
-            kiv_os_rtl::Close_Handle(pipe_handles[2 * ind - 1]);
-            num_of_handles_closed++;
-            num_of_handles_closed++;
-        }
-        
-        handles.erase(handles.begin() + handleThatSignalledIndex);
-        running_progs_num--;
-    }
-
-
-    
-    printf("num_of_handles_closed: %d\n", num_of_handles_closed);
-
 }
 

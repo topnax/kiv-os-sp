@@ -32,6 +32,7 @@ struct program {
     io output;
 };
 
-void parse_programs(char *input, program *programs, int *length);
-std::vector<program> parse_programs2(char* input/*, program* programs, int* length*/);
+void strtrim(char* str);
+void parse_programs_unused(char *input, program *programs, int *length);
+std::vector<program> parse_programs(char* input/*, program* programs, int* length*/);
 void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters& registers);
