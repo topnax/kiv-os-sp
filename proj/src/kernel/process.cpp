@@ -6,15 +6,16 @@
 #include "../api/hal.h"
 #include "../api/api.h"
 #include <map>
-#include <deque>
 #include <random>
 #include "handles.h"
 #include "semaphore.h"
 #include "process.h"
+#include "process/pcb.h"
 
 
-namespace Process {
+namespace Proc {
     Thread_Control_Block *Tcb = new Thread_Control_Block();
+    Process_Control_Block *Pcb = new Process_Control_Block();
     kiv_os::THandle Last_Listener_ID = 0;
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -77,22 +78,26 @@ void thread_post_execute(bool is_process) {// while cloning, the THandle is gene
     kiv_os::THandle t_handle = Handle_To_THandle[std::this_thread::get_id()];
 
     if (is_process) {
-        // if no exit code is found in the PCB table for the current THandle, implicitly set it to Success
-        if (Pcb.find(t_handle) == Pcb.end()) {
-            exit(t_handle, kiv_os::NOS_Error::Success);
+        // set the status of the process that has just ended to Zombie (the process is waiting for someone to read it's exit code)
+        auto process = (*Proc::Pcb)[t_handle];
+        if (process != nullptr) {
+            process->status = Process_Status::Zombie;
+            // process->signal_handlers.clear();
+        } else {
+            printf("could not find process with handle of %d\n", t_handle);
         }
     }
 
     // get all listeners that are waiting for this thread
-    auto resolved = Process::Tcb->Wait_For_Listeners.find(t_handle);
+    auto resolved = Proc::Tcb->Wait_For_Listeners.find(t_handle);
 
 
     // remove the THandle before notifying listeners
     Remove_Handle(t_handle);
 
-    if (resolved != Process::Tcb->Wait_For_Listeners.end()) {
+    if (resolved != Proc::Tcb->Wait_For_Listeners.end()) {
         // found a listener list
-        auto *listeners = Process::Tcb->Wait_For_Listeners[t_handle].get();
+        auto *listeners = Proc::Tcb->Wait_For_Listeners[t_handle].get();
         // iterate over thread's listeners
         for (auto *listener : *listeners) {
             // notify the listeners of the thread
@@ -105,7 +110,7 @@ void thread_post_execute(bool is_process) {// while cloning, the THandle is gene
         listeners->clear();
 
         // erase the list from the map
-        Process::Tcb->Wait_For_Listeners.erase(t_handle);
+        Proc::Tcb->Wait_For_Listeners.erase(t_handle);
     }
 
     // remove the std::thread::id to kiv_os::THandle mapping
@@ -162,6 +167,9 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
             kiv_os::TThread_Proc program_entrypoint = (kiv_os::TThread_Proc) GetProcAddress(user_programs, program);
             if (program_entrypoint) {
                 run_in_a_thread(program_entrypoint, regs, true);
+                auto process = Proc::Pcb->Add_Process(regs.rax.x, std_in, std_out, program);
+                process->status = Process_Status::Running;
+                //process->signal_handlers[kiv_os::NSignal_Id::Terminate] = default_terminate_handler;
                 registers.rax.x = regs.rax.x;
             }
 
@@ -180,9 +188,9 @@ void wait_for(kiv_hal::TRegisters &registers) {
     std::unique_lock<std::mutex> lock(Semaphores_Mutex);
 
     // generate an unique ID for the new listener
-    Process::Last_Listener_ID += Process::dis(Process::gen);
+    Proc::Last_Listener_ID += Proc::dis(Proc::gen);
     Wait_For_Listener current_listener {
-        Process::Last_Listener_ID,
+        Proc::Last_Listener_ID,
         std::make_unique<Semaphore>(0),
         0,
         false
@@ -199,11 +207,11 @@ void wait_for(kiv_hal::TRegisters &registers) {
         // check whether the handle is valid
         if (Resolve_kiv_os_Handle(t_handle) != INVALID_HANDLE_VALUE) {
             // current thread has no list of listeners - let's create one
-            if (!Process::Tcb->Wait_For_Listeners[t_handle]) {
-                Process::Tcb->Wait_For_Listeners[t_handle] = std::make_unique<std::vector<Wait_For_Listener *>>();
+            if (!Proc::Tcb->Wait_For_Listeners[t_handle]) {
+                Proc::Tcb->Wait_For_Listeners[t_handle] = std::make_unique<std::vector<Wait_For_Listener *>>();
             }
             // assign a listener to the THandle
-            (*(Process::Tcb->Wait_For_Listeners[t_handle])).push_back(&current_listener);
+            (*(Proc::Tcb->Wait_For_Listeners[t_handle])).push_back(&current_listener);
         } else {
             // stop iterating over handles - we found a handle that is not valid
             anyHandleInvalid = true;
@@ -219,14 +227,14 @@ void wait_for(kiv_hal::TRegisters &registers) {
             // load a handle
             auto t_handle = t_handles[i];
 
-            std::vector<Wait_For_Listener *> *wait_for_listeners = Process::Tcb->Wait_For_Listeners[t_handle].get();
+            std::vector<Wait_For_Listener *> *wait_for_listeners = Proc::Tcb->Wait_For_Listeners[t_handle].get();
             // pop back one listener
             // this is the reason why we use a mutex to make sure the listener vector does not change while we loop over handles
             if (wait_for_listeners) {
                 wait_for_listeners->pop_back();
                 // if the listener list is empty, delete it from the thread to listeners map
                 if (wait_for_listeners->empty()) {
-                    Process::Tcb->Wait_For_Listeners.erase(t_handle);
+                    Proc::Tcb->Wait_For_Listeners.erase(t_handle);
                 }
             }
         }
@@ -300,7 +308,13 @@ void wait_for(kiv_hal::TRegisters &registers) {
 
 void exit(kiv_os::THandle handle, kiv_os::NOS_Error exit_code) {
     // store the exit code into the PCB under the key of the handle
-    Pcb[handle] = exit_code;
+    auto process = (*Proc::Pcb)[handle];
+    if (process != nullptr) {
+        // set the exit code
+        process->exit_code = exit_code;
+        // set the status to Zombie
+        process->status = Process_Status::Zombie;
+    }
 }
 
 void exit(kiv_hal::TRegisters &registers) {
@@ -338,10 +352,26 @@ void read_exit_code(kiv_hal::TRegisters &registers) {
     kiv_os::NOS_Error exit_code = kiv_os::NOS_Error::Unknown_Error;
 
     // the handle has finished now, find the exit code
-    auto resolved = Pcb.find(handle);
-    if (resolved != Pcb.end()) {
-        exit_code = resolved->second;
-        Pcb.erase(handle);
+    auto process = (*Proc::Pcb)[handle];
+
+    if (process != nullptr && process->status == Process_Status::Zombie) {
+        exit_code = process->exit_code;
+
+        std::string statuses[] = {
+                "Ready", "Running", "Zombie"
+        };
+
+        // TODO remove for release, move to procfs
+        printf("|%.*s|\n", 60, "========================================================================================================================");
+        printf("|%-7s |%-10s |%-9s |%-7s |%-7s |%-10s|\n", "HANDLE", "PROGRAM", "STATUS", "STD_IN", "STD_OUT", "EXIT_CODE");
+        printf("|%.*s|\n", 60, "========================================================================================================================");
+        for (Process *p : (*Proc::Pcb).Get_Processes()) {
+            printf("|%-7d |%-10s |%-9s |%-7d |%-7d |%-10hu|\n", p->handle, p->program_name, statuses[(int) p->status].c_str(), p->std_in, p->std_out, p->exit_code);
+        }
+        printf("|%.*s|\n", 60, "========================================================================================================================");
+
+        // we have read the process' exit code - remove it from the table
+        (*Proc::Pcb).Remove_Process(handle);
     } else {
         // TODO in this case EC is set to Unknown_Error, but what should we do, if the exit code has already been read?
     }
