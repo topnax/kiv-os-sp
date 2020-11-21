@@ -1,7 +1,108 @@
 #include "shell.h"
 #include "rtl.h"
 #include "argparser.h"
+#include <vector>
 
+
+void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters& registers) {
+
+    //printf("running piped programs\n");
+
+    // get references to std_in and out from respective registers:
+    const auto std_out = static_cast<kiv_os::THandle>(registers.rbx.x);
+    const auto std_in = static_cast<kiv_os::THandle>(registers.rax.x);
+
+    int pipes_num = programs.size() - 1; // we will need -1 number of pipes
+    // preparing lists for the pipe handles (ins and outs) and the program handles:
+    std::vector<kiv_os::THandle> pipe_handles;
+    std::vector<kiv_os::THandle> handles;
+
+    // create enough pipe handles and push them to the vector:
+    for (int i = 0; i < pipes_num; i++) {
+
+        kiv_os::THandle pipe[2];
+        kiv_os_rtl::Create_Pipe(pipe);
+
+        pipe_handles.push_back(pipe[0]);
+        pipe_handles.push_back(pipe[1]);
+    }
+
+    // for each program assign input and output, clone the process and save it's handle:
+    for (int i = 0; i < programs.size(); i++) {
+        if (i == 0) {
+            // first program gets std in as input and first pipe's in as output
+            kiv_os::THandle first_handle;
+            kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, std_in, pipe_handles[0], first_handle);
+            handles.push_back(first_handle);
+
+        }
+        else if (i == programs.size() - 1) {
+            // the last program gets std out as output
+            kiv_os::THandle last_handle;
+            kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[pipe_handles.size() - 1], std_out, last_handle);
+            handles.push_back(last_handle);
+        }
+        else {
+            // else connect it correctly
+            kiv_os::THandle handle;
+            kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[2 * i - 1], pipe_handles[2 * i], handle);
+            handles.push_back(handle);
+        }
+    }
+
+    // index to the handles vector of a handle that signalled it ended:
+    uint8_t handleThatSignalledIndex = 0;
+    
+    // how many programs are still running: 
+    int running_progs_num = programs.size();
+
+    // copy the handles before we start ereasing them so that we know which ones to close:
+    std::vector<kiv_os::THandle> orig_handles = handles;
+    int num_of_handles_closed = 0; // debug variable - TODO remove in release
+
+    // while there are still some programs running:
+    while (running_progs_num > 0) {
+        // wait for one of them to end and when it does, read it's exit code:
+        kiv_os_rtl::Wait_For(handles.data(), handles.size(), handleThatSignalledIndex);
+        kiv_os::NOS_Error exit_code;
+        kiv_os_rtl::Read_Exit_Code(handles[handleThatSignalledIndex], exit_code);
+        //printf("Exit code for handle %d = %d\n", handles[handleThatSignalledIndex], exit_code);
+
+        // find the index of this element in the original list of handles:
+        auto it = std::find(orig_handles.begin(), orig_handles.end(), handles[handleThatSignalledIndex]);
+        int ind = it - orig_handles.begin(); // index to original handles coresponding to the returned index
+
+        if (ind == 0) {
+            //printf("closing handle %d (ind %d)\n", pipe_handles[0], 0);
+
+            // if it was the first program that ended, close only the input of the first pipe (at pipe_handles[0])
+            kiv_os_rtl::Close_Handle(pipe_handles[0]);
+            num_of_handles_closed++;
+        }
+        else if (ind == orig_handles.size() - 1) {
+            //printf("closing handle %d (ind %d)\n", pipe_handles[pipe_handles.size() - 1], pipe_handles.size() - 1);
+
+            // if it was the last program that ended, close only the output of the last pipe (at pipe_handles[size - 1])
+            kiv_os_rtl::Close_Handle(pipe_handles[pipe_handles.size() - 1]);
+            num_of_handles_closed++;
+        }
+        else {
+            //printf("closing handles %d (ind %d) and %d (ind %d)\n", pipe_handles[2 * ind], 2 * ind, pipe_handles[2 * ind - 1], 2 * ind - 1);
+
+            // else close the input or output of the pipes surounding the process
+            kiv_os_rtl::Close_Handle(pipe_handles[2 * ind]);
+            kiv_os_rtl::Close_Handle(pipe_handles[2 * ind - 1]);
+            num_of_handles_closed++;
+            num_of_handles_closed++;
+        }
+
+        // remove the handle of the ended process from the handles array which will be sent to the waitfor function:
+        handles.erase(handles.begin() + handleThatSignalledIndex);
+
+        // decrement the number of processes running:
+        running_progs_num--;
+    }
+}
 
 int pipe_test(kiv_os::THandle std_in, kiv_os::THandle std_out) {
     printf("pipe test :)\n");
@@ -81,7 +182,26 @@ void call_program(char *program, const kiv_hal::TRegisters &registers, char *dat
 
 }
 
+void fill_supported_commands_set(std::set<std::string>& set) {
+    // hardcoded filling of supported commands:
+    set.insert("type");
+    set.insert("md");
+    set.insert("rd");
+    set.insert("dir");
+    set.insert("echo");
+    set.insert("find");
+    set.insert("sort");
+    set.insert("rgen");
+    set.insert("freq");
+    set.insert("tasklist");
+    set.insert("shutdown");
+    set.insert("charcnt");
+}
+
 size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
+    std::set<std::string> supported_commands;
+    fill_supported_commands_set(supported_commands);
+
     const kiv_os::THandle std_in = static_cast<kiv_os::THandle>(regs.rax.x);
     const kiv_os::THandle std_out = static_cast<kiv_os::THandle>(regs.rbx.x);
 
@@ -108,6 +228,80 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         } else
             break;    //EOF
 
+        // TODO proper PROPER format checking?
+        // - current state allows this to happen:
+        // user types 'echo hello | freq |' -> last pipe symbol doesn't allow piped programs to be called,
+        // the result is 'hello' printed to the console - OK?
+
+        // checking for program piping - TODO make this more elegant
+        bool io_chain = false;
+        
+        // removing leading and tailing white spaces:
+        strtrim(buffer);
+        int input_len = strlen(buffer);
+
+        for (int i = 0; i < input_len; i++) {
+            if (buffer[i] == '|' ||
+                buffer[i] == '>' ||
+                buffer[i] == '<') {
+                // possibility of io chain in the correct format
+
+                if (buffer[i] == '|' &&
+                    (i == input_len - 1 || i == 0) ) {
+                    // the pipe symbol was at the beginning with nothing before it
+                    // or it was at the end with nothing behind it
+                    //
+                    // in such case do not set the io_chain flag to true - the later implementation of piped 
+                    // program calling is not prepared for this situation
+                    io_chain = false;
+                    break; // this break might be unnecessary
+                }
+                else {
+                    io_chain = true;
+                }
+            }
+        }
+
+        if (io_chain) {
+            std::vector<program> programs = parse_programs(buffer);
+
+            //for (int i = 0; i < programs.size()/**program_count*/; i++) {
+            //    char* name = programs[i].name;
+            //    char* data = programs[i].data;
+            //    io in = programs[i].input;
+            //    io out = programs[i].output;
+
+            //    printf("%d name: '%s'\n", i, name);
+            //    printf("%d data: '%s'\n", i, data);
+            //    printf("%d input type: %d\n", i, in.type);
+            //    printf("%d input name: '%s'\n", i, in.name);
+            //    printf("%d output type: %d\n", i, out.type);
+            //    printf("%d output name: '%s'\n", i, out.name);
+            //    printf("\n");
+            //}
+
+            // checking if all the program names are valid:
+            bool names_ok = false;
+            for (int i = 0; i < programs.size(); i++) {
+                names_ok = supported_commands.find(programs[i].name) != supported_commands.end();
+                if (!names_ok) {
+                    char msg[100];
+                    size_t written;
+                    sprintf_s(msg, 100, "Program \"%s\" not found\n", programs[i].name);
+                    kiv_os_rtl::Write_File(std_out, msg, strlen(msg), written);
+                    break;
+                }
+            }
+
+            if (names_ok) {
+                call_piped_programs(programs, regs);
+            }
+            
+            // after all is done, go back to the reading loop, do not go ahead to 'normal' commands execution
+            continue;
+        }
+
+
         // TODO improve parsing of shell commands
         char *token1;
         char *command;
@@ -131,6 +325,9 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             }
             if (strcmp(command, "freq") == 0) {
                 call_program("freq", regs, args);
+            }
+            if (strcmp(command, "charcnt") == 0) {
+                call_program("charcnt", regs, args);
             }
         }
     } while (strcmp(buffer, "exit") != 0);

@@ -5,6 +5,10 @@
 
 
 #include <cstdint>
+#include <vector>
+
+const size_t NAME_LEN = 200;
+const size_t DATA_LEN = 200;
 
 enum class ProgramHandleType : std::uint8_t {
     Standard = 1,
@@ -12,10 +16,23 @@ enum class ProgramHandleType : std::uint8_t {
     File
 };
 
-struct program {
-    char name[200];
-    ProgramHandleType input;
-    ProgramHandleType output;
+struct io
+{
+    ProgramHandleType type;
+    char name[NAME_LEN]; // name of the program / file
+
 };
 
-void parse_programs(char *input, program *programs, int *length);
+struct program {
+    char name[NAME_LEN];
+    char data[DATA_LEN]; // todo maybe data should be allocated dynamically, bc it can be long?
+    //ProgramHandleType input;
+    //ProgramHandleType output;
+    io input;
+    io output;
+};
+
+void strtrim(char* str);
+void parse_programs_unused(char *input, program *programs, int *length);
+std::vector<program> parse_programs(char* input/*, program* programs, int* length*/);
+void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters& registers);

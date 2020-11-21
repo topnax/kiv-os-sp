@@ -15,6 +15,10 @@
 
 namespace Process {
     Thread_Control_Block *Tcb = new Thread_Control_Block();
+    kiv_os::THandle Last_Listener_ID = 0;
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> dis(1, 6);
 }
 
 // TODO move to Process namespace
@@ -92,9 +96,9 @@ void thread_post_execute(bool is_process) {// while cloning, the THandle is gene
         // iterate over thread's listeners
         for (auto *listener : *listeners) {
             // notify the listeners of the thread
-            listener->semaphore->notify();
             listener->handle_that_notified = t_handle;
             listener->notified = true;
+            listener->semaphore->notify();
         }
 
         // after all listeners have been notified, we can clear the list
@@ -109,6 +113,10 @@ void thread_post_execute(bool is_process) {// while cloning, the THandle is gene
 }
 
 void run_in_a_thread(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &registers, bool is_process) {
+    // we are adding to the thread handle to Handle_To_THandle, better guard this block
+    // TODO this might not be necessary
+    std::lock_guard<std::mutex> guard(Semaphores_Mutex);
+
     // spawn a new thread, in which a program at address inside rdx is run
     std::thread t1(thread_entrypoint, t_threadproc, registers, is_process);
 
@@ -171,9 +179,11 @@ void wait_for(kiv_hal::TRegisters &registers) {
 
     std::unique_lock<std::mutex> lock(Semaphores_Mutex);
 
-    Semaphore semaphore(0);
-    Wait_For_Listener wait_for_listener {
-        &semaphore,
+    // generate an unique ID for the new listener
+    Process::Last_Listener_ID += Process::dis(Process::gen);
+    Wait_For_Listener current_listener {
+        Process::Last_Listener_ID,
+        std::make_unique<Semaphore>(0),
         0,
         false
     };
@@ -193,7 +203,7 @@ void wait_for(kiv_hal::TRegisters &registers) {
                 Process::Tcb->Wait_For_Listeners[t_handle] = std::make_unique<std::vector<Wait_For_Listener *>>();
             }
             // assign a listener to the THandle
-            (*(Process::Tcb->Wait_For_Listeners[t_handle])).push_back(&wait_for_listener);
+            (*(Process::Tcb->Wait_For_Listeners[t_handle])).push_back(&current_listener);
         } else {
             // stop iterating over handles - we found a handle that is not valid
             anyHandleInvalid = true;
@@ -221,31 +231,64 @@ void wait_for(kiv_hal::TRegisters &registers) {
             }
         }
 
+
+
+        auto invalid_handle = t_handles[index];
+        // check whether the invalid handle has a record in the PCB table
+        if (Pcb.find(invalid_handle) != Pcb.end()) {
+            // if yes, then return the invalid handle index
+            registers.rax.l = index;
+        } else {
+            // set the rax register to handleCount (error result - our own convention, not specified in the API)
+            registers.rax.l = handleCount;
+        }
+
         // finally, unlock the mutex, finish the syscall
         lock.unlock();
-        // set the rax register to handleCount (error result - our own convention, not specified in the API)
-        registers.rax.l = handleCount;
     } else {
         // no invalid handle found - unlock the mutex
         lock.unlock();
 
         // wait for any thread to notify this semaphore
-        semaphore.wait();
+        current_listener.semaphore->wait();
 
         // find the index of the handle that has signalled the listener
         uint8_t handleThatSignalledIndex = -1; // initialize the variable otherwise problems upon calling exit?
 
-        if (!wait_for_listener.notified) {
+        if (!current_listener.notified) {
             // TODO remove for release
             printf("semaphore not notified!!!\n");
             handleThatSignalledIndex = handleCount;
         } else {
+            // we are modifying the listener vectors - guard following code using mutex
+            std::lock_guard<std::mutex> guard(Semaphores_Mutex);
             for (uint8_t i = 0; i < handleCount; i++) {
                 // load a handle
                 auto t_handle = t_handles[i];
-                if (t_handle == wait_for_listener.handle_that_notified) {
+                if (t_handle == current_listener.handle_that_notified) {
                     handleThatSignalledIndex = i;
-                    break;
+                    // no need to remove this listener - all listeners of the thread that has notified this listener
+                    // are removed in the thread_post_execute function
+                } else {
+                    // remove the created listener from all threads we wanted to wait for
+                    auto listeners = Process::Tcb->Wait_For_Listeners[t_handle].get();
+
+                    // iterate over listeners of the current handle
+                    for (size_t j = 0; j < listeners->size(); j++) {
+                        auto listener = listeners->at(j);
+
+                        // check whether this is the listener we have created
+                        if (listener->id == current_listener.id) {
+                            // if yes, then remove it from the list of the
+                            listeners->erase(listeners->begin() + j);
+                            break;
+                        }
+                    }
+
+                    // remove the vector from the map if it's empty
+                    if (listeners->empty()) {
+                        Process::Tcb->Wait_For_Listeners.erase(t_handle);
+                    }
                 }
             }
         }
