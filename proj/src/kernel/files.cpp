@@ -70,6 +70,7 @@ kiv_os::THandle Open_File(const char *file_name, uint8_t flags, uint8_t attribut
 void Close_File(kiv_hal::TRegisters &regs) {
     kiv_os::THandle handle = regs.rdx.x;
     if (Files::ft->Exists(handle)) {
+        printf("closing handle %d\n", handle);
         auto file_object = (*Files::ft)[handle];
         // close the file
         file_object->close();
@@ -96,6 +97,7 @@ void Write_File(kiv_hal::TRegisters &regs) {
         if (!res) {
             // some error has happened
             regs.flags.carry = 1;
+            printf("failed to write to %d\n", handle);
         }
     } else {
         regs.rax.r = 0;

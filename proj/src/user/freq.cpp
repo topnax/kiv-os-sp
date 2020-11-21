@@ -35,6 +35,7 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
 
                 // check for EOT:
                 if (static_cast<kiv_hal::NControl_Codes>(buffer[i]) == kiv_hal::NControl_Codes::EOT) {
+                    printf("read eot\n");
                     doContinue = false;
                     break; // EOT
                 }

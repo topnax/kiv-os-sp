@@ -11,6 +11,7 @@
 #include "semaphore.h"
 #include "process.h"
 #include "process/pcb.h"
+#include "files.h"
 
 
 namespace Proc {
@@ -24,7 +25,8 @@ namespace Proc {
 
 // TODO move to Process namespace
 
-std::mutex Semaphores_Mutex;
+// std::mutex Semaphores_Mutex;
+std::recursive_mutex Semaphores_Mutex;
 std::map<std::thread::id, kiv_os::THandle> Handle_To_THandle;
 std::map<kiv_os::THandle, kiv_os::NOS_Error> Pcb;
 
@@ -70,6 +72,11 @@ void Handle_Process(kiv_hal::TRegisters &regs, HMODULE user_programs) {
             register_signal_handler(regs);
         }
             break;
+
+        case kiv_os::NOS_Process::Shutdown: {
+            shutdown();
+        }
+            break;
     }
 }
 
@@ -91,7 +98,7 @@ void thread_entrypoint(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &r
 
 void thread_post_execute(bool is_process) {// while cloning, the THandle is generated and assigned to the Handle_To_THandle map
 // under the key which is the thread ID of the thread the TThread_Proc is run in
-    std::lock_guard<std::mutex> guard(Semaphores_Mutex);
+    std::lock_guard<std::recursive_mutex> guard(Semaphores_Mutex);
 
     // get the kiv_os::THandle
     kiv_os::THandle t_handle = Handle_To_THandle[std::this_thread::get_id()];
@@ -204,7 +211,7 @@ void wait_for(kiv_hal::TRegisters &registers) {
     // load handle count from rcx
     uint8_t handleCount = registers.rcx.l;
 
-    std::unique_lock<std::mutex> lock(Semaphores_Mutex);
+    std::unique_lock<std::recursive_mutex> lock(Semaphores_Mutex);
 
     // generate an unique ID for the new listener
     Proc::Last_Listener_ID += Proc::dis(Proc::gen);
@@ -373,6 +380,7 @@ void read_exit_code(kiv_hal::TRegisters &registers) {
     // the handle has finished now, find the exit code
     auto process = (*Proc::Pcb)[handle];
 
+    std::lock_guard<std::recursive_mutex> guard(Semaphores_Mutex);
     if (process != nullptr && process->status == Process_Status::Zombie) {
         exit_code = process->exit_code;
 
@@ -381,13 +389,7 @@ void read_exit_code(kiv_hal::TRegisters &registers) {
         };
 
         // TODO remove for release, move to procfs
-        printf("|%.*s|\n", 60, "========================================================================================================================");
-        printf("|%-7s |%-10s |%-9s |%-7s |%-7s |%-10s|\n", "HANDLE", "PROGRAM", "STATUS", "STD_IN", "STD_OUT", "EXIT_CODE");
-        printf("|%.*s|\n", 60, "========================================================================================================================");
-        for (Process *p : (*Proc::Pcb).Get_Processes()) {
-            printf("|%-7d |%-10s |%-9s |%-7d |%-7d |%-10hu|\n", p->handle, p->program_name, statuses[(int) p->status].c_str(), p->std_in, p->std_out, p->exit_code);
-        }
-        printf("|%.*s|\n", 60, "========================================================================================================================");
+        procfs();
 
         // we have read the process' exit code - remove it from the table
         (*Proc::Pcb).Remove_Process(handle);
@@ -396,6 +398,22 @@ void read_exit_code(kiv_hal::TRegisters &registers) {
     }
 
     registers.rcx.x = static_cast<decltype(registers.rcx.x)>(exit_code);
+}
+
+void procfs() {
+    std::lock_guard<std::recursive_mutex> guard(Semaphores_Mutex);
+    std::string statuses[] = {
+            "Ready", "Running", "Zombie"
+    };
+    // TODO remove for release, move to procfs
+    printf("|%.*s|\n", 60, "========================================================================================================================");
+    printf("|%-7s |%-10s |%-9s |%-7s |%-7s |%-10s|\n", "HANDLE", "PROGRAM", "STATUS", "STD_IN", "STD_OUT", "EXIT_CODE");
+    printf("|%.*s|\n", 60, "========================================================================================================================");
+    for (Process *p : (*Proc::Pcb).Get_Processes()) {
+        //printf("|%-7d |%-10s |%-9s |%-7d |%-7d |%-10hu|\n", p->handle, p->program_name, statuses[(int) p->status].c_str(), p->std_in, p->std_out, p->exit_code);
+        printf("|%-7d |%-10s |%-9s |%-7d |%-7d |%-10hu|\n", p->handle, p->program_name, statuses[(int) p->status].c_str(), p->std_in, p->std_out, p->exit_code);
+    }
+    printf("|%.*s|\n", 60, "========================================================================================================================");
 }
 
 void register_signal_handler(kiv_hal::TRegisters &registers) {
@@ -428,4 +446,28 @@ void signal(kiv_os::NSignal_Id signal_id, Process *process) {
         // execute the handler of the given signal for the given process
         process->signal_handlers[signal_id](regs);
     }
+}
+
+void shutdown() {
+    std::lock_guard<std::recursive_mutex> guard(Semaphores_Mutex);
+    // iterate over all processes and write EOT to their STD_IN
+    procfs();
+    for (Process *process : Proc::Pcb->Get_Processes()) {
+        printf("writing in shutdown\n");
+        char eot = static_cast<char>(kiv_hal::NControl_Codes::EOT);
+
+        kiv_hal::TRegisters regs;
+        regs.rdx.x = static_cast<decltype(regs.rdx.x)>(process->std_in);
+        regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(&eot);
+        regs.rcx.r = 1;
+
+//        Write_File(regs);
+        Close_File(regs);
+
+
+    }
+
+    // signal_all_processes(kiv_os::NSignal_Id::Terminate);
+
+    procfs();
 }

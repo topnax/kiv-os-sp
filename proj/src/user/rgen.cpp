@@ -50,7 +50,8 @@ extern "C" size_t __stdcall stdin_guard(const kiv_hal::TRegisters &regs) {
     // rgen might have ended (failed to write to std_out) and the pointer to run could be invalid
     if (*parameters->is_generating) {
         // rgen should stop generating
-        *generate = false;
+        kiv_os_rtl::Shutdown();
+        // *generate = false;
     }
     return 0;
 }

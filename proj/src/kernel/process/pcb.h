@@ -5,6 +5,7 @@
 #pragma once
 
 #include <map>
+#include <mutex>
 #include "../../api/api.h"
 #include "process_entry.h"
 #include "memory"
@@ -40,4 +41,5 @@ public:
 
 private:
     std::map<kiv_os::THandle, std::unique_ptr<Process>> table;
+    std::mutex mutex;
 };

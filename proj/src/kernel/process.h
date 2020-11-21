@@ -58,3 +58,7 @@ void register_signal_handler(kiv_hal::TRegisters &registers);
 void signal_all_processes(kiv_os::NSignal_Id signal);
 
 void signal(kiv_os::NSignal_Id signal_id, Process *process);
+
+void shutdown();
+
+void procfs();
