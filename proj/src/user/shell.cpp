@@ -2,9 +2,6 @@
 #include "rtl.h"
 #include "argparser.h"
 #include <vector>
-//#include <set>
-//#include <string>
-
 
 
 void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters& registers) {
@@ -29,7 +26,6 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
         pipe_handles.push_back(pipe[0]);
         pipe_handles.push_back(pipe[1]);
     }
-
 
     // for each program assign input and output, clone the process and save it's handle:
     for (int i = 0; i < programs.size(); i++) {
@@ -106,16 +102,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
         // decrement the number of processes running:
         running_progs_num--;
     }
-
-
-
-    //printf("num_of_handles_closed: %d\n", num_of_handles_closed);
-
 }
-
-
-
-
 
 int pipe_test(kiv_os::THandle std_in, kiv_os::THandle std_out) {
     printf("pipe test :)\n");
@@ -211,12 +198,9 @@ void fill_supported_commands_set(std::set<std::string>& set) {
     set.insert("charcnt");
 }
 
-
 size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
     std::set<std::string> supported_commands;
     fill_supported_commands_set(supported_commands);
-    
-
 
     const kiv_os::THandle std_in = static_cast<kiv_os::THandle>(regs.rax.x);
     const kiv_os::THandle std_out = static_cast<kiv_os::THandle>(regs.rbx.x);
@@ -301,6 +285,10 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             for (int i = 0; i < programs.size(); i++) {
                 names_ok = supported_commands.find(programs[i].name) != supported_commands.end();
                 if (!names_ok) {
+                    char msg[100];
+                    size_t written;
+                    sprintf_s(msg, 100, "Program \"%s\" not found\n", programs[i].name);
+                    kiv_os_rtl::Write_File(std_out, msg, strlen(msg), written);
                     break;
                 }
             }
