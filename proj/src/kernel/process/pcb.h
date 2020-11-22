@@ -39,6 +39,8 @@ public:
      */
     std::vector<Process *> Get_Processes();
 
+    void procfs();
+
 private:
     std::map<kiv_os::THandle, std::unique_ptr<Process>> table;
     std::mutex mutex;

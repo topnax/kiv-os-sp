@@ -26,9 +26,8 @@ namespace Proc {
 // TODO move to Process namespace
 
 // std::mutex Semaphores_Mutex;
-std::recursive_mutex Semaphores_Mutex;
+std::mutex Semaphores_Mutex;
 std::map<std::thread::id, kiv_os::THandle> Handle_To_THandle;
-std::map<kiv_os::THandle, kiv_os::NOS_Error> Pcb;
 
 
 size_t __stdcall default_signal_handler(const kiv_hal::TRegisters &regs) {
@@ -98,7 +97,7 @@ void thread_entrypoint(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &r
 
 void thread_post_execute(bool is_process) {// while cloning, the THandle is generated and assigned to the Handle_To_THandle map
 // under the key which is the thread ID of the thread the TThread_Proc is run in
-    std::lock_guard<std::recursive_mutex> guard(Semaphores_Mutex);
+    std::lock_guard<std::mutex> guard(Semaphores_Mutex);
 
     // get the kiv_os::THandle
     kiv_os::THandle t_handle = Handle_To_THandle[std::this_thread::get_id()];
@@ -211,7 +210,7 @@ void wait_for(kiv_hal::TRegisters &registers) {
     // load handle count from rcx
     uint8_t handleCount = registers.rcx.l;
 
-    std::unique_lock<std::recursive_mutex> lock(Semaphores_Mutex);
+    std::unique_lock<std::mutex> lock(Semaphores_Mutex);
 
     // generate an unique ID for the new listener
     Proc::Last_Listener_ID += Proc::dis(Proc::gen);
@@ -269,7 +268,7 @@ void wait_for(kiv_hal::TRegisters &registers) {
 
         auto invalid_handle = t_handles[index];
         // check whether the invalid handle has a record in the PCB table
-        if (Pcb.find(invalid_handle) != Pcb.end()) {
+        if (Proc::Pcb->operator [](invalid_handle) != nullptr) {
             // if yes, then return the invalid handle index
             registers.rax.l = index;
         } else {
@@ -305,7 +304,7 @@ void wait_for(kiv_hal::TRegisters &registers) {
                     // are removed in the thread_post_execute function
                 } else {
                     // remove the created listener from all threads we wanted to wait for
-                    auto listeners = Process::Tcb->Wait_For_Listeners[t_handle].get();
+                    auto listeners = Proc::Tcb->Wait_For_Listeners[t_handle].get();
 
                     // iterate over listeners of the current handle
                     for (size_t j = 0; j < listeners->size(); j++) {
@@ -321,7 +320,7 @@ void wait_for(kiv_hal::TRegisters &registers) {
 
                     // remove the vector from the map if it's empty
                     if (listeners->empty()) {
-                        Process::Tcb->Wait_For_Listeners.erase(t_handle);
+                        Proc::Tcb->Wait_For_Listeners.erase(t_handle);
                     }
                 }
             }
@@ -380,7 +379,7 @@ void read_exit_code(kiv_hal::TRegisters &registers) {
     // the handle has finished now, find the exit code
     auto process = (*Proc::Pcb)[handle];
 
-    std::lock_guard<std::recursive_mutex> guard(Semaphores_Mutex);
+    std::lock_guard<std::mutex> guard(Semaphores_Mutex);
     if (process != nullptr && process->status == Process_Status::Zombie) {
         exit_code = process->exit_code;
 
@@ -401,19 +400,7 @@ void read_exit_code(kiv_hal::TRegisters &registers) {
 }
 
 void procfs() {
-    std::lock_guard<std::recursive_mutex> guard(Semaphores_Mutex);
-    std::string statuses[] = {
-            "Ready", "Running", "Zombie"
-    };
-    // TODO remove for release, move to procfs
-    printf("|%.*s|\n", 60, "========================================================================================================================");
-    printf("|%-7s |%-10s |%-9s |%-7s |%-7s |%-10s|\n", "HANDLE", "PROGRAM", "STATUS", "STD_IN", "STD_OUT", "EXIT_CODE");
-    printf("|%.*s|\n", 60, "========================================================================================================================");
-    for (Process *p : (*Proc::Pcb).Get_Processes()) {
-        //printf("|%-7d |%-10s |%-9s |%-7d |%-7d |%-10hu|\n", p->handle, p->program_name, statuses[(int) p->status].c_str(), p->std_in, p->std_out, p->exit_code);
-        printf("|%-7d |%-10s |%-9s |%-7d |%-7d |%-10hu|\n", p->handle, p->program_name, statuses[(int) p->status].c_str(), p->std_in, p->std_out, p->exit_code);
-    }
-    printf("|%.*s|\n", 60, "========================================================================================================================");
+    Proc::Pcb->procfs();
 }
 
 void register_signal_handler(kiv_hal::TRegisters &registers) {
@@ -449,7 +436,7 @@ void signal(kiv_os::NSignal_Id signal_id, Process *process) {
 }
 
 void shutdown() {
-    std::lock_guard<std::recursive_mutex> guard(Semaphores_Mutex);
+    std::lock_guard<std::mutex> guard(Semaphores_Mutex);
     // iterate over all processes and write EOT to their STD_IN
     procfs();
     for (Process *process : Proc::Pcb->Get_Processes()) {
