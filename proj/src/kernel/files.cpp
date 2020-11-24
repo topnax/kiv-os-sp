@@ -7,7 +7,7 @@
 
 namespace Files {
     std::mutex Open_Guard;
-    std::mutex Add_Guard;
+    std::recursive_mutex Access_Guard;
     File_Table *ft = new File_Table();
     kiv_os::THandle Last_File = 0;
 }
@@ -15,11 +15,12 @@ namespace Files {
 // File_Table class methods definitions
 
 bool File_Table::Exists(kiv_os::THandle handle) {
+    std::lock_guard<std::recursive_mutex> guard(Files::Access_Guard);
     return this->files.find(handle) != this->files.end();
 }
 
 kiv_os::THandle File_Table::Add_File(Generic_File *file) {
-    std::lock_guard<std::mutex> guard(Files::Add_Guard);
+    std::lock_guard<std::recursive_mutex> guard(Files::Access_Guard);
     do {
         Files::Last_File++;
     } while (Exists(Files::Last_File));
@@ -33,10 +34,13 @@ kiv_os::THandle File_Table::Add_File(Generic_File *file) {
 }
 
 Generic_File *File_Table::operator[](const kiv_os::THandle handle) {
-    return this->files[handle].get();
+    std::lock_guard<std::recursive_mutex> guard(Files::Access_Guard);
+    auto resolved = this->files.find(handle);
+    return resolved != files.end() ? resolved->second.get() : nullptr;
 }
 
 void File_Table::Remove(const kiv_os::THandle handle) {
+    std::lock_guard<std::recursive_mutex> guard(Files::Access_Guard);
     this->files.erase(handle);
 }
 

@@ -13,8 +13,9 @@ Pipe::Pipe(size_t capacity) :
 void Pipe::Close_Out() {
     this->closed_out = true;
 
-    // notify anyone trying to write to the pipe
+    // notify anyone trying to write to the pipe or read from the pipe
     this->empty_count.notify();
+    this->fill_count.notify();
 }
 
 void Pipe::Close_In() {
@@ -66,7 +67,7 @@ bool Pipe::write_char(char c) {
 
     // check whether the out handle has not been closed while we have been waiting
     if (this->closed_out) {
-        // out handle closed - we can't write the car
+        // out handle closed - we can't write the char
         return false;
     }
 

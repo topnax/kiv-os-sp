@@ -29,6 +29,8 @@
     <ClCompile Include="..\..\src\kernel\pipes.cpp" />
     <ClCompile Include="..\..\src\kernel\pipe_file.cpp" />
     <ClCompile Include="..\..\src\kernel\process.cpp" />
+    <ClCompile Include="..\..\src\kernel\process\pcb.cpp" />
+    <ClCompile Include="..\..\src\kernel\process\process_entry.cpp" />
     <ClCompile Include="..\..\src\kernel\vga_file.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -44,6 +46,8 @@
     <ClInclude Include="..\..\src\kernel\pipes.h" />
     <ClInclude Include="..\..\src\kernel\Pipe_File.h" />
     <ClInclude Include="..\..\src\kernel\process.h" />
+    <ClInclude Include="..\..\src\kernel\process\pcb.h" />
+    <ClInclude Include="..\..\src\kernel\process\process_entry.h" />
     <ClInclude Include="..\..\src\kernel\semaphore.h" />
     <ClInclude Include="..\..\src\kernel\vga_file.h" />
   </ItemGroup>

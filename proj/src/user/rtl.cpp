@@ -138,3 +138,22 @@ bool kiv_os_rtl::Close_Handle(const kiv_os::THandle handle) {
 
     return result;
 }
+
+bool kiv_os_rtl::Register_Signal_Handler(const kiv_os::NSignal_Id signal, kiv_os::TThread_Proc const thread_proc) {
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::Process, static_cast<uint8_t>(kiv_os::NOS_Process::Register_Signal_Handler));
+
+    regs.rcx.l = static_cast<decltype(regs.rcx.l)>(signal);
+    regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(thread_proc);
+
+    const bool result = kiv_os::Sys_Call(regs);
+
+    return result;
+}
+
+bool kiv_os_rtl::Shutdown() {
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::Process, static_cast<uint8_t>(kiv_os::NOS_Process::Shutdown));
+
+    const bool result = kiv_os::Sys_Call(regs);
+
+    return result;
+}

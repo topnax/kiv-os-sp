@@ -113,14 +113,17 @@ void run_shell(const kiv_hal::TRegisters &regs) {
 
     // TODO change to Handle_Process instead of calling wait_for directly
 
-    // wait for this array of handles
-    wait_for_regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(handles);
+    wait_for_regs.rdx.x = static_cast<decltype(regs.rdx.x)>((kiv_os::THandle)shell_regs.rax.x);
+   // // wait for this array of handles
+   // wait_for_regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(handles);
 
-    // store the count of handles to registers
-    wait_for_regs.rcx.l = (uint8_t) 1;
+   // // store the count of handles to registers
+   // wait_for_regs.rcx.l = (uint8_t) 1;
 
     // perform Wait_For
-    wait_for(wait_for_regs);
+    read_exit_code(wait_for_regs);
+
+    procfs();
 }
 
 void Set_Error(const bool failed, kiv_hal::TRegisters &regs) {
