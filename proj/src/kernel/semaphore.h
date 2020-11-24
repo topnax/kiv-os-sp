@@ -30,8 +30,8 @@ public:
         count--;
     }
 
+    std::mutex mtx; // needs to be mutable
 private:
-    mutable std::mutex mtx; // needs to be mutable
 
     std::condition_variable cv;
     size_t count;

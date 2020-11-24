@@ -33,7 +33,8 @@ kiv_os::THandle File_Table::Add_File(Generic_File *file) {
 }
 
 Generic_File *File_Table::operator[](const kiv_os::THandle handle) {
-    return this->files[handle].get();
+    auto resolved = this->files.find(handle);
+    return resolved != files.end() ? resolved->second.get() : nullptr;
 }
 
 void File_Table::Remove(const kiv_os::THandle handle) {
@@ -70,7 +71,6 @@ kiv_os::THandle Open_File(const char *file_name, uint8_t flags, uint8_t attribut
 void Close_File(kiv_hal::TRegisters &regs) {
     kiv_os::THandle handle = regs.rdx.x;
     if (Files::ft->Exists(handle)) {
-        printf("closing handle %d\n", handle);
         auto file_object = (*Files::ft)[handle];
         // close the file
         file_object->close();
@@ -97,7 +97,6 @@ void Write_File(kiv_hal::TRegisters &regs) {
         if (!res) {
             // some error has happened
             regs.flags.carry = 1;
-            printf("failed to write to %d\n", handle);
         }
     } else {
         regs.rax.r = 0;

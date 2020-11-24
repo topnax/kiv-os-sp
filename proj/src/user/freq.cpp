@@ -35,7 +35,6 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
 
                 // check for EOT:
                 if (static_cast<kiv_hal::NControl_Codes>(buffer[i]) == kiv_hal::NControl_Codes::EOT) {
-                    printf("read eot\n");
                     doContinue = false;
                     break; // EOT
                 }
@@ -55,7 +54,6 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
     kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
 
 
-
     // printing the gathered frequencies:
     size_t n = 0;
     //int c = -1;
@@ -67,7 +65,10 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
             n = sprintf_s(buffer, "0x%hhx : %d", i - 128, frequencies[i]);
 
             kiv_os_rtl::Write_File(std_out, buffer, strlen(buffer), n);
+            // stop the loop if we failed to write
+            if (n == 0) break;
             kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
+            if (counter == 0) break;
         }
     }
 
@@ -79,7 +80,10 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
             n = sprintf_s(buffer, "0x%hhx : %d", i + 128, frequencies[i]);
 
             kiv_os_rtl::Write_File(std_out, buffer, strlen(buffer), n);
+            // stop the loop if we failed to write
+            if (n == 0) break;
             kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
+            if (counter == 0) break;
         }
     }
 

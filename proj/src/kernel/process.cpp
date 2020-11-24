@@ -33,14 +33,7 @@ std::map<std::thread::id, kiv_os::THandle> Handle_To_THandle;
 size_t __stdcall default_signal_handler(const kiv_hal::TRegisters &regs) {
     auto signal_id = static_cast<kiv_os::NSignal_Id>(regs.rcx.l);
     auto resolved = Handle_To_THandle.find(std::this_thread::get_id());
-
-    if (resolved != Handle_To_THandle.end()) {
-        auto process = Proc::Pcb->operator[](resolved->second);
-        if (process != nullptr) {
-            // TODO remove for release
-            printf("Default handler of signal=%hhu for process=%d executed...", signal_id, process->handle);
-        }
-    }
+    printf("Default handler of signal=%hhu executed...\n", signal_id);
     return 0;
 }
 
@@ -107,9 +100,6 @@ void thread_post_execute(bool is_process) {// while cloning, the THandle is gene
         auto process = (*Proc::Pcb)[t_handle];
         if (process != nullptr) {
             process->status = Process_Status::Zombie;
-            // process->signal_handlers.clear();
-        } else {
-            printf("could not find process with handle of %d\n", t_handle);
         }
     }
 
@@ -264,8 +254,6 @@ void wait_for(kiv_hal::TRegisters &registers) {
             }
         }
 
-
-
         auto invalid_handle = t_handles[index];
         // check whether the invalid handle has a record in the PCB table
         if (Proc::Pcb->operator [](invalid_handle) != nullptr) {
@@ -303,24 +291,29 @@ void wait_for(kiv_hal::TRegisters &registers) {
                     // no need to remove this listener - all listeners of the thread that has notified this listener
                     // are removed in the thread_post_execute function
                 } else {
-                    // remove the created listener from all threads we wanted to wait for
-                    auto listeners = Proc::Tcb->Wait_For_Listeners[t_handle].get();
+                    auto resolved = Proc::Tcb->Wait_For_Listeners.find(t_handle);
+                    if (resolved != Proc::Tcb->Wait_For_Listeners.end()) {
+                        // remove the created listener from all threads we wanted to wait for if still present in the listener map
+                        auto listeners = resolved->second.get();
 
-                    // iterate over listeners of the current handle
-                    for (size_t j = 0; j < listeners->size(); j++) {
-                        auto listener = listeners->at(j);
+                        // iterate over listeners of the current handle
+                        for (size_t j = 0; j < listeners->size(); j++) {
+                            auto listener = listeners->at(j);
 
-                        // check whether this is the listener we have created
-                        if (listener->id == current_listener.id) {
-                            // if yes, then remove it from the list of the
-                            listeners->erase(listeners->begin() + j);
-                            break;
+                            // check whether this is the listener we have created
+                            if (listener->id == current_listener.id) {
+                                // if yes, then remove it from the list of the
+                                // acquire semaphore mutex before removing it
+                                std::lock_guard<std::mutex> l(listener->semaphore->mtx);
+                                listeners->erase(listeners->begin() + j);
+                                break;
+                            }
                         }
-                    }
 
-                    // remove the vector from the map if it's empty
-                    if (listeners->empty()) {
-                        Proc::Tcb->Wait_For_Listeners.erase(t_handle);
+                        // remove the vector from the map if it's empty
+                        if (listeners->empty()) {
+                            Proc::Tcb->Wait_For_Listeners.erase(t_handle);
+                        }
                     }
                 }
             }
@@ -427,11 +420,12 @@ void signal_all_processes(kiv_os::NSignal_Id signal_id) {
 }
 
 void signal(kiv_os::NSignal_Id signal_id, Process *process) {
-    if (process->signal_handlers[signal_id] != nullptr) {
+    auto resolved = process->signal_handlers.find(signal_id);
+    if (resolved != process->signal_handlers.end()) {
         kiv_hal::TRegisters regs;
         regs.rcx.l = static_cast<decltype(regs.rcx.l)>(signal_id);
         // execute the handler of the given signal for the given process
-        process->signal_handlers[signal_id](regs);
+        resolved->second(regs);
     }
 }
 
@@ -439,22 +433,14 @@ void shutdown() {
     std::lock_guard<std::mutex> guard(Semaphores_Mutex);
     // iterate over all processes and write EOT to their STD_IN
     procfs();
-    for (Process *process : Proc::Pcb->Get_Processes()) {
-        printf("writing in shutdown\n");
-        char eot = static_cast<char>(kiv_hal::NControl_Codes::EOT);
 
+    signal_all_processes(kiv_os::NSignal_Id::Terminate);
+
+    for (Process *process : Proc::Pcb->Get_Processes()) {
         kiv_hal::TRegisters regs;
         regs.rdx.x = static_cast<decltype(regs.rdx.x)>(process->std_in);
-        regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(&eot);
-        regs.rcx.r = 1;
-
-//        Write_File(regs);
         Close_File(regs);
-
-
     }
-
-    // signal_all_processes(kiv_os::NSignal_Id::Terminate);
 
     procfs();
 }
