@@ -23,7 +23,7 @@ bool Filesystem_File::read(size_t to_read, char *out_buffer, size_t &read) {
     // move the position by the amount of bytes we have read
     file.position += read;
 
-    return result == kiv_os::NOS_Error::Success;
+    return result == kiv_os::NOS_Error::Success && read > 0;
 }
 
 kiv_os::NOS_Error Filesystem_File::seek(size_t value, kiv_os::NFile_Seek seek_position, kiv_os::NFile_Seek op, size_t &res) {

@@ -42,12 +42,13 @@ public:
     virtual kiv_os::NOS_Error open(const char *name, uint8_t flags, uint8_t attributes, File &file) = 0;
 
     /**
-     * Writes `size` bytes from `buffer` to the given file using the provided offset. The amount of bytes written is stored in the `written` reference
+     * Writes `size` bytes from `buffer` to the given file using the provided offset.
+     * The amount of bytes written is stored in the `written` reference.
      */
     virtual kiv_os::NOS_Error write(File file, std::vector<char> buffer, size_t size, size_t offset, size_t &written) = 0;
 
     /**
-     * Reads `size` bytes from this file to the `out` vector while using the provided offset
+     * Reads `size` bytes from this file to the `out` vector while using the provided offset.
      */
     virtual kiv_os::NOS_Error read(File file, size_t size, size_t offset, std::vector<char> &out) = 0;
 

@@ -329,7 +329,21 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             if (strcmp(command, "charcnt") == 0) {
                 call_program("charcnt", regs, args);
             }
-
+            if (strcmp(command, "tasklist") == 0) {
+                call_program("tasklist", regs, args);
+            }
+            if (strcmp(command, "dir") == 0) {
+                // TODO improve arg parsing
+                if (args) {
+                    call_program("dir", regs, args);
+                }
+            }
+            if (strcmp(command, "type") == 0) {
+                // TODO improve argparsing
+                if (args) {
+                    call_program("type", regs, args);
+                }
+            }
             // TODO this command might not be present in the release
             if (strcmp(command, "shutdown") == 0) {
                 kiv_os_rtl::Shutdown();
