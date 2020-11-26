@@ -13,7 +13,7 @@ bool Filesystem_File::read(size_t to_read, char *out_buffer, size_t &read) {
     auto result = vfs->read(file, to_read, file.position, out);
 
     // move the data to the given buffer
-    for (int i = 0; i < out.size(); i++) {
+    for (size_t i = 0; i < out.size(); i++) {
         out_buffer[i] = out.at(i);
     }
 

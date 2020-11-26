@@ -30,7 +30,7 @@ std::vector<char> Pipe::Read(size_t nodes_to_read) {
     std::vector<char> read;
     read.reserve(nodes_to_read);
 
-    for (int i = 0; i < nodes_to_read; i++) {
+    for (size_t i = 0; i < nodes_to_read; i++) {
         // check whether out handle has been closed
         if (this->closed_out) {
             return read;
@@ -90,7 +90,7 @@ size_t Pipe::Write(std::vector<char> data) {
     size_t nodes_to_write = data.size();
     size_t nodes_written = 0;
 
-    for (int i = 0; i < nodes_to_write; i++) {
+    for (size_t i = 0; i < nodes_to_write; i++) {
         if (!this->closed_in) {
             if (!write_char(data.at(i))) {
                 // stop writing

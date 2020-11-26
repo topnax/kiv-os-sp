@@ -11,8 +11,8 @@
 struct File {
     kiv_os::THandle handle;
     uint16_t attributes;
-    uint64_t size;
-    uint64_t position;
+    size_t size;
+    size_t position;
     char *name;
 };
 

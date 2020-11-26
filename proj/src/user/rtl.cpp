@@ -18,7 +18,7 @@ bool kiv_os_rtl::Read_File(const kiv_os::THandle file_handle, char* const buffer
 
 	const bool result = kiv_os::Sys_Call(regs);
 
-	read = regs.rax.r;
+	read = static_cast<size_t>(regs.rax.r);
 	return result;
 }
 
@@ -29,7 +29,7 @@ bool kiv_os_rtl::Write_File(const kiv_os::THandle file_handle, const char *buffe
 	regs.rcx.r = buffer_size;
 
 	const bool result = kiv_os::Sys_Call(regs);
-	written = regs.rax.r;
+	written = static_cast<size_t>(regs.rax.r);
 
     return result;
 }

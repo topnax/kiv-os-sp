@@ -124,7 +124,7 @@ kiv_os::THandle Add_File_To_Table(Generic_File *file) {
 void Write_File(kiv_hal::TRegisters &regs) {
     kiv_os::THandle handle = regs.rdx.x;
     char *buff = reinterpret_cast<char *>(regs.rdi.r);
-    size_t bytes = regs.rcx.r;
+    auto bytes = static_cast<size_t>(regs.rcx.r);
 
     Generic_File *file = Resolve_THandle_To_File(handle);
     if (file != nullptr) {
@@ -147,7 +147,7 @@ void Read_File(kiv_hal::TRegisters &regs) {
     Generic_File *file = Resolve_THandle_To_File(handle);
 
     if (file != nullptr) {
-        size_t buff_size = regs.rcx.r;
+        auto buff_size = static_cast<size_t>(regs.rcx.r);
         char *buff = reinterpret_cast<char *>(regs.rdi.r);
         size_t read;
         bool res = file->read(buff_size, buff, read);

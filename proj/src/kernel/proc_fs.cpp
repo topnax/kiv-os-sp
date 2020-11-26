@@ -197,6 +197,9 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, uint8_t flags, uint8_t attribu
                         0,
                         const_cast<char *>(name)
                 };
+
+                // read file must not be a directory
+                if ((attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0) return kiv_os::NOS_Error::Permission_Denied;
                 return kiv_os::NOS_Error::Success;
             }
         }
