@@ -149,15 +149,32 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, uint8_t flags, uint8_t attribu
     auto pcb = Get_Pcb();
 
     // check whether we are opening tasklist file ore procfs directory
-    if (strcmp(name, "/procfs/tasklist") == 0 || strcmp(name, "/procfs") == 0) {
+    if (strcmp(name, "/procfs/tasklist") == 0) {
         file = File{
                 0,
-                static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) &
+                static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) |
                 static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only),
                 sizeof(kiv_os::TDir_Entry::file_name),
                 0,
                 const_cast<char *>(name),
         };
+        // check attributes
+        if ((attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File)) == 0) return kiv_os::NOS_Error::Permission_Denied;
+        return kiv_os::NOS_Error::Success;
+    }
+
+    if (strcmp(name, "/procfs") == 0) {
+        file = File{
+                0,
+                static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) |
+                static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only) |
+                static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory),
+                sizeof(kiv_os::TDir_Entry::file_name),
+                0,
+                const_cast<char *>(name),
+        };
+        // check attributes
+        if ((attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) == 0) return kiv_os::NOS_Error::Permission_Denied;
         return kiv_os::NOS_Error::Success;
     }
 
@@ -174,7 +191,7 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, uint8_t flags, uint8_t attribu
                 // we found the process that the reading of was requested
                 file = File{
                         process->handle,
-                        static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) &
+                        static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) |
                         static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only),
                         PROCESS_ENTRY_MAX_LENGTH,
                         0,

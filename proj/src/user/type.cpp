@@ -13,7 +13,6 @@ extern "C" size_t __stdcall type(const kiv_hal::TRegisters &regs) {
     char *file_path = (char *) regs.rdi.r;
 
     const size_t buffer_size = 100;
-    // TODO use file attributes?
     if (kiv_os_rtl::Open_File(file_path, 0, 0, handle)) {
         size_t read;
         char buff[buffer_size];

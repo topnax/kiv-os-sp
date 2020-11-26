@@ -9,10 +9,10 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
     kiv_os::THandle handle;
 
     // directory file contains information about the directory itself, read the whole file
-
+    auto attributes = static_cast<uint8_t>(static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory));
     char* dir_to_be_read = (char*) regs.rdi.r;
     // TODO change file attributes
-    if (kiv_os_rtl::Open_File(dir_to_be_read, 0, 0, handle)) {
+    if (kiv_os_rtl::Open_File(dir_to_be_read, 0, attributes, handle)) {
         const auto dir_entry_size = sizeof(kiv_os::TDir_Entry);
         size_t read;
         char buff[dir_entry_size];
