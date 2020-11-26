@@ -7,24 +7,24 @@
 
 Process *Process_Control_Block::Add_Process(kiv_os::THandle handle, kiv_os::THandle std_in, kiv_os::THandle std_out,
                                             char *program) {
-    std::lock_guard<std::mutex> guard(mutex);
+    std::lock_guard<std::recursive_mutex> guard(mutex);
     table[handle] = std::make_unique<Process>(handle, std_in, std_out, program);
     return table[handle].get();
 }
 
 void Process_Control_Block::Remove_Process(kiv_os::THandle handle) {
-    std::lock_guard<std::mutex> guard(mutex);
+    std::lock_guard<std::recursive_mutex> guard(mutex);
     table.erase(handle);
 }
 
 Process *Process_Control_Block::operator[](const kiv_os::THandle handle) {
-    std::lock_guard<std::mutex> guard(mutex);
+    std::lock_guard<std::recursive_mutex> guard(mutex);
     auto resolved = this->table.find(handle);
     return resolved != this->table.end() ? resolved->second.get() : nullptr;
 }
 
 std::vector<Process *> Process_Control_Block::Get_Processes() {
-    std::lock_guard<std::mutex> guard(mutex);
+    std::lock_guard<std::recursive_mutex> guard(mutex);
     std::vector<Process *> processes;
 
     for (const auto &entry: this->table) {
@@ -36,7 +36,7 @@ std::vector<Process *> Process_Control_Block::Get_Processes() {
 
 
 void Process_Control_Block::procfs() {
-    std::lock_guard<std::mutex> guard(mutex);
+    std::lock_guard<std::recursive_mutex> guard(mutex);
     std::string statuses[] = {
             "Ready", "Running", "Zombie"
     };
@@ -53,4 +53,8 @@ void Process_Control_Block::procfs() {
                statuses[(int) p->status].c_str(), p->std_in, p->std_out, p->exit_code);
     }
     printf("==============================================================\n");
+}
+
+std::recursive_mutex *Process_Control_Block::Get_Mutex() {
+    return &mutex;
 }
