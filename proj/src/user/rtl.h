@@ -30,6 +30,8 @@ namespace kiv_os_rtl {
 
     bool Create_Pipe(const kiv_os::THandle *handles);
 
+    bool Open_File(const char *file_name, uint8_t flags, uint8_t attributes, kiv_os::THandle &handle);
+
     bool Close_Handle(const kiv_os::THandle handle);
 
     bool Register_Signal_Handler(const kiv_os::NSignal_Id signal, kiv_os::TThread_Proc const thread_proc);

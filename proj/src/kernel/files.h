@@ -6,6 +6,7 @@
 
 #include "generic_file.h"
 #include "pipe_file.h"
+#include "vfs.h"
 
 // a class representing the file table
 class File_Table {
@@ -40,3 +41,7 @@ void Close_File(kiv_hal::TRegisters &registers);
 void Write_File(kiv_hal::TRegisters &registers);
 
 void Read_File(kiv_hal::TRegisters &registers);
+
+void Add_Filesystem(const std::string &name, VFS *vfs);
+
+void Init_Filesystems();

@@ -14,6 +14,7 @@ void run_shell(const kiv_hal::TRegisters &regs);
 
 void Initialize_Kernel() {
 	User_Programs = LoadLibraryW(L"user.dll");
+	Init_Filesystems();
 }
 
 void Shutdown_Kernel() {
@@ -122,8 +123,6 @@ void run_shell(const kiv_hal::TRegisters &regs) {
 
     // perform Wait_For
     read_exit_code(wait_for_regs);
-
-    procfs();
 }
 
 void Set_Error(const bool failed, kiv_hal::TRegisters &regs) {
