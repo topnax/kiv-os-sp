@@ -103,7 +103,7 @@ kiv_os::NOS_Error Proc_Fs::read(File file, size_t size, size_t offset, std::vect
         auto readdir_result = readdir("", entries);
 
         if (readdir_result == kiv_os::NOS_Error::Success) {
-            generated = this->generate_dir_vector(entries);
+            generated = Proc_Fs::generate_dir_vector(entries);
         } else {
             return readdir_result;
         }
