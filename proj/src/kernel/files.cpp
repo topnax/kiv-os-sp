@@ -4,6 +4,7 @@
 #include "vga_file.h"
 #include "keyboard_file.h"
 #include "proc_fs.h"
+#include "fat_fs.h"
 
 namespace Files {
     std::mutex Open_Guard;
@@ -57,6 +58,27 @@ Generic_File *Resolve_THandle_To_File(kiv_os::THandle handle) {
 
 void Init_Filesystems() {
     Add_Filesystem("procfs", new Proc_Fs());
+
+    // find a fat drive
+    kiv_hal::TRegisters regs;
+    for (regs.rdx.l = 0; ; regs.rdx.l++) {
+        kiv_hal::TDrive_Parameters params;
+        regs.rax.h = static_cast<uint8_t>(kiv_hal::NDisk_IO::Drive_Parameters);;
+        regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(&params);
+        kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::Disk_IO, regs);
+        if (!regs.flags.carry) {
+            // found a disk
+            auto disk_num = regs.rdx.l;
+            auto disk_params = reinterpret_cast<kiv_hal::TDrive_Parameters*>(regs.rdi.r);
+
+            auto fs = new Fat_Fs(disk_num, *disk_params);
+            fs->init();
+            Add_Filesystem("fatfs", fs);
+            break;
+        }
+
+        if (regs.rdx.l == 255) break;
+    }
 }
 
 void Add_Filesystem(const std::string& name, VFS *vfs) {
@@ -88,6 +110,8 @@ kiv_os::THandle Open_File(const char *file_name, uint8_t flags, uint8_t attribut
         // files starting with /procfs should be used with procfs vfs
         if (strncmp(file_name, "/procfs", 6) == 0) {
             fs = Get_Filesystem("procfs");
+        } else {
+            fs = Get_Filesystem("fatfs");
         }
 
         if (fs != nullptr) {

@@ -20,6 +20,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\api\api.cpp" />
+    <ClCompile Include="..\..\src\kernel\fat_fs.cpp" />
     <ClCompile Include="..\..\src\kernel\files.cpp" />
     <ClCompile Include="..\..\src\kernel\fs_file.cpp" />
     <ClCompile Include="..\..\src\kernel\handles.cpp" />
@@ -38,6 +39,7 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\api\api.h" />
     <ClInclude Include="..\..\src\api\hal.h" />
+    <ClInclude Include="..\..\src\kernel\fat_fs.h" />
     <ClInclude Include="..\..\src\kernel\files.h" />
     <ClInclude Include="..\..\src\kernel\filesystem.h" />
     <ClInclude Include="..\..\src\kernel\generic_file.h" />
