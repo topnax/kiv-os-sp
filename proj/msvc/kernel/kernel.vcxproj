@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClCompile Include="..\..\src\api\api.cpp" />
     <ClCompile Include="..\..\src\kernel\files.cpp" />
+    <ClCompile Include="..\..\src\kernel\fs_file.cpp" />
     <ClCompile Include="..\..\src\kernel\handles.cpp" />
     <ClCompile Include="..\..\src\kernel\io.cpp" />
     <ClCompile Include="..\..\src\kernel\kernel.cpp" />
@@ -31,12 +32,14 @@
     <ClCompile Include="..\..\src\kernel\process.cpp" />
     <ClCompile Include="..\..\src\kernel\process\pcb.cpp" />
     <ClCompile Include="..\..\src\kernel\process\process_entry.cpp" />
+    <ClCompile Include="..\..\src\kernel\proc_fs.cpp" />
     <ClCompile Include="..\..\src\kernel\vga_file.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\api\api.h" />
     <ClInclude Include="..\..\src\api\hal.h" />
     <ClInclude Include="..\..\src\kernel\files.h" />
+    <ClInclude Include="..\..\src\kernel\filesystem.h" />
     <ClInclude Include="..\..\src\kernel\generic_file.h" />
     <ClInclude Include="..\..\src\kernel\handles.h" />
     <ClInclude Include="..\..\src\kernel\io.h" />
@@ -108,6 +111,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <OutDir>..\..\compiled\</OutDir>
+    <IncludePath>$(VC_IncludePath);$(WindowsSDK_IncludePath);C:\Program Files (x86)\Visual Leak Detector\include</IncludePath>
+    <LibraryPath>$(VC_LibraryPath_x64);$(WindowsSDK_LibraryPath_x64);C:\Program Files (x86)\Visual Leak Detector\lib\Win64</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>

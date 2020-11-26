@@ -10,7 +10,6 @@
 #include "handles.h"
 #include "semaphore.h"
 #include "process.h"
-#include "process/pcb.h"
 #include "files.h"
 
 
@@ -29,6 +28,9 @@ namespace Proc {
 std::mutex Semaphores_Mutex;
 std::map<std::thread::id, kiv_os::THandle> Handle_To_THandle;
 
+Process_Control_Block *Get_Pcb() {
+    return Proc::Pcb;
+}
 
 size_t __stdcall default_signal_handler(const kiv_hal::TRegisters &regs) {
     auto signal_id = static_cast<kiv_os::NSignal_Id>(regs.rcx.l);
@@ -380,9 +382,6 @@ void read_exit_code(kiv_hal::TRegisters &registers) {
                 "Ready", "Running", "Zombie"
         };
 
-        // TODO remove for release, move to procfs
-        procfs();
-
         // we have read the process' exit code - remove it from the table
         (*Proc::Pcb).Remove_Process(handle);
     } else {
@@ -390,10 +389,6 @@ void read_exit_code(kiv_hal::TRegisters &registers) {
     }
 
     registers.rcx.x = static_cast<decltype(registers.rcx.x)>(exit_code);
-}
-
-void procfs() {
-    Proc::Pcb->procfs();
 }
 
 void register_signal_handler(kiv_hal::TRegisters &registers) {
@@ -432,7 +427,6 @@ void signal(kiv_os::NSignal_Id signal_id, Process *process) {
 void shutdown() {
     std::lock_guard<std::mutex> guard(Semaphores_Mutex);
     // iterate over all processes and write EOT to their STD_IN
-    procfs();
 
     signal_all_processes(kiv_os::NSignal_Id::Terminate);
 
@@ -442,5 +436,4 @@ void shutdown() {
         Close_File(regs);
     }
 
-    procfs();
 }

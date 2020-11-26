@@ -22,12 +22,13 @@ public:
         return false;
     };
 
+    kiv_os::NOS_Error seek(size_t value, kiv_os::NFile_Seek position, kiv_os::NFile_Seek op, size_t &res) override;
+
     void close() override;
 
 private:
     std::shared_ptr<Pipe> pipe;
 };
-
 
 class Pipe_Out_File: public Generic_File {
 public:

@@ -8,6 +8,7 @@
 #include "vector"
 #include "semaphore.h"
 #include "process/process_entry.h"
+#include "process/pcb.h"
 
 /**
  *  A structure representing a Wait_For listener waiting for a thread to notify it
@@ -61,4 +62,4 @@ void signal(kiv_os::NSignal_Id signal_id, Process *process);
 
 void shutdown();
 
-void procfs();
+Process_Control_Block* Get_Pcb();

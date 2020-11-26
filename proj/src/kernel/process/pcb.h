@@ -41,8 +41,6 @@ public:
 
     std::recursive_mutex *Get_Mutex();
 
-    void procfs();
-
 private:
     std::map<kiv_os::THandle, std::unique_ptr<Process>> table;
     std::recursive_mutex mutex;
