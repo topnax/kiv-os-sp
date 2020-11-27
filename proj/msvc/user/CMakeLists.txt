@@ -127,6 +127,9 @@ set(Source_Files
     "../../src/user/rtl.cpp"
     "../../src/user/shell.cpp"
         "../../src/user/rgen.cpp"
+        "../../src/user/dir.cpp"
+        "../../src/user/tasklist.cpp"
+        "../../src/user/type.cpp"
         "../../src/user/echo.cpp"
         "../../src/user/freq.cpp")
 source_group("Source Files" FILES ${Source_Files})

@@ -8,51 +8,7 @@
 #include <set>
 
 
-size_t Read_Line_From_Console(char *buffer, const size_t buffer_size) {
-	kiv_hal::TRegisters registers;
-
-	size_t pos = 0;
-	while (pos < buffer_size) {
-		//read char
-		registers.rax.h = static_cast<decltype(registers.rax.l)>(kiv_hal::NKeyboard::Read_Char);
-		kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::Keyboard, registers);
-
-		if (!registers.flags.non_zero) break;	//nic jsme neprecetli,
-												//pokud je rax.l EOT, pak byl zrejme vstup korektne ukoncen
-												//jinak zrejme doslo k chybe zarizeni
-
-		char ch = registers.rax.l;
-
-		//osetrime zname kody
-		switch (static_cast<kiv_hal::NControl_Codes>(ch)) {
-			case kiv_hal::NControl_Codes::BS: {
-					//mazeme znak z bufferu
-					if (pos > 0) pos--;
-
-					registers.rax.h = static_cast<decltype(registers.rax.l)>(kiv_hal::NVGA_BIOS::Write_Control_Char);
-					registers.rdx.l = ch;
-					kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::VGA_BIOS, registers);
-				}
-				break;
-
-			case kiv_hal::NControl_Codes::LF:  break;	//jenom pohltime, ale necteme
-			case kiv_hal::NControl_Codes::NUL:			//chyba cteni?
-			case kiv_hal::NControl_Codes::CR:  return pos;	//docetli jsme az po Enter
-
-
-			default: buffer[pos] = ch;
-					 pos++;
-					 registers.rax.h = static_cast<decltype(registers.rax.l)>(kiv_hal::NVGA_BIOS::Write_String);
-					 registers.rdx.r = reinterpret_cast<decltype(registers.rdx.r)>(&ch);
-					 registers.rcx.r = 1;
-					 kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::VGA_BIOS, registers);
-					 break;
-		}
-	}
-
-	return pos;
-
-}
+void Open_File(kiv_hal::TRegisters &registers);
 
 void Handle_IO(kiv_hal::TRegisters &regs) {
 
@@ -88,6 +44,11 @@ void Handle_IO(kiv_hal::TRegisters &regs) {
             break;
         }
 
+        case kiv_os::NOS_File_System::Open_File: {
+            Open_File(regs);
+            break;
+        }
+
 	/* Nasledujici dve vetve jsou ukazka, ze starsiho zadani, ktere ukazuji, jak mate mapovat Windows HANDLE na kiv_os handle a zpet, vcetne jejich alokace a uvolneni
 
 		case kiv_os::scCreate_File: {
@@ -110,4 +71,11 @@ void Handle_IO(kiv_hal::TRegisters &regs) {
 
 	*/
 	}
+}
+
+void Open_File(kiv_hal::TRegisters &registers) {
+    char *file_name = reinterpret_cast<char * >(registers.rdx.r);
+    uint8_t flags = registers.rcx.l;
+    auto attributes = static_cast<uint8_t>(registers.rdi.i);
+    registers.rax.x = Open_File(file_name, flags, attributes);
 }

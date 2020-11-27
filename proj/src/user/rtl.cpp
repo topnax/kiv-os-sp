@@ -18,7 +18,7 @@ bool kiv_os_rtl::Read_File(const kiv_os::THandle file_handle, char* const buffer
 
 	const bool result = kiv_os::Sys_Call(regs);
 
-	read = regs.rax.r;
+	read = static_cast<size_t>(regs.rax.r);
 	return result;
 }
 
@@ -29,7 +29,7 @@ bool kiv_os_rtl::Write_File(const kiv_os::THandle file_handle, const char *buffe
 	regs.rcx.r = buffer_size;
 
 	const bool result = kiv_os::Sys_Call(regs);
-	written = regs.rax.r;
+	written = static_cast<size_t>(regs.rax.r);
 
     return result;
 }
@@ -156,4 +156,17 @@ bool kiv_os_rtl::Shutdown() {
     const bool result = kiv_os::Sys_Call(regs);
 
     return result;
+}
+
+bool kiv_os_rtl::Open_File(const char *file_name, uint8_t flags, uint8_t attributes, kiv_os::THandle &handle) {
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::File_System, static_cast<uint8_t>(kiv_os::NOS_File_System::Open_File));
+    regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(file_name);
+    regs.rcx.l = flags;
+    regs.rdi.i = attributes;
+
+    const bool result = kiv_os::Sys_Call(regs);
+
+    handle = regs.rax.x;
+
+    return handle != kiv_os::Invalid_Handle ;
 }

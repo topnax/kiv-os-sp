@@ -1,15 +1,17 @@
 #include <mutex>
 #include <random>
 #include "files.h"
-#include "pipe_file.h"
 #include "vga_file.h"
 #include "keyboard_file.h"
+#include "proc_fs.h"
+#include "fat_fs.h"
 
 namespace Files {
     std::mutex Open_Guard;
     std::recursive_mutex Access_Guard;
-    File_Table *ft = new File_Table();
+    File_Table *Ft = new File_Table();
     kiv_os::THandle Last_File = 0;
+    std::map<std::string, std::unique_ptr<VFS>> Filesystems;
 }
 
 // File_Table class methods definitions
@@ -47,17 +49,54 @@ void File_Table::Remove(const kiv_os::THandle handle) {
 // function definition
 
 Generic_File *Resolve_THandle_To_File(kiv_os::THandle handle) {
-    if (Files::ft->Exists(handle)) {
-        return (*Files::ft)[handle];
+    if (Files::Ft->Exists(handle)) {
+        return (*Files::Ft)[handle];
     } else {
         return nullptr;
     }
 }
 
+void Init_Filesystems() {
+    Add_Filesystem("procfs", new Proc_Fs());
+
+    // find a fat drive
+    kiv_hal::TRegisters regs;
+    for (regs.rdx.l = 0; ; regs.rdx.l++) {
+        kiv_hal::TDrive_Parameters params;
+        regs.rax.h = static_cast<uint8_t>(kiv_hal::NDisk_IO::Drive_Parameters);;
+        regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(&params);
+        kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::Disk_IO, regs);
+        if (!regs.flags.carry) {
+            // found a disk
+            auto disk_num = regs.rdx.l;
+            auto disk_params = reinterpret_cast<kiv_hal::TDrive_Parameters*>(regs.rdi.r);
+
+            auto fs = new Fat_Fs(disk_num, *disk_params);
+            fs->init();
+            Add_Filesystem("fatfs", fs);
+            break;
+        }
+
+        if (regs.rdx.l == 255) break;
+    }
+}
+
+void Add_Filesystem(const std::string& name, VFS *vfs) {
+    Files::Filesystems[name] = std::unique_ptr<VFS>(vfs);
+}
+
+VFS* Get_Filesystem(const char *file_name) {
+    auto resolved = Files::Filesystems.find(std::string(file_name));
+    if (resolved != Files::Filesystems.end()) {
+        return resolved->second.get();
+    }
+
+    return nullptr;
+}
+
 kiv_os::THandle Open_File(const char *file_name, uint8_t flags, uint8_t attributes) {
     std::lock_guard<std::mutex> guard(Files::Open_Guard);
-    // TODO use flags&attributes
-    Generic_File *file;
+    Generic_File *file = nullptr;
 
     // TODO this could be improved in the future
     if (strcmp(file_name, "/dev/vga") == 0) {
@@ -65,32 +104,51 @@ kiv_os::THandle Open_File(const char *file_name, uint8_t flags, uint8_t attribut
     } else if (strcmp(file_name, "/dev/kb") == 0) {
         file = new Keyboard_File();
     } else {
-        // TODO open a file from FS
+        VFS *fs = nullptr;
+        // TODO relative path
+        // find filesystem for this path
+        // files starting with /procfs should be used with procfs vfs
+        if (strncmp(file_name, "/procfs", 6) == 0) {
+            fs = Get_Filesystem("procfs");
+        } else {
+            fs = Get_Filesystem("fatfs");
+        }
+
+        if (fs != nullptr) {
+            File f{};
+            // open a file with the found filesystem
+            auto result = fs->open(file_name, flags, attributes , f);
+            if (result == kiv_os::NOS_Error::Success) {
+                file = new Filesystem_File(fs, f);
+            }
+        }
+    }
+    if (file == nullptr) {
         return kiv_os::Invalid_Handle;
     }
-    return Files::ft->Add_File(file);
+    return Files::Ft->Add_File(file);
 }
 
 void Close_File(kiv_hal::TRegisters &regs) {
     kiv_os::THandle handle = regs.rdx.x;
-    if (Files::ft->Exists(handle)) {
-        auto file_object = (*Files::ft)[handle];
+    if (Files::Ft->Exists(handle)) {
+        auto file_object = (*Files::Ft)[handle];
         // close the file
         file_object->close();
 
         // remove it from the file table
-        (*Files::ft).Remove(handle);
+        (*Files::Ft).Remove(handle);
     }
 }
 
 kiv_os::THandle Add_File_To_Table(Generic_File *file) {
-    return Files::ft->Add_File(file);
+    return Files::Ft->Add_File(file);
 }
 
 void Write_File(kiv_hal::TRegisters &regs) {
     kiv_os::THandle handle = regs.rdx.x;
     char *buff = reinterpret_cast<char *>(regs.rdi.r);
-    size_t bytes = regs.rcx.r;
+    auto bytes = static_cast<size_t>(regs.rcx.r);
 
     Generic_File *file = Resolve_THandle_To_File(handle);
     if (file != nullptr) {
@@ -113,7 +171,7 @@ void Read_File(kiv_hal::TRegisters &regs) {
     Generic_File *file = Resolve_THandle_To_File(handle);
 
     if (file != nullptr) {
-        size_t buff_size = regs.rcx.r;
+        auto buff_size = static_cast<size_t>(regs.rcx.r);
         char *buff = reinterpret_cast<char *>(regs.rdi.r);
         size_t read;
         bool res = file->read(buff_size, buff, read);
