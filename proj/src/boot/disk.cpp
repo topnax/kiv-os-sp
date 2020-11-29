@@ -1,7 +1,7 @@
 //Tento kod nebyl odladen. Mozna, ze tu budou chyby k odhaleni... a mozna i tak k ziskani nejakeho toho bonusoveho bodu.
 
 #include "disk.h"
-
+#include <iostream>
 #include <array>
 #include <filesystem>
 
@@ -117,7 +117,11 @@ void CDisk_Image::Read_Sectors(kiv_hal::TRegisters &context) {
 	if (Check_DAP(context)) {
 		kiv_hal::TDisk_Address_Packet &dap = *reinterpret_cast<kiv_hal::TDisk_Address_Packet*>(context.rdi.r);
 		mDisk_Image.seekg(mBytes_Per_Sector*dap.lba_index, std::ios::beg);
+		std::cout << "Reading from: " << mBytes_Per_Sector * dap.lba_index << "\n";
+
 		const auto bytes_to_read = dap.count*mBytes_Per_Sector;
+		std::cout << "Bytes to read: " << bytes_to_read << "\n";
+
 		mDisk_Image.read(static_cast<char*>(dap.sectors), bytes_to_read);
 		if (mDisk_Image.gcount() == bytes_to_read) Set_Status(context, kiv_hal::NDisk_Status::No_Error);
 			else Set_Status(context, kiv_hal::NDisk_Status::Address_Mark_Not_Found_Or_Bad_Sector);

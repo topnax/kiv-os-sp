@@ -74,6 +74,16 @@ void Init_Filesystems() {
             auto fs = new Fat_Fs(disk_num, *disk_params);
             fs->init();
             Add_Filesystem("fatfs", fs);
+
+            //pokus o precteni \FDSETUP\BIN\ATTRIB.COM
+            File file_test;
+            file_test.size = 5044; //velikost souboru
+            file_test.name = "\\FDSETUP\\BIN\\ATTRIB.COM"; //cesta soubor
+            file_test.position = 0; //aktualni pozice, zaciname na 0
+
+            std::vector<char> out_buffer; //buffer pro prectene informace
+            fs -> read(file_test, 512, 0, out_buffer); //instance File, velikost pro cteni, offset, out buffer
+
             break;
         }
 
