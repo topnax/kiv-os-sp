@@ -82,6 +82,15 @@ std::vector<char> Proc_Fs::generate_readproc_vector(Process p) {
     return out;
 }
 
+std::vector<char> Proc_Fs::generate_test_vector() {
+    //std::vector<char> out;
+    std::string testStr = "abc test\n123 TEST\nAhoj\nahoj\nzmrzlina mnam\n96haha\nABCDEF";
+
+    std::vector<char> out(testStr.begin(), testStr.end());
+
+    return out;
+}
+
 kiv_os::NOS_Error Proc_Fs::read(File file, size_t size, size_t offset, std::vector<char> &out) {
 
     // prepare a vector of characters where the generated content will be stored
@@ -112,6 +121,7 @@ kiv_os::NOS_Error Proc_Fs::read(File file, size_t size, size_t offset, std::vect
         auto p = Get_Pcb()->operator[](file.handle);
         if (p != nullptr) {
             generated = generate_readproc_vector(*p);
+            generated = generate_test_vector(); // TODO remove this line
         } else {
             return kiv_os::NOS_Error::File_Not_Found;
         }

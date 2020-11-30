@@ -34,6 +34,7 @@ public:
 
 private:
     static std::vector<char> generate_readproc_vector(Process process);
+    static std::vector<char> generate_test_vector(); // TODO remove
 
     static std::vector<char> generate_tasklist_vector();
 

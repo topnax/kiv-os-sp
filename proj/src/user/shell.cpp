@@ -332,6 +332,10 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             if (strcmp(command, "tasklist") == 0) {
                 call_program("tasklist", regs, args);
             }
+            if (strcmp(command, "sort") == 0) {
+
+                call_program("sort", regs, args);
+            }
             if (strcmp(command, "dir") == 0) {
                 // TODO improve arg parsing
                 if (args) {
