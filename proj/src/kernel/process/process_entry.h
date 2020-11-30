@@ -7,6 +7,7 @@
 
 #include <map>
 #include "../../api/api.h"
+#include <filesystem>
 
 enum class Process_Status {
     Ready = 0,
@@ -17,7 +18,7 @@ enum class Process_Status {
 class Process {
 
 public:
-    Process(kiv_os::THandle handle, kiv_os::THandle std_in, kiv_os::THandle std_out, char *program_name);
+    Process(kiv_os::THandle handle, kiv_os::THandle std_in, kiv_os::THandle std_out, char *program_name, std::filesystem::path working_directory);
 
     /**
      * Handle of this process
@@ -53,5 +54,10 @@ public:
      * Status of the process
      */
      Process_Status status = Process_Status::Ready;
+
+     /**
+      * Path to current working directory
+      */
+     std::filesystem::path working_directory;
 };
 

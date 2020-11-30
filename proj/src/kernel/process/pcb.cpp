@@ -5,10 +5,12 @@
 #include <vector>
 #include "pcb.h"
 
+const auto DEFAULT_WD = "C:\\";
+
 Process *Process_Control_Block::Add_Process(kiv_os::THandle handle, kiv_os::THandle std_in, kiv_os::THandle std_out,
                                             char *program) {
     std::lock_guard<std::recursive_mutex> guard(mutex);
-    table[handle] = std::make_unique<Process>(handle, std_in, std_out, program);
+    table[handle] = std::make_unique<Process>(handle, std_in, std_out, program, DEFAULT_WD);
     return table[handle].get();
 }
 
