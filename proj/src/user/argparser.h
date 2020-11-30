@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <vector>
+#include <string>
 
 const size_t NAME_LEN = 200;
 const size_t DATA_LEN = 200;
@@ -33,6 +34,7 @@ struct program {
 };
 
 void strtrim(char* str);
+std::string trim(const std::string& str, const std::string& whitespace);
 void parse_programs_unused(char *input, program *programs, int *length);
 std::vector<program> parse_programs(char* input/*, program* programs, int* length*/);
 void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters& registers);

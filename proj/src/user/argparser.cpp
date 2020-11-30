@@ -7,6 +7,7 @@
 #include <vector>
 #include "rtl.h"
 #include "argparser.h"
+#include <string>
 
 void strtrim(char *str) {
     int start = 0; // number of leading spaces
@@ -20,6 +21,20 @@ void strtrim(char *str) {
     str = buffer + start;
     while ((*buffer++ = *str++));  // remove leading spaces: K&R
 }
+
+std::string trim(const std::string& str, const std::string& whitespace)
+{
+    const auto strBegin = str.find_first_not_of(whitespace);
+    if (strBegin == std::string::npos)
+        return ""; // no content
+
+    const auto strEnd = str.find_last_not_of(whitespace);
+    const auto strRange = strEnd - strBegin + 1;
+
+    return str.substr(strBegin, strRange);
+}
+
+
 
 void parse_programs_unused(char *input, program *programs, int *length) {
 

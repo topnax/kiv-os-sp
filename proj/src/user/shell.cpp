@@ -188,7 +188,7 @@ int pipe_test(kiv_os::THandle std_in, kiv_os::THandle std_out) {
     return 0;
 }
 
-void call_program(char *program, const kiv_hal::TRegisters &registers, char *data) {
+void call_program(char *program, const kiv_hal::TRegisters &registers, const char *data) {
     // call clone from RTL
     // RTL is used we do not have to set register values here
 
@@ -362,52 +362,83 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
         // TODO improve parsing of shell commands
         char *token1;
-        char *command;
-        // try to separate the command name
-        command = strtok_s(buffer, " ", &token1);
+        //char *command;
+        std::vector<std::string> command_and_args;
+        char* p = strtok_s(buffer, " \"", &token1); // make it into two tokns only
+        if(p)
+            command_and_args.push_back(p);
+        if(token1)
+            command_and_args.push_back(token1);
 
-        // if command name was provided
-        if (command) {
-            // separate command arguments
-            char *args = strtok_s(NULL, " ", &token1);
-            if (strcmp(command, "echo") == 0) {
-                if (args) {
-                    call_program("echo", regs, args);
+        if (command_and_args.empty())
+            continue;
+
+
+        // get the command name:
+        std::string command = command_and_args[0];
+
+
+        // if command name was provided and it is valid
+        if (command.size() > 0 && 
+            supported_commands.find(command) != supported_commands.end()) {
+
+            // args will be the rest after the command:
+            std::string args = command_and_args[1];
+
+            if (command == "echo") {
+                if (args.size() > 0) {
+                    if (args[0] == '\"' && args[args.size() - 1] == '\"') { // escaping the double quotes, maybe this is not necessary
+                        args = args.substr(1, args.size() - 2);
+                    }
+                    call_program("echo", regs, args.c_str());
                 }
             }
-            if (strcmp(command, "rgen") == 0) {
-                    call_program("rgen", regs, args);
+            else if (command == "rgen") {
+                    call_program("rgen", regs, args.c_str());
             }
-            if (strcmp(command, "pipetest") == 0) {
+            else if (command == "pipetest") {
                 pipe_test(std_in, std_out);
             }
-            if (strcmp(command, "freq") == 0) {
-                call_program("freq", regs, args);
+            else if (command == "freq") {
+                call_program("freq", regs, args.c_str());
             }
-            if (strcmp(command, "charcnt") == 0) {
-                call_program("charcnt", regs, args);
+            else if (command == "charcnt") {
+                call_program("charcnt", regs, args.c_str());
             }
-            if (strcmp(command, "tasklist") == 0) {
-                call_program("tasklist", regs, args);
+            else if (command == "tasklist") {
+                call_program("tasklist", regs, args.c_str());
             }
-            if (strcmp(command, "sort") == 0) {
+            else if (command == "sort") {
+                args = trim(args, " ");
+                call_program("sort", regs, args.c_str());
+            }
+            else if (command == "find") {
 
-                call_program("sort", regs, args);
-            }
-            if (strcmp(command, "dir") == 0) {
-                // TODO improve arg parsing
-                if (args) {
-                    call_program("dir", regs, args);
+                // the format is find /v /c "" file.txt
+                std::string form = "/v /c \"\"";
+                int pos = 0;
+                int index = args.find(form, pos);
+                if (index == 0) {
+                    // the format is ok, now separate the file path:
+                    args = args.substr(form.size(), args.size() - 1);
+                    args = trim(args, " ");
+                    call_program("find", regs, args.c_str());
                 }
             }
-            if (strcmp(command, "type") == 0) {
+            else if (command == "dir") {
+                // TODO improve arg parsing
+                if (args.size() > 0) {
+                    call_program("dir", regs, args.c_str());
+                }
+            }
+            else if (command == "type") {
                 // TODO improve argparsing
-                if (args) {
-                    call_program("type", regs, args);
+                if (args.size() > 0) {
+                    call_program("type", regs, args.c_str());
                 }
             }
             // TODO this command might not be present in the release
-            if (strcmp(command, "shutdown") == 0) {
+            else if (command == "shutdown") {
                 kiv_os_rtl::Shutdown();
             }
         }
