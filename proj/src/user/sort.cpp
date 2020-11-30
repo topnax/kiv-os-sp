@@ -115,6 +115,5 @@ extern "C" size_t __stdcall sort(const kiv_hal::TRegisters & regs) {
     // append with new line
     kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
     
-
     return 0;
 }

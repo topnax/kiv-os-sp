@@ -16,6 +16,8 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
     // preparing lists for the pipe handles (ins and outs) and the program handles:
     std::vector<kiv_os::THandle> pipe_handles;
     std::vector<kiv_os::THandle> handles;
+    kiv_os::THandle file_handle_first_in;
+    kiv_os::THandle file_handle_last_out;
 
     // create enough pipe handles and push them to the vector:
     for (int i = 0; i < pipes_num; i++) {
@@ -30,19 +32,67 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
     // for each program assign input and output, clone the process and save it's handle:
     for (int i = 0; i < programs.size(); i++) {
         if (i == 0) {
-            // first program gets std in as input and first pipe's in as output
+            // first program gets std in or a file as input and first pipe's in as output
             kiv_os::THandle first_handle;
-            kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, std_in, pipe_handles[0], first_handle);
+            
+            if (programs[i].input.type == ProgramHandleType::File) {
+                if (kiv_os_rtl::Open_File(programs[i].input.name, 0, 0, file_handle_first_in)) {
+                    ;;
+                }
+                else {
+                    // file not found?
+                    char buff[200];
+                    memset(buff, 0, 200);
+                    size_t n = sprintf_s(buff, "File %s not found.", programs[i].input.name);
+                    kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
+                    return;
+                }
+            }
+            else if (programs[i].input.type == ProgramHandleType::Standard) {
+                file_handle_first_in = std_in;
+            }
+            
+            if (i < programs.size() - 1) {
+                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, file_handle_first_in/*std_in*/, pipe_handles[0], first_handle);
+            }
+            else if (i == programs.size() - 1) {
+                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, file_handle_first_in/*std_in*/, std_out, first_handle);
+            }
+            
             handles.push_back(first_handle);
 
         }
-        else if (i == programs.size() - 1) {
-            // the last program gets std out as output
+        else if (i == programs.size() - 1) { // TODO test output to file!
+            // the last program gets std out or a file as output
             kiv_os::THandle last_handle;
-            kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[pipe_handles.size() - 1], std_out, last_handle);
+
+            if (programs[i].output.type == ProgramHandleType::File) {
+                if (kiv_os_rtl::Open_File(programs[i].output.name, 0, 0, file_handle_last_out)) {
+                    ;;
+                }
+                else {
+                    // file not found?
+                    char buff[200];
+                    memset(buff, 0, 200);
+                    size_t n = sprintf_s(buff, "File %s not found.", programs[i].output.name);
+                    kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
+                    return;
+                }
+            }
+            else if (programs[i].output.type == ProgramHandleType::Standard) {
+                file_handle_last_out = std_out;
+            }
+
+            if (programs.size() > 1) {
+                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[pipe_handles.size() - 1], file_handle_last_out/*std_out*/, last_handle);
+            }
+            else {
+                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, std_in, file_handle_last_out/*std_out*/, last_handle);
+            }
+                
             handles.push_back(last_handle);
         }
-        else {
+        else { // TODO this should be fine
             // else connect it correctly
             kiv_os::THandle handle;
             kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[2 * i - 1], pipe_handles[2 * i], handle);
@@ -76,14 +126,22 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             //printf("closing handle %d (ind %d)\n", pipe_handles[0], 0);
 
             // if it was the first program that ended, close only the input of the first pipe (at pipe_handles[0])
-            kiv_os_rtl::Close_Handle(pipe_handles[0]);
+            if(pipe_handles.size() > 0)
+                kiv_os_rtl::Close_Handle(pipe_handles[0]);
+            if(programs[0].input.type == ProgramHandleType::File)
+                kiv_os_rtl::Close_Handle(file_handle_first_in);
+
             num_of_handles_closed++;
         }
         else if (ind == orig_handles.size() - 1) {
             //printf("closing handle %d (ind %d)\n", pipe_handles[pipe_handles.size() - 1], pipe_handles.size() - 1);
 
             // if it was the last program that ended, close only the output of the last pipe (at pipe_handles[size - 1])
-            kiv_os_rtl::Close_Handle(pipe_handles[pipe_handles.size() - 1]);
+            if (pipe_handles.size() > 0)
+                kiv_os_rtl::Close_Handle(pipe_handles[pipe_handles.size() - 1]);
+            if (programs[programs.size() - 1].input.type == ProgramHandleType::File)
+                kiv_os_rtl::Close_Handle(file_handle_last_out);
+
             num_of_handles_closed++;
         }
         else {
