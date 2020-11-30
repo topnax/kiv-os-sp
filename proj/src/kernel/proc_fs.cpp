@@ -84,7 +84,7 @@ std::vector<char> Proc_Fs::generate_readproc_vector(Process p) {
 
 std::vector<char> Proc_Fs::generate_test_vector() {
     //std::vector<char> out;
-    std::string testStr = "abc test\n123 TEST\nAhoj\nahoj\nzmrzlina mnam\n96haha\nABCDEF";
+    std::string testStr = "abc test\n123 TEST\nAhoj\nahoj\nzmrzlina mnam\n96haha\nABCDEF\n";
 
     std::vector<char> out(testStr.begin(), testStr.end());
 

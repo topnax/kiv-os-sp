@@ -27,8 +27,10 @@ extern "C" size_t __stdcall sort(const kiv_hal::TRegisters & regs) {
     // new line
     const char* new_line = "\n";
 
-    std::vector<char> input_vec;
+    //std::vector<char> input_vec;
     kiv_os::THandle file_handle;
+    std::vector<std::string> lines;
+    std::string curr_string = "";
 
     if (data && strlen(data) > 0) {
         // we will be reading from a file
@@ -62,7 +64,14 @@ extern "C" size_t __stdcall sort(const kiv_hal::TRegisters & regs) {
                 }
 
                 auto c = buffer[i];
-                input_vec.push_back(c);
+                //input_vec.push_back(c);
+
+                if (c == '\n') {
+                    lines.push_back(curr_string);
+                    curr_string = "";
+                    continue;
+                }
+                curr_string += c;
             }
             // kiv_os_rtl::Close_Handle(std_in);
         }
@@ -72,38 +81,17 @@ extern "C" size_t __stdcall sort(const kiv_hal::TRegisters & regs) {
         }
 
     } while (doContinue);
+    if(curr_string.size() > 0)
+        lines.push_back(curr_string); // the last line does not have to end with \n
 
-    printf("\n%s\n", "--- Printing the original file: ---");
+    /*printf("\n%s\n", "--- Printing the original file: ---");
     for (int i = 0; i < input_vec.size(); i++) {
         printf("%c", input_vec[i]);
     }
-    printf("\n%s\n", "---  ---");
-
-    // build a vector of strings:
-    std::vector<std::string> lines;
-    std::string curr_string = "";
-    for (int i = 0; i < input_vec.size(); i++) {
-        if (input_vec[i] == '\n') {
-            lines.push_back(curr_string);
-            curr_string = "";
-            continue;
-        }
-        curr_string += input_vec[i];
-    }
-    lines.push_back(curr_string); // the last line does not have to end with \n
-
-    /*printf("\n%s\n", "Printing the original as strings:");
-    for (int i = 0; i < lines.size(); i++) {
-        std::cout << lines[i] << std::endl;
-    }*/
+    printf("\n%s\n", "---  ---");*/
 
     // sorting the lines - using locale argument so that uppercase appears after lowercase
     std::sort(lines.begin(), lines.end(), std::locale("en_US.UTF-8"));
-
-    /*printf("\n%s\n", "Printing sorted lines:");
-    for (int i = 0; i < lines.size(); i++) {
-        std::cout << lines[i] << std::endl;
-    }*/
 
     // output the text
     for (int i = 0; i < lines.size(); i++) {
@@ -111,9 +99,9 @@ extern "C" size_t __stdcall sort(const kiv_hal::TRegisters & regs) {
         kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
     }
 
-
     // append with new line
     kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
     
+    kiv_os_rtl::Close_Handle(file_handle);
     return 0;
 }
