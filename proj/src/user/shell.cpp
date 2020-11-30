@@ -3,6 +3,7 @@
 #include "argparser.h"
 #include <vector>
 
+bool echoOn = true;
 
 void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters& registers) {
 
@@ -273,7 +274,8 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
     const char *prompt = "C:\\>";
     do {
-        kiv_os_rtl::Write_File(std_out, prompt, strlen(prompt), counter);
+        if(echoOn)
+            kiv_os_rtl::Write_File(std_out, prompt, strlen(prompt), counter);
 
         if (kiv_os_rtl::Read_File(std_in, buffer, buffer_size, counter)) {
             if ((counter > 0) && (counter == buffer_size)) counter--;
@@ -387,10 +389,29 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
             if (command == "echo") {
                 if (args.size() > 0) {
+
+                    if (args == "on") {
+                        echoOn = true;
+                        continue;
+                    }
+                    else if (args == "off") {
+                        echoOn = false;
+                        continue;
+                    }
+                    
+
                     if (args[0] == '\"' && args[args.size() - 1] == '\"') { // escaping the double quotes, maybe this is not necessary
                         args = args.substr(1, args.size() - 2);
                     }
-                    call_program("echo", regs, args.c_str());
+
+                    if (echoOn) {
+                        // i think we can afford this, bc piped programs are handled elswhere, so this 
+                        // only prevents the echo from printing to std
+                        call_program("echo", regs, args.c_str());
+                    }
+                    
+
+
                 }
             }
             else if (command == "rgen") {
