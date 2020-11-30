@@ -94,6 +94,13 @@ VFS* Get_Filesystem(const char *file_name) {
     return nullptr;
 }
 
+void Open_File(kiv_hal::TRegisters &registers) {
+    char *file_name = reinterpret_cast<char * >(registers.rdx.r);
+    uint8_t flags = registers.rcx.l;
+    auto attributes = static_cast<uint8_t>(registers.rdi.i);
+    registers.rax.x = Open_File(file_name, flags, attributes);
+}
+
 kiv_os::THandle Open_File(const char *file_name, uint8_t flags, uint8_t attributes) {
     std::lock_guard<std::mutex> guard(Files::Open_Guard);
     Generic_File *file = nullptr;

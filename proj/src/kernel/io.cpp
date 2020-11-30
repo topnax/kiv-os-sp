@@ -1,14 +1,8 @@
-#include <map>
 #include "io.h"
-#include "kernel.h"
-#include "handles.h"
-#include "pipe.h"
 #include "pipes.h"
 #include "files.h"
-#include <set>
 
 
-void Open_File(kiv_hal::TRegisters &registers);
 
 void Handle_IO(kiv_hal::TRegisters &regs) {
 
@@ -71,11 +65,4 @@ void Handle_IO(kiv_hal::TRegisters &regs) {
 
 	*/
 	}
-}
-
-void Open_File(kiv_hal::TRegisters &registers) {
-    char *file_name = reinterpret_cast<char * >(registers.rdx.r);
-    uint8_t flags = registers.rcx.l;
-    auto attributes = static_cast<uint8_t>(registers.rdi.i);
-    registers.rax.x = Open_File(file_name, flags, attributes);
 }
