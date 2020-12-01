@@ -192,3 +192,10 @@ void Read_File(kiv_hal::TRegisters &regs) {
         regs.flags.carry = 1;
     }
 }
+
+VFS *File_Exists(std::filesystem::path path) {
+    VFS *current_fs;
+    // iterate over components of the path
+    // check which FS is used at the giiven path
+    return nullptr;
+}

@@ -3,6 +3,7 @@
 
 #include <map>
 #include <memory>
+#include <filesystem>
 
 #include "generic_file.h"
 #include "pipe_file.h"
@@ -47,3 +48,5 @@ void Read_File(kiv_hal::TRegisters &registers);
 void Add_Filesystem(const std::string &name, VFS *vfs);
 
 void Init_Filesystems();
+
+VFS* File_Exists(std::filesystem::path path);
