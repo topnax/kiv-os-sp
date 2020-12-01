@@ -55,3 +55,7 @@ kiv_os::NOS_Error Fat_Fs::unlink(const char *name) {
 kiv_os::NOS_Error Fat_Fs::close(File file) {
     return kiv_os::NOS_Error::IO_Error;
 }
+
+bool Fat_Fs::file_exists(int32_t current_fd, const char *name, bool start_from_root, int32_t &found_fd) {
+    return false;
+}

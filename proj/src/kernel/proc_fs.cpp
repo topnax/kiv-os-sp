@@ -10,6 +10,7 @@
 #include <mutex>
 
 constexpr size_t PROCESS_ENTRY_MAX_LENGTH = 65;
+constexpr int32_t PROCFS_ROOT = 0;
 
 std::vector<char> Proc_Fs::generate_tasklist_vector() {
     std::vector<char> out;
@@ -184,24 +185,23 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, uint8_t flags, uint8_t attribu
     char *end;
     long int num;
     num = strtol(str, &end, base);
-    // check whether there were no errors during
+    // check whether there were no errors when parsing the file name to an integer
     if (!*end) {
-        for (Process *process : pcb->Get_Processes()) {
-            if (process->handle == num) {
-                // we found the process that the reading of was requested
-                file = File{
-                        process->handle,
-                        static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) |
-                        static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only),
-                        PROCESS_ENTRY_MAX_LENGTH,
-                        0,
-                        const_cast<char *>(name)
-                };
+        auto process = (*pcb)[num];
+        if (process != nullptr) {
+            // we found the process that the reading of was requested
+            file = File{
+                    process->handle,
+                    static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) |
+                    static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only),
+                    PROCESS_ENTRY_MAX_LENGTH,
+                    0,
+                    const_cast<char *>(name)
+            };
 
-                // read file must not be a directory
-                if ((attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0) return kiv_os::NOS_Error::Permission_Denied;
-                return kiv_os::NOS_Error::Success;
-            }
+            // read file must not be a directory
+            if ((attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0) return kiv_os::NOS_Error::Permission_Denied;
+            return kiv_os::NOS_Error::Success;
         }
     }
 
@@ -227,4 +227,27 @@ kiv_os::NOS_Error Proc_Fs::unlink(const char *name) {
 kiv_os::NOS_Error Proc_Fs::close(File file) {
     // TODO what should close do?
     return kiv_os::NOS_Error::Success;
+}
+
+bool Proc_Fs::file_exists(int32_t current_fd, const char *name, bool start_from_root, int32_t &found_fd) {
+    if (start_from_root) {
+        current_fd = PROCFS_ROOT;
+    }
+
+    if (current_fd == PROCFS_ROOT) {
+        // parse PID from the path
+        int base = 10;
+        char *end;
+        long int num;
+        num = strtol(name, &end, base);
+        // check whether there were no errors when parsing the file name to an integer
+        if (!*end) {
+            auto process = (*Get_Pcb())[num];
+            if (process != nullptr) {
+                found_fd = process->handle;
+                return true;
+            }
+        }
+    }
+    return false;
 }

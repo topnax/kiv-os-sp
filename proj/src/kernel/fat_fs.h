@@ -39,6 +39,8 @@ public:
 
     kiv_os::NOS_Error close(File file) override;
 
+    bool file_exists(int32_t current_fd, const char *name, bool start_from_root, int32_t &found_fd) override;
+
 private:
     uint8_t disk_number;
     kiv_hal::TDrive_Parameters disk_parameters;

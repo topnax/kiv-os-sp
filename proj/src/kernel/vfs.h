@@ -69,7 +69,7 @@ public:
      *
      * @return `true` when the an item with the given name exists in the particular directory, otherwise `false`
      */
-    virtual bool file_exists(int32_t current_fd, const char *name, bool start_from_root, int32_t &found_fd);
+    virtual bool file_exists(int32_t current_fd, const char *name, bool start_from_root, int32_t &found_fd) = 0;
 
     /**
      *  Closes the given file
