@@ -121,7 +121,8 @@ kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vecto
     }
     printf("Got: - END");
 
-    directory_item target = retrieve_item_cluster(19, fat_table1_dec, folders_in_path);
+    directory_item target = retrieve_folder_item_clust(19, fat_table1_dec, folders_in_path);
+    std::cout << "Targetv cluster is: " << target.first_cluster << "!!!!!\n";
 
     //read test
     kiv_hal::TRegisters reg_read;

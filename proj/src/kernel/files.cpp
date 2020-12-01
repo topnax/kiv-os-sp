@@ -78,7 +78,7 @@ void Init_Filesystems() {
             //pokus o precteni \FDSETUP\BIN\ATTRIB.COM
             File file_test;
             file_test.size = 5044; //velikost souboru
-            file_test.name = "\\FDSETUP\\BIN\\ATTRIB.COM"; //cesta soubor
+            file_test.name = "\\FDSETUP\\BIN"; //cesta soubor
             file_test.position = 0; //aktualni pozice, zaciname na 0
 
             std::vector<char> out_buffer; //buffer pro prectene informace
@@ -86,7 +86,7 @@ void Init_Filesystems() {
 
             File test_file;
             std::vector<char> test_out_buffer; //buffer pro prectene informace
-            fs -> open("\\FDSETUP\\SETUP\\FDISET.BAT", 0, 0, test_file); //name, flags, attributes, file
+            fs -> open("\\FDSETUP\\SETUP\\PACKAGES", 0, 0, test_file); //name, flags, attributes, file
             fs -> read(test_file, 512, 0, test_out_buffer); //file, size, offset, out buffer
    
             break;

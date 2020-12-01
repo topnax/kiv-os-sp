@@ -239,7 +239,7 @@ std::vector<kiv_os::TDir_Entry> retrieve_dir_items(int num_sectors, std::vector<
 * fat_table_dec = fat tabulka, dle ktere dojde k ziskani informaci o lokaci souboru (v dec formatu)
 * path - polozky v zadane ceste
 /**/
-directory_item retrieve_item_cluster(int start_cluster, std::vector<int> fat_table_dec, std::vector<std::string> path) {
+directory_item retrieve_folder_item_clust(int start_cluster, std::vector<int> fat_table_dec, std::vector<std::string> path) {
     std::cout << "retrieve_item_cluster with num!!!!" << start_cluster;
 
     int traversed_sector_folder = start_cluster; //cislo sektoru, na kterem zacina aktualne prochazena slozka - zaciname v rootu
@@ -303,6 +303,8 @@ std::vector<directory_item> retrieve_folders_cur_folder(std::vector<int> fat_tab
     if (working_dir_sector == 19) { //jsme v root slozce, fix velikost -> nehledat ve FAT tabulce, nema tam udaje!
         std::vector<unsigned char> root_dir_cont = read_data_from_fat_fs(19 - 31, 14); //ziskani bajtu slozky v po sobe jdoucich clusterech - zacina na 19 sektoru (fce pricita 31, pocita s dat. sektory, proto odecteme 31);        
         std::vector<directory_item> directory_content = get_dir_items(14, root_dir_cont); //ziskani obsahu slozky (struktury directory_item, ktere reprezentuji jednu entry ve slozce)
+        
+        directory_content.erase(directory_content.begin()); //odstraneni prvni polozky (reference na aktualni slozku)
         std::cout << "Returned root dir size: " << directory_content.size();
         std::cout << "Root print - start\n";
         for (int i = 0; i < directory_content.size(); i++) {
@@ -327,7 +329,16 @@ std::vector<directory_item> retrieve_folders_cur_folder(std::vector<int> fat_tab
             retrieved_data_clust = read_data_from_fat_fs(sectors_nums_data[i], 1); //ziskani bajtu slozky v ramci jednoho sektoru
             std::vector<directory_item> directory_content = get_dir_items(1, retrieved_data_clust); //prevod na struktury, kazda reprez. jednu slozku
             std::cout << "Got size before printing: " << directory_content.size() << ", from cluster: " << sectors_nums_data.at(i) << "\n";
-            for (int j = 0; j < directory_content.size(); j++) { //vypis obsahu jednotlivych struktur
+
+            int j = 0;
+            if (i == 0) { //prvni cluster u slozky, co ma vice clusteru - preskocit . a ..
+                j = 2;
+            }
+            else {
+                j = 0;
+            }
+
+            for (; j < directory_content.size(); j++) { //vypis obsahu jednotlivych struktur
                 directory_item dir_item = directory_content.at(j);
                 std::cout << "Content is:" << dir_item.filename << ", clust: " << dir_item.first_cluster << "\n";
 
