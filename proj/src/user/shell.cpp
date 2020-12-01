@@ -404,11 +404,11 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                         args = args.substr(1, args.size() - 2);
                     }
 
-                    if (echoOn) {
+                    //if (echoOn) {
                         // i think we can afford this, bc piped programs are handled elswhere, so this 
                         // only prevents the echo from printing to std
                         call_program("echo", regs, args.c_str());
-                    }
+                    //}
                     
 
 
