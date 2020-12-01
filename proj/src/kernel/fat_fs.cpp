@@ -26,7 +26,6 @@ kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vecto
 
     std::vector<char> one_item; //jedna slozka / polozka v absolutni ceste
     char character = 'A'; //jeden znak v ceste
-
     int counter = 0;
 
     while (true) { //dokud nedojdeme na konec stringu
@@ -122,6 +121,8 @@ kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vecto
     }
     printf("Got: - END");
 
+    directory_item target = retrieve_item_cluster(19, fat_table1_dec, folders_in_path);
+
     //read test
     kiv_hal::TRegisters reg_read;
     kiv_hal::TDisk_Address_Packet ap_read;
@@ -149,6 +150,41 @@ kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vecto
 }
 
 kiv_os::NOS_Error Fat_Fs::readdir(const char *name, std::vector<kiv_os::TDir_Entry> &entries) {
+    //rozdeleni na jednotlive polozky v ceste - START
+    std::vector<std::string> folders_in_path; //vector obsahuje veskere slozky v absolutni ceste
+
+    std::vector<char> one_item; //jedna slozka / polozka v absolutni ceste
+    char character = 'A'; //jeden znak v ceste
+
+    int counter = 0;
+
+    while (true) { //dokud nedojdeme na konec stringu
+        character = name[counter];
+
+        if (character == '\\') { //konec nazvu jedne polozky v ceste
+            std::string one_item_str(one_item.begin(), one_item.end()); //prevod vectoru na string pro nasledne ulozeni do pole
+
+            if (one_item_str.size() != 0) {
+                folders_in_path.push_back(one_item_str);
+            }
+
+            one_item.clear(); //vyresetovani obsahu bufferu pro jednu polozku
+        }
+        else if (character == '\0') { //konec stringu s cestou
+            std::string one_item_str(one_item.begin(), one_item.end());
+
+            folders_in_path.push_back(one_item_str);
+
+            break; //konec stringu cesty, koncime
+        }
+        else { //pokracovani nazvu jednoho itemu, vlozit do bufferu
+            one_item.push_back(character);
+        }
+
+        counter++;
+    }
+    //rozdeleni na jednotlive polozky v ceste - KONEC
+
     return kiv_os::NOS_Error::IO_Error;
 }
 
@@ -156,6 +192,8 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, uint8_t flags, uint8_t attribut
     // TODO implement this
     file = File {};
     file.name = const_cast<char*>(name);
+    file.position = 0; //aktualni pozice, zaciname na 0
+
     return kiv_os::NOS_Error::Success;
 }
 

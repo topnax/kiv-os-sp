@@ -82,8 +82,13 @@ void Init_Filesystems() {
             file_test.position = 0; //aktualni pozice, zaciname na 0
 
             std::vector<char> out_buffer; //buffer pro prectene informace
-            fs -> read(file_test, 512, 0, out_buffer); //instance File, velikost pro cteni, offset, out buffer
+            //fs->read(file_test, 512, 0, out_buffer); //instance File, velikost pro cteni, offset, out buffer
 
+            File test_file;
+            std::vector<char> test_out_buffer; //buffer pro prectene informace
+            fs -> open("\\FDSETUP\\SETUP\\FDISET.BAT", 0, 0, test_file); //name, flags, attributes, file
+            fs -> read(test_file, 512, 0, test_out_buffer); //file, size, offset, out buffer
+   
             break;
         }
 
