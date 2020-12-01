@@ -58,6 +58,20 @@ public:
     virtual kiv_os::NOS_Error unlink(const char *name) = 0;
 
     /**
+     * Checks whether an item with the given `name` exists in the directory specified by `current_fd` identifier.
+     * When `start_from_root` is set to `true` then `current_fd` should be ignored and `name` should be searched for in
+     * the root directory of the filesystem.
+     *
+     * @param current_fd specifies in which directory the file should be searched for
+     * @param name name of the file to be searched for
+     * @param start_from_root flag specifying whether the `current_fd` should be ignored and the search performed from the root of the fs
+     * @param found_fd reference to an int variable in which the identifier of the file should be stored if found
+     *
+     * @return `true` when the an item with the given name exists in the particular directory, otherwise `false`
+     */
+    virtual bool file_exists(int32_t current_fd, const char *name, bool start_from_root, int32_t &found_fd);
+
+    /**
      *  Closes the given file
      */
     virtual kiv_os::NOS_Error close(File file) = 0;
