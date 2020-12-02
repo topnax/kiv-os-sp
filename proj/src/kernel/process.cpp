@@ -130,6 +130,11 @@ void thread_post_execute(bool is_process) {// while cloning, the THandle is gene
         Proc::Tcb->Wait_For_Listeners.erase(t_handle);
     }
 
+    if (Proc::Tcb->Parent_Processes.find(t_handle) != Proc::Tcb->Parent_Processes.end()) {
+        // remove the reference to the thread's parent process from the map
+        Proc::Tcb->Parent_Processes.erase(t_handle);
+    }
+
     // remove the std::thread::id to kiv_os::THandle mapping
     Handle_To_THandle.erase(std::this_thread::get_id());
 }
@@ -165,7 +170,20 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
         case kiv_os::NClone::Create_Thread: {
             // run the TThreadProc in a new thread
             run_in_a_thread(((kiv_os::TThread_Proc) registers.rdx.r), registers, false);
-            break;
+            // get the kiv_os::THandle
+
+            // resolve the handle of the current thread (should resolve to the handle of the process spawning a thread)
+            auto resolved = Handle_To_THandle.find(std::this_thread::get_id());
+
+            // get the handle of the spawned thread
+            kiv_os::THandle thread_handle = registers.rax.x;
+
+            // check whether we resolved the process handle of the current thread
+            if (resolved != Handle_To_THandle.end()) {
+                // current thread handle resolves process
+                auto process = Get_Pcb()->operator[](resolved->second);
+                (*Proc::Tcb).Parent_Processes[thread_handle] = process->handle;
+            }
         }
 
         case kiv_os::NClone::Create_Process: {

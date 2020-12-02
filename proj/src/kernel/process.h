@@ -38,6 +38,7 @@ struct Wait_For_Listener {
 class Thread_Control_Block {
 public:
     std::map<kiv_os::THandle, std::unique_ptr<std::vector<Wait_For_Listener *>>> Wait_For_Listeners;
+    std::map<kiv_os::THandle, kiv_os::THandle> Parent_Processes;
 };
 
 void thread_post_execute(bool is_process);
