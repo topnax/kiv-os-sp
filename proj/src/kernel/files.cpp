@@ -79,7 +79,7 @@ void Init_Filesystems() {
             File test_file;
             std::vector<char> test_out_buffer; //buffer pro prectene informace
             fs -> open("\\FDSETUP\\SETUP\\FDASK000.BAT", 0, 0, test_file); //name, flags, attributes, file
-            fs -> read(test_file, 10, 0, test_out_buffer); //file, size, offset, out buffer
+            fs -> read(test_file, 4, 1, test_out_buffer); //file, size, offset, out buffer
 
             printf("Got bytes %i !!!!!!!!!!!!\n", test_out_buffer.size());
            

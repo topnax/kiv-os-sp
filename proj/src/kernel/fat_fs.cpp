@@ -41,16 +41,17 @@ kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vecto
     //mame cely obsah souboru - vratit jen pozadovanou cast
     int to_read = -1;
 
-    if (size == 0 || ((offset + size) > file.size)) { //chceme vratit cely obsah souboru / offset je mimo, vratime obsah vsech ziskanych clusteru
-        to_read = file.size;
-        offset = 0;
+    if ((offset + size) > file.size) { //offset je mimo, vratit rozmezi offset - konec souboru
+        for (int i = offset; i < file.size; i++) {
+            out.push_back(file_all_clust.at(i));
+        }
     }
     else { //rozsah ok
         to_read = size;
-    }
 
-    for (int i = 0; i < to_read; i++) {
-        out.push_back(file_all_clust.at(offset + i));
+        for (int i = 0; i < to_read; i++) {
+            out.push_back(file_all_clust.at(offset + i));
+        }
     }
 
     return kiv_os::NOS_Error::IO_Error;
