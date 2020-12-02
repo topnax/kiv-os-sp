@@ -228,3 +228,8 @@ kiv_os::NOS_Error Proc_Fs::close(File file) {
     // TODO what should close do?
     return kiv_os::NOS_Error::Success;
 }
+
+bool Proc_Fs::file_exists(int32_t current_fd, const char* name, bool start_from_root, bool is_folder, int32_t& found_fd)
+{
+    return false;
+}

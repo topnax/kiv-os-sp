@@ -234,12 +234,13 @@ std::vector<kiv_os::TDir_Entry> retrieve_dir_items(int num_sectors, std::vector<
 }
 
 /*
-* Vrati cislo clusteru, na kterem zacina pozadovana slozka, pokud zadana cesta existuje. Pokud neexistuje, pak bude cluster == -1.
+* Vrati cislo clusteru, na kterem zacina pozadovana slozka ci soubor, pokud zadana cesta existuje. Pokud neexistuje, pak bude cluster == -1.
 * start_cluster = pocatecni cluster, od ktereho zacneme prohledavat
 * fat_table_dec = fat tabulka, dle ktere dojde k ziskani informaci o lokaci souboru (v dec formatu)
-* path - polozky v zadane ceste
+* is_folder = true, pokud je cilem slozka ; v pripade souboru false
+* path = polozky v zadane ceste
 /**/
-directory_item retrieve_folder_item_clust(int start_cluster, std::vector<int> fat_table_dec, std::vector<std::string> path) {
+directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table_dec, bool is_folder, std::vector<std::string> path) {
     std::cout << "retrieve_item_cluster with num!!!!" << start_cluster;
 
     int traversed_sector_folder = start_cluster; //cislo sektoru, na kterem zacina aktualne prochazena slozka - zaciname v rootu
@@ -254,12 +255,30 @@ directory_item retrieve_folder_item_clust(int start_cluster, std::vector<int> fa
         }
 
         int j = 0;
+
+        std::string item_to_check = "";  //nazev souboru + pripona
         while (dir_item_number == -1 && j < cur_folder_items.size()) { //dokud nebyla nalezena slozka s odpovidajicim nazvem
             directory_item dir_item = cur_folder_items.at(j);
 
-            if (dir_item.filename.compare(path.at(i)) == 0 && dir_item.extension.length() == 0 && dir_item.filezise == 0) { //pokud sedi nazev a nejedna se o soubor => nalezena odpovidajici slozka v ceste
-                dir_item_number = j;
-                std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise;
+            if (!dir_item.extension.empty()) {
+                item_to_check = dir_item.filename + "." + dir_item.extension;
+            }
+            else {
+                item_to_check = dir_item.filename;
+            }
+
+            std::cout << "Checking for: " << item_to_check;
+            if (i == (path.size() - 1) && !is_folder) { //prochazi se posledni polozka v ceste a hleda se cluster souboru
+                if (path.at(i).compare(item_to_check) == 0 && dir_item.filezise != 0) { //pokud sedi nazev a JEDNA se o soubor => nalezen cilovy soubor v ceste
+                    dir_item_number = j;
+                    std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise;
+                }
+            }
+            else { //hledame cluster slozky
+                if (path.at(i).compare(item_to_check) == 0 && dir_item.extension.length() == 0 && dir_item.filezise == 0) { //pokud sedi nazev a nejedna se o soubor => nalezena odpovidajici slozka v ceste
+                    dir_item_number = j;
+                    std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise;
+                }
             }
 
             j++;
@@ -453,4 +472,44 @@ std::vector<int> retrieve_sectors_nums_fs(std::vector<int> fat_table_dec, int st
     printf("Print bytes - end");
 
     return sector_list;
+}
+
+/*
+* Rozdeli cestu na jeji jednotlive slozky, ktere ulozi do vektoru textovych retezcu.
+* path_file = cesta k souboru (pr. "\\FDSETUP\\SETUP\\PACKAGES\\WELCOME.ZIP")
+/**/
+std::vector<std::string> path_to_indiv_items(const char* path_file) {
+    std::vector<std::string> folders_in_path; //vector obsahuje veskere slozky v absolutni ceste
+
+    std::vector<char> one_item; //jedna slozka / polozka v absolutni ceste
+    char character = 'A'; //jeden znak v ceste
+    int counter = 0;
+
+    while (true) { //dokud nedojdeme na konec stringu
+        character = path_file[counter];
+
+        if (character == '\\') { //konec nazvu jedne polozky v ceste
+            std::string one_item_str(one_item.begin(), one_item.end()); //prevod vectoru na string pro nasledne ulozeni do pole
+
+            if (one_item_str.size() != 0) {
+                folders_in_path.push_back(one_item_str);
+            }
+
+            one_item.clear(); //vyresetovani obsahu bufferu pro jednu polozku
+        }
+        else if (character == '\0') { //konec stringu s cestou
+            std::string one_item_str(one_item.begin(), one_item.end());
+
+            folders_in_path.push_back(one_item_str);
+
+            break; //konec stringu cesty, koncime
+        }
+        else { //pokracovani nazvu jednoho itemu, vlozit do bufferu
+            one_item.push_back(character);
+        }
+
+        counter++;
+    }
+   
+    return folders_in_path;
 }

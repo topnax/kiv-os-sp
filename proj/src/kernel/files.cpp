@@ -86,7 +86,7 @@ void Init_Filesystems() {
 
             File test_file;
             std::vector<char> test_out_buffer; //buffer pro prectene informace
-            fs -> open("\\FDSETUP\\SETUP\\PACKAGES", 0, 0, test_file); //name, flags, attributes, file
+            fs -> open("\\FDSETUP\\SETUP\\PACKAGES\\WELCOME.ZIP", 0, 0, test_file); //name, flags, attributes, file
             fs -> read(test_file, 512, 0, test_out_buffer); //file, size, offset, out buffer
    
             break;

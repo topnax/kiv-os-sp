@@ -32,6 +32,8 @@ public:
 
     kiv_os::NOS_Error close(File file) override;
 
+    bool file_exists(int32_t current_fd, const char* name, bool start_from_root, bool is_folder, int32_t& found_fd) override;
+
 private:
     static std::vector<char> generate_readproc_vector(Process process);
 
