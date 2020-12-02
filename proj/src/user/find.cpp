@@ -5,6 +5,7 @@
 #include <thread>
 #include "../api/hal.h"
 #include "rtl.h"
+#include "argparser.h"
 #include <vector>
 #include <string>
 //#include <iostream>
@@ -32,11 +33,24 @@ extern "C" size_t __stdcall find(const kiv_hal::TRegisters & regs) {
     std::vector<std::string> lines;
     std::string curr_string = "";
 
-    printf("find start \n");
     int lines_count = 0;
     char last_char = '\0';
 
-    if (kiv_os_rtl::Open_File(data, 0, 0, file_handle)) {
+
+    // parse the data here:
+    // the format is find /v /c "" file.txt
+    std::string form = "/v /c \"\"";
+    int pos = 0;
+    std::string args = data;
+    int index = args.find(form, pos);
+    if (index == 0) {
+        // the format is ok, now separate the file path:
+        args = args.substr(form.size(), args.size() - 1);
+        args = trim(args, " ");
+    }
+
+
+    if (kiv_os_rtl::Open_File(args.c_str(), 0, 0, file_handle)) {
         size_t read;
         char buff[buffer_size];
         size_t written;

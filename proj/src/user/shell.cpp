@@ -436,15 +436,17 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             else if (command == "find") {
 
                 // the format is find /v /c "" file.txt
-                std::string form = "/v /c \"\"";
-                int pos = 0;
-                int index = args.find(form, pos);
-                if (index == 0) {
-                    // the format is ok, now separate the file path:
-                    args = args.substr(form.size(), args.size() - 1);
-                    args = trim(args, " ");
-                    call_program("find", regs, args.c_str());
-                }
+                //std::string form = "/v /c \"\"";
+                //int pos = 0;
+                //int index = args.find(form, pos);
+                //if (index == 0) {
+                //    // the format is ok, now separate the file path:
+                //    args = args.substr(form.size(), args.size() - 1);
+                //    args = trim(args, " ");
+                //    call_program("find", regs, args.c_str());
+                //}
+
+                call_program("find", regs, args.c_str());
             }
             else if (command == "dir") {
                 // TODO improve arg parsing
