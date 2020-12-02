@@ -41,6 +41,8 @@ public:
     std::map<kiv_os::THandle, kiv_os::THandle> Parent_Processes;
 };
 
+bool resolve_native_thread_id_to_thandle(std::thread::id native_thread_id, kiv_os::THandle &out_handle);
+
 void thread_post_execute(bool is_process);
 
 void Handle_Process(kiv_hal::TRegisters &regs, HMODULE user_programs);
@@ -64,3 +66,5 @@ void signal(kiv_os::NSignal_Id signal_id, Process *process);
 void shutdown();
 
 Process_Control_Block* Get_Pcb();
+
+Thread_Control_Block* Get_Tcb();

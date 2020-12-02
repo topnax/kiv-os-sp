@@ -1,7 +1,7 @@
 #include "io.h"
 #include "pipes.h"
 #include "files.h"
-
+#include "dir.h"
 
 
 void Handle_IO(kiv_hal::TRegisters &regs) {
@@ -40,6 +40,12 @@ void Handle_IO(kiv_hal::TRegisters &regs) {
 
         case kiv_os::NOS_File_System::Open_File: {
             Open_File(regs);
+            break;
+        }
+
+        case kiv_os::NOS_File_System::Set_Working_Dir: {
+            bool result = Set_Working_Dir(regs);
+            if (!result) regs.flags.carry = 1;
             break;
         }
 

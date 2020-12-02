@@ -129,15 +129,16 @@ kiv_os::THandle Open_File(const char *file_name, uint8_t flags, uint8_t attribut
     } else if (strcmp(file_name, "/dev/kb") == 0) {
         file = new Keyboard_File();
     } else {
-        std::filesystem::path resolved;
-        auto fs = File_Exists(file_name, resolved);
+        std::filesystem::path resolved_path_relative_to_fs;
+        std::filesystem::path absolute_path;
+        auto fs = File_Exists(file_name, resolved_path_relative_to_fs, absolute_path);
         if (fs != nullptr) {
             printf("into fs\n");
             File f{};
 
-            auto length = resolved.string().length() + 1;
+            auto length = resolved_path_relative_to_fs.string().length() + 1;
             char *name = new char[length];
-            strcpy_s(name, length, resolved.string().c_str());
+            strcpy_s(name, length, resolved_path_relative_to_fs.string().c_str());
 
             // open a file with the found filesystem
             auto result = fs->open(name, flags, attributes, f);
@@ -213,12 +214,12 @@ void Read_File(kiv_hal::TRegisters &regs) {
     }
 }
 
-VFS *File_Exists(std::filesystem::path path, std::filesystem::path &absolute_path) {
+VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relative_to_fs, std::filesystem::path &absolute_path) {
 
     // when path is relative, prepend the current working directory of the process
     if (path.is_relative()) {
         // std::filesystem::path does not support prepending
-        std::string wd = "C:\\";
+        std::string wd = "C:\\procfs\\";
         std::filesystem::path temp_path = wd;
         temp_path.append(path.string());
         path = temp_path;
@@ -323,7 +324,8 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &absolute_pat
             }
             first = false;
         }
-        absolute_path = current_fs_path;
+        absolute_path = current_path;
+        path_relative_to_fs = current_fs_path;
         return current_fs;
     }
 

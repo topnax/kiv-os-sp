@@ -170,3 +170,12 @@ bool kiv_os_rtl::Open_File(const char *file_name, uint8_t flags, uint8_t attribu
 
     return handle != kiv_os::Invalid_Handle ;
 }
+
+bool kiv_os_rtl::Set_Working_Dir(const char *path) {
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::File_System, static_cast<uint8_t>(kiv_os::NOS_File_System::Set_Working_Dir));
+    regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(path);
+
+    const bool result = kiv_os::Sys_Call(regs);
+
+    return result;
+}

@@ -32,6 +32,10 @@ Process_Control_Block *Get_Pcb() {
     return Proc::Pcb;
 }
 
+Thread_Control_Block *Get_Tcb() {
+    return Proc::Tcb;
+}
+
 size_t __stdcall default_signal_handler(const kiv_hal::TRegisters &regs) {
     auto signal_id = static_cast<kiv_os::NSignal_Id>(regs.rcx.l);
     auto resolved = Handle_To_THandle.find(std::this_thread::get_id());
@@ -172,7 +176,7 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
             run_in_a_thread(((kiv_os::TThread_Proc) registers.rdx.r), registers, false);
             // get the kiv_os::THandle
 
-            // resolve the handle of the current thread (should resolve to the handle of the process spawning a thread)
+            // resolve the handle of the current thread
             auto resolved = Handle_To_THandle.find(std::this_thread::get_id());
 
             // get the handle of the spawned thread
@@ -180,9 +184,11 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
 
             // check whether we resolved the process handle of the current thread
             if (resolved != Handle_To_THandle.end()) {
-                // current thread handle resolves process
-                auto process = Get_Pcb()->operator[](resolved->second);
-                (*Proc::Tcb).Parent_Processes[thread_handle] = process->handle;
+                auto resolved_process = Get_Pcb()->operator[](resolved->second);
+                if (resolved_process != nullptr) {
+                    // current thread handle is resolved to a process
+                    (*Proc::Tcb).Parent_Processes[thread_handle] = resolved_process->handle;
+                }
             }
         }
 
@@ -453,5 +459,13 @@ void shutdown() {
         regs.rdx.x = static_cast<decltype(regs.rdx.x)>(process->std_in);
         Close_File(regs);
     }
+}
 
+bool resolve_native_thread_id_to_thandle(std::thread::id native_thread_id, kiv_os::THandle &out_handle) {
+    auto resolved = Handle_To_THandle.find(native_thread_id);
+    if (resolved != Handle_To_THandle.end()) {
+        out_handle = resolved->second;
+        return true;
+    }
+    return false;
 }

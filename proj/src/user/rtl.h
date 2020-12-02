@@ -37,4 +37,6 @@ namespace kiv_os_rtl {
     bool Register_Signal_Handler(const kiv_os::NSignal_Id signal, kiv_os::TThread_Proc const thread_proc);
 
     bool Shutdown();
+
+    bool Set_Working_Dir(const char* path);
 }

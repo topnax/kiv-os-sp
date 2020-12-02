@@ -312,6 +312,17 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         if (command) {
             // separate command arguments
             char *args = strtok_s(NULL, " ", &token1);
+
+            if (strcmp(command, "cd") == 0) {
+                if (args)  {
+                    if (kiv_os_rtl::Set_Working_Dir(args)) {
+                        printf("changed\n");
+                    } else {
+                        printf("not changed\n");
+                    }
+                }
+            }
+
             if (strcmp(command, "echo") == 0) {
                 if (args) {
                     call_program("echo", regs, args);
