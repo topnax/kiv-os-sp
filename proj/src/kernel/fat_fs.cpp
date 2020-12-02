@@ -28,42 +28,43 @@ kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vecto
 }
 
 kiv_os::NOS_Error Fat_Fs::readdir(const char *name, std::vector<kiv_os::TDir_Entry> &entries) {
-
-
-    //rozdeleni na jednotlive polozky v ceste - START
-    std::vector<std::string> folders_in_path; //vector obsahuje veskere slozky v absolutni ceste
-
-    std::vector<char> one_item; //jedna slozka / polozka v absolutni ceste
-    char character = 'A'; //jeden znak v ceste
-
-    int counter = 0;
-
-    while (true) { //dokud nedojdeme na konec stringu
-        character = name[counter];
-
-        if (character == '\\') { //konec nazvu jedne polozky v ceste
-            std::string one_item_str(one_item.begin(), one_item.end()); //prevod vectoru na string pro nasledne ulozeni do pole
-
-            if (one_item_str.size() != 0) {
-                folders_in_path.push_back(one_item_str);
-            }
-
-            one_item.clear(); //vyresetovani obsahu bufferu pro jednu polozku
+    std::vector<std::string> folders_in_path = path_to_indiv_items(name); //rozdeleni na indiv. polozky v ceste
+    if (folders_in_path.size() == 0) { //chceme ziskat root obsah, pak break
+        std::vector<unsigned char> root_dir_cont = read_data_from_fat_fs(19 - 31, 14); //root slozka zacina na sektoru 19 a ma 14 sektoru (fce pricita default 31, pocita s dat. sektory; proto odecteni 31)        
+        entries = retrieve_dir_items(14, root_dir_cont, true);
+        std::cout << "START with size: " << entries.size() << "\n";
+        for (int i = 0; i < entries.size(); i++) {
+            printf("Name: %.12s", entries.at(i).file_name);
         }
-        else if (character == '\0') { //konec stringu s cestou
-            std::string one_item_str(one_item.begin(), one_item.end());
-
-            folders_in_path.push_back(one_item_str);
-
-            break; //konec stringu cesty, koncime
-        }
-        else { //pokracovani nazvu jednoho itemu, vlozit do bufferu
-            one_item.push_back(character);
-        }
-
-        counter++;
+        std::cout << "END with size: " << entries.size() << "\n";
+        return kiv_os::NOS_Error::IO_Error;
     }
-    //rozdeleni na jednotlive polozky v ceste - KONEC
+    
+    //ziskani obsahu FAT tabulky pro vyhledavani sektoru
+    std::vector<unsigned char> fat_table1_hex = load_first_fat_table_bytes();
+    std::vector<int> fat_table1_dec = convert_fat_table_to_dec(fat_table1_hex);
+    //nalezeni slozky ciloveho clusteru
+    directory_item dir_item = retrieve_item_clust(19, fat_table1_dec, true, folders_in_path);
+    int first_cluster_fol = dir_item.first_cluster; //prvni cluster slozky
+
+    std::vector<int> folder_cluster_nums = retrieve_sectors_nums_fs(fat_table1_dec, first_cluster_fol); //nalezeni vsech clusteru slozky
+
+    std::vector<unsigned char> one_clust_data; //data jednoho clusteru
+    std::vector<unsigned char> all_clust_data; //data veskerych clusteru, na kterych je slozka rozmistena
+    for (int i = 0; i < folder_cluster_nums.size(); i++) { //projdeme nactene clustery
+        one_clust_data = read_data_from_fat_fs(folder_cluster_nums[i], 1); //ziskani bajtu slozky v ramci jednoho sektoru
+
+        for (int j = 0; j < one_clust_data.size(); j++) { //vlozeni obsahu jednoho sektoru do celkoveho seznamu danych sektoru
+            all_clust_data.push_back(one_clust_data.at(j));
+        }
+    }
+
+    entries = retrieve_dir_items(folder_cluster_nums.size(), all_clust_data, false);
+    std::cout << "START with size: " << entries.size() << "\n";
+    for (int i = 0; i < entries.size(); i++) {
+        printf("Name: %.12s", entries.at(i).file_name);
+    }
+    std::cout << "END with size: " << entries.size() << "\n";
 
     return kiv_os::NOS_Error::IO_Error;
 }

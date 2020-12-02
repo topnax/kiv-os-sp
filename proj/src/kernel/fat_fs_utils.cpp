@@ -170,8 +170,9 @@ std::vector<unsigned char> read_data_from_fat_fs(int start_sector_num, int total
 * Vrati objekt std::vector<kiv_os::TDir_Entry> reprezentujici obsah pozadovane slozky (polozky). Soubory / podslozky.
 * num_sectors - pocet sektoru, ktery je obsazen slozkou
 * dir_clusters - obsah clusteru, ze kterych ma byt obsah slozky vycten
+* is_root - true, pokud byl predan obsah rootovske slozky (vynecha se prvni polozka - aktualni adresar) / jinak false (vynecha se . a ..)
 /**/
-std::vector<kiv_os::TDir_Entry> retrieve_dir_items(int num_sectors, std::vector<unsigned char> dir_clusters) {
+std::vector<kiv_os::TDir_Entry> retrieve_dir_items(int num_sectors, std::vector<unsigned char> dir_clusters, bool is_root) {
     std::vector<kiv_os::TDir_Entry> directory_content; //obsahuje struktury TDir_Entry, ktere reprezentuji jednu entry ve slozce
 
     char first_clust_buff_conv[5]; //buffer pro konverzi dvou hexu na dec (reprezentuje prvni cluster souboru)
@@ -228,6 +229,14 @@ std::vector<kiv_os::TDir_Entry> retrieve_dir_items(int num_sectors, std::vector<
         i += 6; //prvni cluster + velikost souboru
 
         directory_content.push_back(dir_item);
+    }
+
+    if (is_root) { //vynechame prvni polozku - aktualni slozka
+        directory_content.erase(directory_content.begin()); //odstraneni prvni polozky (reference na aktualni slozku)
+    }
+    else { //vynechame prvni dve polozky - . a ..
+        directory_content.erase(directory_content.begin()); //odstraneni prvni polozky (reference na aktualni slozku)
+        directory_content.erase(directory_content.begin()); //odstraneni druhe polozky (reference na nadrazenou slozku)
     }
 
     return directory_content;
@@ -511,5 +520,8 @@ std::vector<std::string> path_to_indiv_items(const char* path_file) {
         counter++;
     }
    
+    if (folders_in_path.at(0).length() == 0) { //odstraneni polozky - byla zadana prazdna cesta... 
+        folders_in_path.erase(folders_in_path.begin());
+    }
     return folders_in_path;
 }

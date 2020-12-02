@@ -78,9 +78,11 @@ void Init_Filesystems() {
             //pokus o precteni \FDSETUP\BIN\ATTRIB.COM
             File test_file;
             std::vector<char> test_out_buffer; //buffer pro prectene informace
-            fs -> open("\\FDSETUP\\BIN", 0, 0, test_file); //name, flags, attributes, file
+            fs -> open("\\FDSETUP\\SETUP\\TR", 0, 0, test_file); //name, flags, attributes, file
             fs -> read(test_file, 512, 0, test_out_buffer); //file, size, offset, out buffer
-   
+
+            std::vector<kiv_os::TDir_Entry> folders_in_path;
+            fs->readdir("\\FDSETUP\\SETUP\\TR", folders_in_path);
             break;
         }
 
