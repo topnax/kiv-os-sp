@@ -88,7 +88,7 @@ kiv_os::NOS_Error Proc_Fs::read(File file, size_t size, size_t offset, std::vect
     // prepare a vector of characters where the generated content will be stored
     std::vector<char> generated;
 
-    if (strcmp(file.name, "/procfs/tasklist") == 0) {
+    if (strcmp(file.name, "\\tasklist") == 0) {
         // reading tasklist file
         std::vector<kiv_os::TDir_Entry> entries;
         auto readdir_result = readdir("", entries);
@@ -98,7 +98,7 @@ kiv_os::NOS_Error Proc_Fs::read(File file, size_t size, size_t offset, std::vect
         } else {
             return readdir_result;
         }
-    } else if (strcmp(file.name, "/procfs") == 0) {
+    } else if (strcmp(file.name, "\\") == 0) {
         // reading procfs directory
         std::vector<kiv_os::TDir_Entry> entries;
         auto readdir_result = readdir("", entries);
@@ -148,9 +148,8 @@ kiv_os::NOS_Error Proc_Fs::readdir(const char *name, std::vector<kiv_os::TDir_En
 kiv_os::NOS_Error Proc_Fs::open(const char *name, uint8_t flags, uint8_t attributes, File &file) {
     std::lock_guard<std::recursive_mutex> guard(*Get_Pcb()->Get_Mutex());
     auto pcb = Get_Pcb();
-
     // check whether we are opening tasklist file ore procfs directory
-    if (strcmp(name, "/procfs/tasklist") == 0) {
+    if (strcmp(name, "\\tasklist") == 0) {
         file = File{
                 0,
                 static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) |
@@ -164,7 +163,8 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, uint8_t flags, uint8_t attribu
         return kiv_os::NOS_Error::Success;
     }
 
-    if (strcmp(name, "/procfs") == 0) {
+    // check whether opening the root folder - that should print the simplified PCB table
+    if (strcmp(name, "\\") == 0) {
         file = File{
                 0,
                 static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) |
@@ -181,7 +181,7 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, uint8_t flags, uint8_t attribu
 
     // parse PID from the path
     int base = 10;
-    char *str = const_cast<char *>(name + strlen("/procfs/"));
+    char *str = const_cast<char *>(name + strlen("\\"));
     char *end;
     long int num;
     num = strtol(str, &end, base);
@@ -235,6 +235,15 @@ bool Proc_Fs::file_exists(int32_t current_fd, const char *name, bool start_from_
     }
 
     if (current_fd == PROCFS_ROOT) {
+        if (strcmp(name, "tasklist") == 0) {
+            found_fd = 0;
+            return true;
+        }
+
+        if (strcmp(name, "") == 0) {
+            return true;
+        }
+
         // parse PID from the path
         int base = 10;
         char *end;

@@ -14,7 +14,7 @@ extern "C" size_t __stdcall tasklist(const kiv_hal::TRegisters &regs) {
             static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File);
 
     // TODO use change file attributes?
-    if (kiv_os_rtl::Open_File("/procfs/tasklist", 0, attributes, handle)) {
+    if (kiv_os_rtl::Open_File("C:\\procfs\\tasklist", 0, attributes, handle)) {
         const auto buff_size = 100;
         size_t read;
         char buff[buff_size];

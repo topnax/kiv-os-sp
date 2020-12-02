@@ -1,4 +1,5 @@
 #include <mutex>
+#include <stack>
 #include <random>
 #include "files.h"
 #include "vga_file.h"
@@ -57,11 +58,17 @@ Generic_File *Resolve_THandle_To_File(kiv_os::THandle handle) {
 }
 
 void Init_Filesystems() {
-    Add_Filesystem("procfs", new Proc_Fs());
+    Add_Filesystem("C:\\procfs", new Proc_Fs());
+
+   // Add_Filesystem(R"(C:\)", new Fat_Fs(0, kiv_hal::TDrive_Parameters{}));
+
+   // // TODO remove
+   // return;
+
 
     // find a fat drive
     kiv_hal::TRegisters regs;
-    for (regs.rdx.l = 0; ; regs.rdx.l++) {
+    for (regs.rdx.l = 0;; regs.rdx.l++) {
         kiv_hal::TDrive_Parameters params;
         regs.rax.h = static_cast<uint8_t>(kiv_hal::NDisk_IO::Drive_Parameters);;
         regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(&params);
@@ -69,11 +76,11 @@ void Init_Filesystems() {
         if (!regs.flags.carry) {
             // found a disk
             auto disk_num = regs.rdx.l;
-            auto disk_params = reinterpret_cast<kiv_hal::TDrive_Parameters*>(regs.rdi.r);
+            auto disk_params = reinterpret_cast<kiv_hal::TDrive_Parameters *>(regs.rdi.r);
 
             auto fs = new Fat_Fs(disk_num, *disk_params);
             fs->init();
-            Add_Filesystem("fatfs", fs);
+            Add_Filesystem(R"(C:\)", fs);
             break;
         }
 
@@ -81,13 +88,16 @@ void Init_Filesystems() {
     }
 }
 
-void Add_Filesystem(const std::string& name, VFS *vfs) {
+void Add_Filesystem(const std::string &name, VFS *vfs) {
+    printf("added %s to fs table\n", name.c_str());
     Files::Filesystems[name] = std::unique_ptr<VFS>(vfs);
 }
 
-VFS* Get_Filesystem(const char *file_name) {
-    auto resolved = Files::Filesystems.find(std::string(file_name));
+VFS *Get_Filesystem(std::string file_name) {
+    printf("resolving %s\n", file_name.c_str());
+    auto resolved = Files::Filesystems.find(file_name);
     if (resolved != Files::Filesystems.end()) {
+        printf("found %s\n", file_name.c_str());
         return resolved->second.get();
     }
 
@@ -105,28 +115,38 @@ kiv_os::THandle Open_File(const char *file_name, uint8_t flags, uint8_t attribut
     std::lock_guard<std::mutex> guard(Files::Open_Guard);
     Generic_File *file = nullptr;
 
+
+
+/*    printf("start #######################\n");
+    std::filesystem::path resolved;
+    if (File_Exists(R"(C:\procfs\..\procfs\1)", resolved) != nullptr) {
+        printf("found %s at %s\n", file_name, resolved.string().c_str());
+    }
+    printf("end #######################\n");*/
     // TODO this could be improved in the future
     if (strcmp(file_name, "/dev/vga") == 0) {
         file = new Vga_File();
     } else if (strcmp(file_name, "/dev/kb") == 0) {
         file = new Keyboard_File();
     } else {
-        VFS *fs = nullptr;
-        // TODO relative path
-        // find filesystem for this path
-        // files starting with /procfs should be used with procfs vfs
-        if (strncmp(file_name, "/procfs", 6) == 0) {
-            fs = Get_Filesystem("procfs");
-        } else {
-            fs = Get_Filesystem("fatfs");
-        }
-
+        std::filesystem::path resolved;
+        auto fs = File_Exists(file_name, resolved);
         if (fs != nullptr) {
+            printf("into fs\n");
             File f{};
+
+            auto length = resolved.string().length() + 1;
+            char *name = new char[length];
+            strcpy_s(name, length, resolved.string().c_str());
+
             // open a file with the found filesystem
-            auto result = fs->open(file_name, flags, attributes , f);
+            auto result = fs->open(name, flags, attributes, f);
             if (result == kiv_os::NOS_Error::Success) {
+
                 file = new Filesystem_File(fs, f);
+                f.name = name;
+            } else {
+                delete[] name;
             }
         }
     }
@@ -173,7 +193,7 @@ void Write_File(kiv_hal::TRegisters &regs) {
 }
 
 void Read_File(kiv_hal::TRegisters &regs) {
-    kiv_os::THandle  handle = regs.rdx.x;
+    kiv_os::THandle handle = regs.rdx.x;
 
     Generic_File *file = Resolve_THandle_To_File(handle);
 
@@ -193,9 +213,119 @@ void Read_File(kiv_hal::TRegisters &regs) {
     }
 }
 
-VFS *File_Exists(std::filesystem::path path) {
-    VFS *current_fs;
-    // iterate over components of the path
-    // check which FS is used at the giiven path
+VFS *File_Exists(std::filesystem::path path, std::filesystem::path &absolute_path) {
+
+    // when path is relative, prepend the current working directory of the process
+    if (path.is_relative()) {
+        // std::filesystem::path does not support prepending
+        std::string wd = "C:\\";
+        std::filesystem::path temp_path = wd;
+        temp_path.append(path.string());
+        path = temp_path;
+    }
+
+    // create a variable `current_path`, which will hold the current path that will be build while iterating the components
+    // in the given path
+
+    // start with the root path of the given path
+    auto current_path = path.root_path();
+
+    // keep a stack of file systems, while we traverse the directory tree (we can find fs mount points)
+    std::stack<VFS *> file_systems;
+
+    // keep a stack of file systems, while we traverse the directory tree (we can find fs mount points)
+    std::stack<std::filesystem::path> paths_relative_to_fs;
+
+    // keep track of the current path relative
+    std::filesystem::path current_fs_path;
+
+    // find the fs for the current path
+    VFS *current_fs = Get_Filesystem(current_path.string());
+//    if (current_fs == nullptr) {
+//        current_fs = Get_Filesystem(path.parent_path().string());
+//    }
+
+    file_systems.push(current_fs);
+
+
+    if (current_fs != nullptr) {
+        // the first file lookup should start in the root of the fs
+        bool first = true;
+
+        // the current found fd
+        int32_t current_fd = 0;
+
+        // number of path components in the current fs - used determinate when to pop the `current_fs` stack
+        int components_in_current_fs = 1;
+        for (const auto &component : path.relative_path()) {
+            if (component == "..") {
+                // move one level up
+                if (current_path.has_filename()) {
+                    // when the current path has some file name, then it has atleast one component in the path
+                    // that means we can move one level up
+
+                    // remove the last filename
+                    current_path.remove_filename();
+
+                    // decrement the number of components in the current fs
+                    components_in_current_fs--;
+
+                    if (components_in_current_fs == 0) {
+                        // no more components in the current fs, load the previous FS
+                        file_systems.pop();
+                        current_fs = file_systems.top();
+
+                        printf("trying to get the top\n");
+                        current_fs_path = paths_relative_to_fs.top();
+
+                        // load the previous FS relative path too
+                        printf("about to pop relative path stacksize=%d\n", paths_relative_to_fs.size());
+                        paths_relative_to_fs.pop();
+
+                        printf("popped to fs: ");
+                        current_fs->print_name();
+                        printf("popped path is: %s\n", current_fs_path.string().c_str());
+                    }
+                } else {
+                    // cannot pop out of the root folder
+                    return nullptr;
+                }
+            } else {
+                // append the next component
+                current_path /= component.string();
+
+                // check whether the current path is a FS mount point
+                auto new_fs = Get_Filesystem(current_path.string());
+                if (new_fs != nullptr) {
+                    printf("pushing :)\n");
+                    // push the current path relative to fs into the stack
+                    paths_relative_to_fs.push(current_fs_path);
+
+                    // we found a FS mount point
+                    file_systems.push(new_fs);
+                    current_fs = new_fs;
+
+                    // set the
+                    printf("stack size: %d\n", paths_relative_to_fs.size());
+                    current_fs_path = "\\";
+                    printf("stack size: %d\n", paths_relative_to_fs.size());
+                    components_in_current_fs = 1;
+
+                    // printf("changed to fs ");
+                    // current_fs->print_name();
+                } else {
+                    current_fs_path /= component.string();
+                    if (!current_fs->file_exists(current_fd, component.string().c_str(), first, current_fd)) {
+                        return nullptr;
+                    }
+                    components_in_current_fs++;
+                }
+            }
+            first = false;
+        }
+        absolute_path = current_fs_path;
+        return current_fs;
+    }
+
     return nullptr;
 }

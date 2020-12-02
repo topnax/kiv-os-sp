@@ -80,4 +80,6 @@ void Filesystem_File::close() {
     // TODO close?
 }
 
-
+Filesystem_File::~Filesystem_File() {
+    delete this->file.name;
+}

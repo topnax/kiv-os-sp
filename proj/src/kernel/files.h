@@ -49,4 +49,4 @@ void Add_Filesystem(const std::string &name, VFS *vfs);
 
 void Init_Filesystems();
 
-VFS* File_Exists(std::filesystem::path path);
+VFS* File_Exists(std::filesystem::path path, std::filesystem::path &resolved);
