@@ -76,17 +76,9 @@ void Init_Filesystems() {
             Add_Filesystem("fatfs", fs);
 
             //pokus o precteni \FDSETUP\BIN\ATTRIB.COM
-            File file_test;
-            file_test.size = 5044; //velikost souboru
-            file_test.name = "\\FDSETUP\\BIN"; //cesta soubor
-            file_test.position = 0; //aktualni pozice, zaciname na 0
-
-            std::vector<char> out_buffer; //buffer pro prectene informace
-            //fs->read(file_test, 512, 0, out_buffer); //instance File, velikost pro cteni, offset, out buffer
-
             File test_file;
             std::vector<char> test_out_buffer; //buffer pro prectene informace
-            fs -> open("\\FDSETUP\\SETUP\\PACKAGES\\WELCOME.ZIP", 0, 0, test_file); //name, flags, attributes, file
+            fs -> open("\\FDSETUP\\BIN", 0, 0, test_file); //name, flags, attributes, file
             fs -> read(test_file, 512, 0, test_out_buffer); //file, size, offset, out buffer
    
             break;

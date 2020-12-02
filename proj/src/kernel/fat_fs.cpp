@@ -21,14 +21,15 @@ void Fat_Fs::init() {
 Fat_Fs::Fat_Fs(uint8_t disk_number, kiv_hal::TDrive_Parameters disk_parameters): disk_number(disk_number), disk_parameters(disk_parameters) {}
 
 kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vector<char> &out) {
-    int clust;
-
-    Fat_Fs::file_exists(226, "\\FDISKPT.INI", false, false, clust); //JUST FYI - example usage - 226 is cluster of fdsetup\bin
-    std::cout << "got cluster: " << clust;
+    std::cout << "about to read from cluster" << file.handle;
+    //Fat_Fs::file_exists(226, "\\FDISKPT.INI", false, false, clust); //JUST FYI - example usage - 226 is cluster of fdsetup\bin
+    //std::cout << "got cluster: " << clust;
     return kiv_os::NOS_Error::IO_Error;
 }
 
 kiv_os::NOS_Error Fat_Fs::readdir(const char *name, std::vector<kiv_os::TDir_Entry> &entries) {
+
+
     //rozdeleni na jednotlive polozky v ceste - START
     std::vector<std::string> folders_in_path; //vector obsahuje veskere slozky v absolutni ceste
 
@@ -72,6 +73,16 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, uint8_t flags, uint8_t attribut
     file = File {};
     file.name = const_cast<char*>(name);
     file.position = 0; //aktualni pozice, zaciname na 0
+
+    //najit cil a ulozit do handle souboru
+    int32_t target_cluster;
+    file_exists(-1, name, true, false, target_cluster); //pokus o otevreni souboru
+    std::cout << "got target soubor: " << target_cluster;
+    if (target_cluster == -1) { //soubor nenalezen, pokus o vyhledani slozky se shodnym nazvem
+        file_exists(-1, name, true, true, target_cluster); //pokus o otevreni slozky
+    }
+    std::cout << "got target slozka: " << target_cluster;
+    file.handle = target_cluster;
 
     return kiv_os::NOS_Error::Success;
 }
