@@ -179,3 +179,14 @@ bool kiv_os_rtl::Set_Working_Dir(const char *path) {
 
     return result;
 }
+
+bool kiv_os_rtl::Get_Working_Dir(char *buffer, size_t buffer_size, size_t &read) {
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::File_System, static_cast<uint8_t>(kiv_os::NOS_File_System::Get_Working_Dir));
+
+    regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(buffer);
+    regs.rcx.r = buffer_size;
+
+    const bool result = kiv_os::Sys_Call(regs);
+
+    return result;
+}

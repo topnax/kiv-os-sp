@@ -11,44 +11,60 @@ bool Set_Working_Dir(kiv_hal::TRegisters &regs) {
     // check whether path has been correctly set
     if (path != nullptr) {
 
-        // resolve the handle of the current native thread
-        kiv_os::THandle thread_handle;
-        bool thread_handle_resolved = resolve_native_thread_id_to_thandle(std::this_thread::get_id(), thread_handle);
-
-        if (thread_handle_resolved) {
-            // native thread has been mapped to THandle
-
-            Process *process = nullptr;
-            auto pcb = Get_Pcb();
-
-            // check whether the current native thread is a kiv_os process
-            auto p = pcb->operator[](thread_handle);
-            if (p != nullptr) {
-                // it really is a process
-                process = p;
-            }  else {
-                // it might be kiv_os thread, check whether the thread has a parent pid assigned
-                auto tcb = Get_Tcb();
-                auto resolved_thread_thandle = tcb->Parent_Processes.find(thread_handle);
-                if (resolved_thread_thandle != tcb->Parent_Processes.end()) {
-                    // current kiv_os thread has a pid assigned, find the process using the pid
-                    process = pcb->operator[](resolved_thread_thandle->second);
-                }
-            }
-
-            if (process != nullptr) {
-                // we have found a process which should have the working directory changed
-                std::filesystem::path f_path = path;
-                std::filesystem::path resolved_path_relative_to_fs;
-                std::filesystem::path absolute_path;
-                // check whether the given path exists
-                if (File_Exists(f_path, resolved_path_relative_to_fs, absolute_path)) {
-                    process->working_directory = absolute_path;
-                    printf("absolute path of %d set to: %s\n", process->handle, absolute_path.string().c_str());
-                    return true;
-                }
+        auto process = resolve_current_thread_handle_to_process();
+        if (process != nullptr) {
+            // we have found a process which should have the working directory changed
+            std::filesystem::path f_path = path;
+            std::filesystem::path resolved_path_relative_to_fs;
+            std::filesystem::path absolute_path;
+            // check whether the given path exists
+            if (File_Exists(f_path, resolved_path_relative_to_fs, absolute_path)) {
+                process->working_directory = absolute_path;
+                printf("absolute path of %d set to: %s\n", process->handle, absolute_path.string().c_str());
+                return true;
             }
         }
     }
+    return false;
+}
+
+bool Get_Working_Dir(std::filesystem::path &out) {
+    auto process = resolve_current_thread_handle_to_process();
+
+    if  (process != nullptr) {
+        // we found the parent process of this thread, fetch the wd
+        out = process->working_directory;
+        return true;
+    }
+
+    return false;
+}
+
+bool Get_Working_Dir(char *out_buffer, size_t buffer_size, size_t &written) {
+    auto process = resolve_current_thread_handle_to_process();
+
+    if  (process != nullptr) {
+        // we found the parent process of this thread, copy the working directory into the provided buffer
+        strcpy_s(out_buffer, buffer_size, process->working_directory.string().c_str());
+        written = min(buffer_size, process->working_directory.string().length());
+        return true;
+    }
+
+    return false;
+}
+
+bool Get_Working_Dir(kiv_hal::TRegisters &regs) {
+    char *out_buffer = reinterpret_cast<char *>(regs.rdx.r);
+    size_t buffer_size = static_cast<size_t>(regs.rcx.r);
+    size_t written;
+
+    if (Get_Working_Dir(out_buffer, buffer_size, written)) {
+        // finding working dir of the current process succeeded, it now has been written to the buffer provided in the registers
+        regs.rax.r = written;
+        if (written > 0) {
+            return true;
+        }
+    }
+
     return false;
 }

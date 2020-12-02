@@ -39,4 +39,6 @@ namespace kiv_os_rtl {
     bool Shutdown();
 
     bool Set_Working_Dir(const char* path);
+
+    bool Get_Working_Dir(char *buffer, size_t buffer_size, size_t &read);
 }

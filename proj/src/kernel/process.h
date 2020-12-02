@@ -68,3 +68,5 @@ void shutdown();
 Process_Control_Block* Get_Pcb();
 
 Thread_Control_Block* Get_Tcb();
+
+Process* resolve_current_thread_handle_to_process();

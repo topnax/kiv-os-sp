@@ -469,3 +469,33 @@ bool resolve_native_thread_id_to_thandle(std::thread::id native_thread_id, kiv_o
     }
     return false;
 }
+
+Process *resolve_current_thread_handle_to_process() {
+    // resolve the handle of the current native thread
+    kiv_os::THandle thread_handle;
+    bool thread_handle_resolved = resolve_native_thread_id_to_thandle(std::this_thread::get_id(), thread_handle);
+
+    Process *process = nullptr;
+    if (thread_handle_resolved) {
+        // native thread has been mapped to THandle
+
+        auto pcb = Get_Pcb();
+
+        // check whether the current native thread is a kiv_os process
+        auto p = pcb->operator[](thread_handle);
+        if (p != nullptr) {
+            // it really is a process
+            process = p;
+        }  else {
+            // it might be kiv_os thread, check whether the thread has a parent pid assigned
+            auto tcb = Get_Tcb();
+            auto resolved_thread_thandle = tcb->Parent_Processes.find(thread_handle);
+            if (resolved_thread_thandle != tcb->Parent_Processes.end()) {
+                // current kiv_os thread has a pid assigned, find the process using the pid
+                process = pcb->operator[](resolved_thread_thandle->second);
+            }
+        }
+
+    }
+    return process;
+}

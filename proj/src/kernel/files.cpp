@@ -6,6 +6,7 @@
 #include "keyboard_file.h"
 #include "proc_fs.h"
 #include "fat_fs.h"
+#include "dir.h"
 
 namespace Files {
     std::mutex Open_Guard;
@@ -133,7 +134,6 @@ kiv_os::THandle Open_File(const char *file_name, uint8_t flags, uint8_t attribut
         std::filesystem::path absolute_path;
         auto fs = File_Exists(file_name, resolved_path_relative_to_fs, absolute_path);
         if (fs != nullptr) {
-            printf("into fs\n");
             File f{};
 
             auto length = resolved_path_relative_to_fs.string().length() + 1;
@@ -219,10 +219,12 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
     // when path is relative, prepend the current working directory of the process
     if (path.is_relative()) {
         // std::filesystem::path does not support prepending
-        std::string wd = "C:\\procfs\\";
-        std::filesystem::path temp_path = wd;
-        temp_path.append(path.string());
-        path = temp_path;
+        std::filesystem::path wd_path;
+        if (!Get_Working_Dir(wd_path)) {
+            return nullptr;
+        }
+        wd_path.append(path.string());
+        path = wd_path;
     }
 
     // create a variable `current_path`, which will hold the current path that will be build while iterating the components
@@ -247,7 +249,6 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
 //    }
 
     file_systems.push(current_fs);
-
 
     if (current_fs != nullptr) {
         // the first file lookup should start in the root of the fs
@@ -276,16 +277,12 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
                         file_systems.pop();
                         current_fs = file_systems.top();
 
-                        printf("trying to get the top\n");
                         current_fs_path = paths_relative_to_fs.top();
 
                         // load the previous FS relative path too
-                        printf("about to pop relative path stacksize=%d\n", paths_relative_to_fs.size());
                         paths_relative_to_fs.pop();
 
-                        printf("popped to fs: ");
                         current_fs->print_name();
-                        printf("popped path is: %s\n", current_fs_path.string().c_str());
                     }
                 } else {
                     // cannot pop out of the root folder
@@ -298,7 +295,6 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
                 // check whether the current path is a FS mount point
                 auto new_fs = Get_Filesystem(current_path.string());
                 if (new_fs != nullptr) {
-                    printf("pushing :)\n");
                     // push the current path relative to fs into the stack
                     paths_relative_to_fs.push(current_fs_path);
 
@@ -307,9 +303,7 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
                     current_fs = new_fs;
 
                     // set the
-                    printf("stack size: %d\n", paths_relative_to_fs.size());
                     current_fs_path = "\\";
-                    printf("stack size: %d\n", paths_relative_to_fs.size());
                     components_in_current_fs = 1;
 
                     // printf("changed to fs ");
