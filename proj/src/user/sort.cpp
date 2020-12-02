@@ -31,6 +31,7 @@ extern "C" size_t __stdcall sort(const kiv_hal::TRegisters & regs) {
     kiv_os::THandle file_handle;
     std::vector<std::string> lines;
     std::string curr_string = "";
+    bool closeFileHandle = true;
 
     if (data && strlen(data) > 0) {
         // we will be reading from a file
@@ -49,6 +50,7 @@ extern "C" size_t __stdcall sort(const kiv_hal::TRegisters & regs) {
     else {
         // we will be reading from std input
         file_handle = std_in;
+        closeFileHandle = false;
     }
 
 
@@ -95,6 +97,7 @@ extern "C" size_t __stdcall sort(const kiv_hal::TRegisters & regs) {
 
     // output the text
     for (int i = 0; i < lines.size(); i++) {
+        //kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
         kiv_os_rtl::Write_File(std_out, lines[i].c_str(), lines[i].length(), counter);
         kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
     }
@@ -102,6 +105,8 @@ extern "C" size_t __stdcall sort(const kiv_hal::TRegisters & regs) {
     // append with new line
     kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
     
-    kiv_os_rtl::Close_Handle(file_handle);
+    if(closeFileHandle)
+        kiv_os_rtl::Close_Handle(file_handle);
+
     return 0;
 }
