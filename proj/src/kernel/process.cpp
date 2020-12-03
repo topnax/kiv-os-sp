@@ -86,7 +86,13 @@ kiv_hal::TRegisters Prepare_Process_Context(unsigned short std_in, unsigned shor
     return regs;
 }
 
-void thread_entrypoint(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &registers, bool is_process) {
+void thread_entrypoint(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &registers, bool is_process, Semaphore *s) {
+    // do not execute any code until the passed semaphore is notified
+    s->wait();
+
+    // delete the passed semaphore
+    delete s;
+
     // execute the TThread_Proc (the desired program, echo, md, ...)
     t_threadproc(registers);
 
@@ -94,8 +100,9 @@ void thread_entrypoint(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &r
     thread_post_execute(is_process);
 }
 
-void thread_post_execute(bool is_process) {// while cloning, the THandle is generated and assigned to the Handle_To_THandle map
-// under the key which is the thread ID of the thread the TThread_Proc is run in
+void thread_post_execute(bool is_process){
+    // while cloning, the THandle is generated and assigned to the Handle_To_THandle map
+    // under the key which is the thread ID of the thread the TThread_Proc is run in
     std::lock_guard<std::mutex> guard(Semaphores_Mutex);
 
     // get the kiv_os::THandle
@@ -143,13 +150,13 @@ void thread_post_execute(bool is_process) {// while cloning, the THandle is gene
     Handle_To_THandle.erase(std::this_thread::get_id());
 }
 
-void run_in_a_thread(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &registers, bool is_process) {
+void run_in_a_thread(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &registers, bool is_process, Semaphore *s) {
     // we are adding to the thread handle to Handle_To_THandle, better guard this block
     // TODO this might not be necessary
     std::lock_guard<std::mutex> guard(Semaphores_Mutex);
 
     // spawn a new thread, in which a program at address inside rdx is run
-    std::thread t1(thread_entrypoint, t_threadproc, registers, is_process);
+    std::thread t1(thread_entrypoint, t_threadproc, registers, is_process, s);
 
     // get the native handle of the spawned thread
     HANDLE native_handle = t1.native_handle();
@@ -172,10 +179,13 @@ void run_in_a_thread(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &reg
 void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
     switch (static_cast<kiv_os::NClone>(registers.rcx.l)) {
         case kiv_os::NClone::Create_Thread: {
-            // run the TThreadProc in a new thread
-            run_in_a_thread(((kiv_os::TThread_Proc) registers.rdx.r), registers, false);
-            // get the kiv_os::THandle
+            // create a semaphore that will be notified once we have gathered necessary information about the spawned thread
+            auto s = new Semaphore(0);
 
+            // run the TThreadProc in a new thread
+            run_in_a_thread(((kiv_os::TThread_Proc) registers.rdx.r), registers, false, s);
+
+            // get the kiv_os::THandle
             // resolve the handle of the current thread
             auto resolved = Handle_To_THandle.find(std::this_thread::get_id());
 
@@ -190,6 +200,7 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
                     (*Proc::Tcb).Parent_Processes[thread_handle] = resolved_process->handle;
                 }
             }
+            s->notify();
         }
 
         case kiv_os::NClone::Create_Process: {
@@ -207,17 +218,26 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
             kiv_hal::TRegisters regs = Prepare_Process_Context(std_in, std_out, arguments);
             kiv_os::TThread_Proc program_entrypoint = (kiv_os::TThread_Proc) GetProcAddress(user_programs, program);
             if (program_entrypoint) {
-                run_in_a_thread(program_entrypoint, regs, true);
+                // create a new semaphore that will be signaled once this thread gathers information about the created process
+                auto s = new Semaphore(0);
+
+                // pass a pointer to the semaphore to the thread to be created
+                // the thread will not execute any instructions until this semaphore is notified
+                run_in_a_thread(program_entrypoint, regs, true, s);
+
+                // get the handle of the spawned thread
                 auto process = Proc::Pcb->Add_Process(regs.rax.x, std_in, std_out, program);
                 process->status = Process_Status::Running;
                 process->signal_handlers[kiv_os::NSignal_Id::Terminate] = default_signal_handler;
 
                 auto parent_process = resolve_current_thread_handle_to_process();
                 if (parent_process != nullptr) {
-                    printf("setting process pid=%d to wd %s\n", process->handle, parent_process->working_directory.string().c_str());
                     process->working_directory = parent_process->working_directory;
                 }
                 registers.rax.x = regs.rax.x;
+
+                // we have gathered all necessary information about the spawned thread and have created a PCB entry based on it
+                s->notify();
             }
 
             break;

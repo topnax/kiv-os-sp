@@ -280,7 +280,7 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
                         // load the previous FS relative path too
                         paths_relative_to_fs.pop();
 
-                        current_fs->print_name();
+                        // current_fs->print_name();
                     }
                 } else {
                     // cannot pop out of the root folder
