@@ -20,7 +20,6 @@ bool Set_Working_Dir(kiv_hal::TRegisters &regs) {
             // check whether the given path exists
             if (File_Exists(f_path, resolved_path_relative_to_fs, absolute_path)) {
                 process->working_directory = absolute_path;
-                printf("absolute path of %d set to: %s\n", process->handle, absolute_path.string().c_str());
                 return true;
             }
         }

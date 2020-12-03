@@ -330,13 +330,12 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             if (strcmp(command, "cd") == 0) {
                 if (args)  {
                     if (kiv_os_rtl::Set_Working_Dir(args)) {
-                        printf("changed\n");
                         kiv_os_rtl::Get_Working_Dir(working_directory, PROMPT_BUFFER_SIZE, get_wd_read_count);
                         if (get_wd_read_count > 0) {
-                            fill_prompt_buffer(disk_label, working_directory, prompt, PROMPT_BUFFER_SIZE);
+                            fill_prompt_buffer(working_directory, prompt, PROMPT_BUFFER_SIZE);
                         }
                     } else {
-                        printf("not changed\n");
+                        // TODO print
                     }
                 }
             }

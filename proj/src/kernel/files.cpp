@@ -95,10 +95,8 @@ void Add_Filesystem(const std::string &name, VFS *vfs) {
 }
 
 VFS *Get_Filesystem(std::string file_name) {
-    printf("resolving %s\n", file_name.c_str());
     auto resolved = Files::Filesystems.find(file_name);
     if (resolved != Files::Filesystems.end()) {
-        printf("found %s\n", file_name.c_str());
         return resolved->second.get();
     }
 

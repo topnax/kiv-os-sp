@@ -211,6 +211,12 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
                 auto process = Proc::Pcb->Add_Process(regs.rax.x, std_in, std_out, program);
                 process->status = Process_Status::Running;
                 process->signal_handlers[kiv_os::NSignal_Id::Terminate] = default_signal_handler;
+
+                auto parent_process = resolve_current_thread_handle_to_process();
+                if (parent_process != nullptr) {
+                    printf("setting process pid=%d to wd %s\n", process->handle, parent_process->working_directory.string().c_str());
+                    process->working_directory = parent_process->working_directory;
+                }
                 registers.rax.x = regs.rax.x;
             }
 
