@@ -313,6 +313,11 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
                     }
                     components_in_current_fs++;
                 }
+
+                if (component.string() == ".") {
+                    components_in_current_fs--;
+                    current_path.remove_filename();
+                }
             }
             first = false;
         }

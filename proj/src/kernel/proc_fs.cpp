@@ -98,7 +98,7 @@ kiv_os::NOS_Error Proc_Fs::read(File file, size_t size, size_t offset, std::vect
         } else {
             return readdir_result;
         }
-    } else if (strcmp(file.name, "\\") == 0) {
+    } else if (strcmp(file.name, "\\") == 0 || strcmp(file.name, "\\.") == 0) {
         // reading procfs directory
         std::vector<kiv_os::TDir_Entry> entries;
         auto readdir_result = readdir("", entries);
@@ -164,7 +164,7 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, uint8_t flags, uint8_t attribu
     }
 
     // check whether opening the root folder - that should print the simplified PCB table
-    if (strcmp(name, "\\") == 0) {
+    if (strcmp(name, "\\") == 0 || strcmp(name, "\\.") == 0) {
         file = File{
                 0,
                 static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) |
@@ -233,14 +233,13 @@ bool Proc_Fs::file_exists(int32_t current_fd, const char *name, bool start_from_
     if (start_from_root) {
         current_fd = PROCFS_ROOT;
     }
-
     if (current_fd == PROCFS_ROOT) {
         if (strcmp(name, "tasklist") == 0) {
             found_fd = 0;
             return true;
         }
 
-        if (strcmp(name, "") == 0) {
+        if (strcmp(name, "") == 0 || strcmp(name, ".") == 0) {
             return true;
         }
 
