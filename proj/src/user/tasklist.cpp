@@ -4,6 +4,14 @@
 
 #include "rtl.h"
 
+struct PCB_Entry {
+    kiv_os::THandle handle;
+    kiv_os::THandle std_in;
+    kiv_os::THandle std_out;
+    char program_name[42];
+    char working_directory[256];
+};
+
 extern "C" size_t __stdcall tasklist(const kiv_hal::TRegisters &regs) {
     const auto std_out = static_cast<kiv_os::THandle>(regs.rbx.x);
     kiv_os::THandle handle;

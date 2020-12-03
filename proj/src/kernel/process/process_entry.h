@@ -15,6 +15,14 @@ enum class Process_Status {
     Zombie = 2
 };
 
+struct PCB_Entry {
+    kiv_os::THandle handle;
+    kiv_os::THandle std_in;
+    kiv_os::THandle std_out;
+    char program_name[42];
+    char working_directory[256];
+};
+
 class Process {
 
 public:
@@ -59,5 +67,8 @@ public:
       * Path to current working directory
       */
      std::filesystem::path working_directory;
+
+     PCB_Entry Get_Pcb_Entry();
+
 };
 
