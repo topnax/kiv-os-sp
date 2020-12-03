@@ -137,7 +137,7 @@ kiv_os::NOS_Error Proc_Fs::readdir(const char *name, std::vector<kiv_os::TDir_En
                 static_cast<uint16_t>(kiv_os::NFile_Attributes::Directory) |
                 static_cast<uint16_t>(kiv_os::NFile_Attributes::Read_Only)
         };
-        sprintf_s(entry.file_name, 12, "%s", process->program_name);
+        sprintf_s(entry.file_name, 12, "%d", process->handle);
 
         entries.push_back(entry);
     }
