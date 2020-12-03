@@ -9,6 +9,9 @@
 #include "../../api/api.h"
 #include <filesystem>
 
+///////////////////////////////////////
+/// these should be defined in api.h.
+/// for now both the following enum and structure are hardcoded and shared between userspace and kernel
 enum class Process_Status {
     Ready = 0,
     Running = 1,
@@ -19,9 +22,13 @@ struct PCB_Entry {
     kiv_os::THandle handle;
     kiv_os::THandle std_in;
     kiv_os::THandle std_out;
+    Process_Status status;
+    kiv_os::NOS_Error exit_code;
     char program_name[42];
     char working_directory[256];
 };
+/// to be added to api.h in the future KIV/OS SP iterations
+////////////////////////////////////////
 
 class Process {
 

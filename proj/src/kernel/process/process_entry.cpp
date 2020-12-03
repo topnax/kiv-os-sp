@@ -15,6 +15,8 @@ PCB_Entry Process::Get_Pcb_Entry() {
         this->handle,
         this->std_in,
         this->std_out,
+        this->status,
+        this->exit_code
     };
 
     strcpy_s(entry.program_name, 42, this->program_name);

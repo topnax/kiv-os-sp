@@ -9,7 +9,7 @@
 #include <string>
 #include <mutex>
 
-constexpr size_t PROCESS_ENTRY_MAX_LENGTH = 65;
+constexpr size_t TASK_LIST_PCB_ENTRY_OUT_BUFFER_SIZE = 65;
 constexpr int32_t PROCFS_ROOT = 0;
 
 std::vector<char> Proc_Fs::generate_tasklist_vector() {
@@ -21,14 +21,14 @@ std::vector<char> Proc_Fs::generate_tasklist_vector() {
     };
 
     // generate tasklist header
-    char output[PROCESS_ENTRY_MAX_LENGTH];
-    sprintf_s(output, PROCESS_ENTRY_MAX_LENGTH, "|%-7s |%-10s |%-9s |%-7s |%-7s |%-10s |\n", "PID",
+    char output[TASK_LIST_PCB_ENTRY_OUT_BUFFER_SIZE];
+    sprintf_s(output, TASK_LIST_PCB_ENTRY_OUT_BUFFER_SIZE, "|%-7s |%-10s |%-9s |%-7s |%-7s |%-10s |\n", "PID",
               "PROGRAM", "STATUS", "STDIN", "STDOUT", "EXIT CODE");
 
-    for (int i = 0; i < PROCESS_ENTRY_MAX_LENGTH - 1; i++) {
+    for (int i = 0; i < TASK_LIST_PCB_ENTRY_OUT_BUFFER_SIZE - 1; i++) {
         out.push_back(output[i]);
     }
-    for (int i = 0; i < PROCESS_ENTRY_MAX_LENGTH - 2; i++) {
+    for (int i = 0; i < TASK_LIST_PCB_ENTRY_OUT_BUFFER_SIZE - 2; i++) {
         out.push_back('=');
     }
     out.push_back('\n');
@@ -36,11 +36,11 @@ std::vector<char> Proc_Fs::generate_tasklist_vector() {
     // generate tasklist items
     for (auto p : Get_Pcb()->Get_Processes()) {
         // TODO append file attributes
-        sprintf_s(output, PROCESS_ENTRY_MAX_LENGTH, "|%-7d |%-10s |%-9s |%-7d |%-7d |%-10hu |\n", p->handle,
+        sprintf_s(output, TASK_LIST_PCB_ENTRY_OUT_BUFFER_SIZE, "|%-7d |%-10s |%-9s |%-7d |%-7d |%-10hu |\n", p->handle,
                   p->program_name,
                   statuses[(int) p->status].c_str(), p->std_in, p->std_out, p->exit_code);
 
-        for (int i = 0; i < PROCESS_ENTRY_MAX_LENGTH - 1; i++) {
+        for (int i = 0; i < TASK_LIST_PCB_ENTRY_OUT_BUFFER_SIZE - 1; i++) {
             out.push_back(output[i]);
         }
     }
@@ -54,31 +54,11 @@ std::vector<char> Proc_Fs::generate_tasklist_vector() {
 std::vector<char> Proc_Fs::generate_readproc_vector(Process p) {
     std::vector<char> out;
 
-    // prepare process status labels
-    std::string statuses[] = {
-            "Ready", "Running", "Zombie"
-    };
-
-    // generate header
-    char output[PROCESS_ENTRY_MAX_LENGTH];
-    sprintf_s(output, PROCESS_ENTRY_MAX_LENGTH, "|%-7s |%-10s |%-9s |%-7s |%-7s |%-10s |\n", "PID",
-              "PROGRAM", "STATUS", "STDIN", "STDOUT", "EXIT CODE");
-    for (int i = 0; i < PROCESS_ENTRY_MAX_LENGTH - 1; i++) {
-        out.push_back(output[i]);
-    }
-    for (int i = 0; i < PROCESS_ENTRY_MAX_LENGTH - 2; i++) {
-        out.push_back('=');
-    }
-    out.push_back('\n');
-
-    // generate process info
-    sprintf_s(output, PROCESS_ENTRY_MAX_LENGTH, "|%-7d |%-10s |%-9s |%-7d |%-7d |%-10hu |\n", p.handle,
-              p.program_name,
-              statuses[(int) p.status].c_str(), p.std_in, p.std_out, p.exit_code);
-
-    for (char &i : output) {
-        out.push_back(i);
-    }
+    // create a PCB entry from a process and insert it into a vector
+    auto pcb_entry = p.Get_Pcb_Entry();
+    auto const ptr = reinterpret_cast<char*>(&pcb_entry);
+    // append to the char vector
+    out.insert(out.end(), ptr, ptr + sizeof pcb_entry);
 
     return out;
 }
@@ -194,7 +174,7 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, uint8_t flags, uint8_t attribu
                     process->handle,
                     static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) |
                     static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only),
-                    PROCESS_ENTRY_MAX_LENGTH,
+                    TASK_LIST_PCB_ENTRY_OUT_BUFFER_SIZE,
                     0,
                     const_cast<char *>(name)
             };
