@@ -131,7 +131,7 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, uint8_t flags, uint8_t attribut
 kiv_os::NOS_Error Fat_Fs::mkdir(const char *name) {
     //rozdelit na jednotlive slozky cesty => n polozek, hledame cluster n - 1 ; posledni prvek (n) bude nazev nove vytvarene slozky
     std::vector<std::string> folders_in_path = path_to_indiv_items(name); //rozdeleni na indiv. polozky v ceste
-    std::string new_folder_name = folders_in_path.at(folders_in_path.size() - 1);
+    std::string new_folder_name = folders_in_path.at(folders_in_path.size() - 1); //nazev nove slozky
         
     folders_in_path.pop_back(); //posledni polozka v seznamu je nazev nove slozky, tu ted nehledame
 
@@ -159,11 +159,18 @@ kiv_os::NOS_Error Fat_Fs::mkdir(const char *name) {
         }
     }
 
+    std::cout << "Items in target folder - start";
+    for (int i = 0; i < all_dir_items.size(); i++) {
+        std::cout << all_dir_items.at(i).filename;
+    }
+    std::cout << "Items in target folder - end";
+
     //projdu posledni sektor, na kterem je slozka umistena a zjistim pocet volnych bytu => zjisteni, jestli pro vytvoreni nove slozky potreba alokovat novy cluster ci ne
     int free_bytes = retrieve_free_byte_count(sectors_nums_data.at(sectors_nums_data.size() - 1));
     if (free_bytes < 32) { //jedna entry zabira 32 bytu - pokud neni volne misto, pak alokace dalsiho clusteru
         std::cout << "V danem clusteru uz neni misto";
     }
+    std::cout << "Zbyva volneho mista: " << free_bytes << "\n";
     //zjisteni, zda je ve slozce volne misto pro dalsi podslozku - KONEC
 
      //nalezt volne misto ve fat tabulce pro novou slozku - START
@@ -181,32 +188,16 @@ kiv_os::NOS_Error Fat_Fs::mkdir(const char *name) {
         return kiv_os::NOS_Error::IO_Error;
     }
     //nalezt volne misto ve fat tabulce pro novou slozku - KONEC
+    std::vector<char> buffer_to_write;
+    std::string text = "Duis ante orci, molestie vitae vehicula venenatis, tincidunt ac pede.Aliquam erat volutpat.Maecenas aliquet accumsan leo.Curabitur ligula sapien, pulvinar a vestibulum quis, facilisis vel sapien.Praesent vitae arcu tempor neque lacinia pretium.Lorem ipsum dolor sit amet, consectetuer adipiscing elit.Curabitur bibendum justo non orci.Lorem ipsum dolor sit amet, consectetuer adipiscing elit.Aenean vel massa quis mauris vehicula lacinia.Etiam ligula pede, sagittis quis, interdum ultricies, scelerisque eu.Duis risus.In dapibus augue non sapien.Duis ante orci, molestie vitae vehicula venenatis, tincidunt ac pede.Nullam eget nisl.Etiam ligula pede, sagittis quis, interdum ultricies, scelerisque eu.Etiam posuere lacus quis dolor.Etiam neque.Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos hymenaeos.Sed elit dui, pellentesque a, faucibus vel, interdum nec, diam.huiozhuiozizuiztuigzurghetfzevrtcxtzvrdchzdfvhtjrvtzrvtzrugtzrtzrvtzrtztrtzirtzifhgfufuzzufuzfuxcbhvxcghvsexycaj";//12212
 
-    //vytvoreni odkazu na novou slozku v nove slozce - START
-    directory_item dir_item_current;
-    dir_item_current.filename = ".";
-    dir_item_current.extension = ""; //20 v hexu znaci konec = 32 v dec
-    dir_item_current.filezise = 0; //velikost slozky je nulova ve fatce
-    dir_item_current.first_cluster = free_cluster_new_folder;
-    //vytvoreni odkazu na novou slozku v nove slozce - KONEC
+    for (int i = 0; i < text.size(); i++) {
+        buffer_to_write.push_back(text.at(i));
+    }
 
-    //vytvoreni odkazu na nadrazenou slozku v nove slozce - START
-    directory_item dir_item_upfolder;
-    dir_item_upfolder.filename = "..";
-    dir_item_upfolder.extension = ""; //20 v hexu znaci konec = 32 v dec
-    dir_item_upfolder.filezise = 0; //velikost slozky je nulova ve fatce
-    dir_item_upfolder.first_cluster = free_cluster_new_folder;
-    //vytvoreni odkazu na nadrazenou slozku v nove slozce - KONEC
-
-    //zapsat udaje o nove vytvorene podslozce do nadrazene (jiz existujici) slozky - START
-    directory_item dir_item_to_add;
-    dir_item_to_add.filename = new_folder_name; //posledni je nazev nove slozky
-    dir_item_to_add.extension = ""; //20 v hexu znaci konec = 32 v dec
-    dir_item_to_add.filezise = 0; //velikost slozky je nulova ve fatce
-    dir_item_to_add.first_cluster = sectors_nums_data.at(0); //prvni cluster nadrazene slozky
-    //zapsat udaje o nove vytvorene podslozce do nadrazene (jiz existujici) slozky - KONEC
-    write_folder_to_fs(free_cluster_new_folder, new_folder_name, sectors_nums_data.at(0), sectors_nums_data.at(sectors_nums_data.size() - 1), free_bytes);
-
+    write_data_to_fat_fs(50, buffer_to_write); //-31
+    //write_folder_to_fs(free_cluster_new_folder, new_folder_name, sectors_nums_data.at(0), sectors_nums_data.at(sectors_nums_data.size() - 1), free_bytes);
+   
     return kiv_os::NOS_Error::IO_Error;
 }
 
@@ -215,6 +206,8 @@ kiv_os::NOS_Error Fat_Fs::rmdir(const char *name) {
 }
 
 kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size, size_t offset, size_t &written) {
+
+
     return kiv_os::NOS_Error::IO_Error;
 }
 

@@ -563,15 +563,7 @@ int retrieve_free_byte_count(int sector_num) {
 * upper_fol_clust_last_free = pocet volnych bytu v ramci posledniho clusteru
 /**/
 int write_folder_to_fs(int newly_created_fol_clust, std::string newly_created_fol_name, int upper_fol_clust_first, int upper_fol_clust_last, int upper_fol_clust_last_free) {
-    //std::ofstream floppy_img_file_write(FLOPPY_FILENAME, std::ios_base::app); //nacteny obraz s disketou pro zapis
-
     //floppy_img_file_write.seekp((newly_created_fol_clust + 31) * SECTOR_SIZE_B, std::ios::beg);
-    //if (!floppy_img_file_write.is_open()) {
-    //    std::cout << "something went wrong!\n";
-    //}
-    //else {
-    //    std::cout << "opened as stazina!\n";
-    //}
 
     //vytvoreni odkazu na novou slozku v nove slozce - START
     directory_item dir_item_current;
@@ -590,6 +582,7 @@ int write_folder_to_fs(int newly_created_fol_clust, std::string newly_created_fo
     //vytvoreni odkazu na nadrazenou slozku v nove slozce - KONEC
 
     //zapsat udaje o nove vytvorene podslozce do nadrazene (jiz existujici) slozky - START
+
     //floppy_img_file_write.seekp((upper_fol_clust_last + 31) * SECTOR_SIZE_B + (SECTOR_SIZE_B - upper_fol_clust_last_free), std::ios::beg);
     std::vector<unsigned char> to_write_subfolder;
 
@@ -608,6 +601,8 @@ int write_folder_to_fs(int newly_created_fol_clust, std::string newly_created_fo
         to_write_subfolder.push_back(32);
     }
 
+    //read_data_from_fat_fs();
+
     //floppy_img_file_write.write(reinterpret_cast<const char*>(to_write_subfolder.data()), 8);
     //floppy_img_file_write.flush();
     std::cout << "writed!";
@@ -616,4 +611,41 @@ int write_folder_to_fs(int newly_created_fol_clust, std::string newly_created_fo
     //floppy_img_file_write.close();
 
     return 3;
+}
+
+/*
+* Nacte ze souboroveho systemu spicifikovany pocet bytu, ktere zacinaji na danem sektoru.
+* start_sector_num = sektor, od ktereho zacne zapis
+* buffer_to_write = bajty, ktere budou zapsany na dane misto
+/**/
+void write_data_to_fat_fs(int start_sector_num, std::vector<char> buffer_to_write) {
+    kiv_hal::TRegisters reg_to_write;
+    kiv_hal::TDisk_Address_Packet ap_to_write;
+
+    ap_to_write.count = buffer_to_write.size() / SECTOR_SIZE_B + (buffer_to_write.size() % SECTOR_SIZE_B != 0); //pocet sektoru, ktery ma byt zapsan ; zaokrouhleno nahoru
+    ap_to_write.lba_index = start_sector_num + 31; //sektor, od ktereho zapisujeme (+31 presun na dat sektory)
+
+    reg_to_write.rdx.l = 129; //cislo disku
+    reg_to_write.rax.h = static_cast<decltype(reg_to_write.rax.h)>(kiv_hal::NDisk_IO::Write_Sectors);
+    reg_to_write.rdi.r = reinterpret_cast<decltype(reg_to_write.rdi.r)>(&ap_to_write);
+
+    //posledni cluster bude cely prepsan za normalnich okolnosti, chceme cast zachovat => vytahnout data z clusteru a prepsat jen relevantni cast
+    int last_sector_alloc = (start_sector_num + ap_to_write.count) - 1;
+    std::vector<unsigned char> last_sector_data = read_data_from_fat_fs(last_sector_alloc, 1);
+    int size_to_hold = ap_to_write.count * SECTOR_SIZE_B;
+
+    int last_cluster_occupied = buffer_to_write.size() % SECTOR_SIZE_B;
+    int start_pos = buffer_to_write.size();
+
+    int added_bytes = 0;
+    for (int i = start_pos; i < size_to_hold; i++) {
+        buffer_to_write.push_back(last_sector_data.at(last_cluster_occupied + added_bytes));
+        added_bytes++;
+    }
+    std::cout << "Final buffer size is: " << buffer_to_write.size();
+
+    ap_to_write.sectors = static_cast<void*>(buffer_to_write.data()); //vector with bytes, that should be written to file
+    kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::Disk_IO, reg_to_write);
+
+    std::cout << "Writed!!\n" << ap_to_write.count;
 }

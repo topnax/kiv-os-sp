@@ -29,6 +29,7 @@ std::vector<unsigned char> load_root_dir_bytes();
 bool check_fat_table_consistency(std::vector<unsigned char> first_table, std::vector<unsigned char> second_table);
 std::vector<int> convert_fat_table_to_dec(std::vector<unsigned char> fat_table_hex);
 std::vector<unsigned char> read_data_from_fat_fs(int start_sector_num, int total_sector_num);
+void write_data_to_fat_fs(int start_sector_num, std::vector<char> buffer_to_write);
 std::vector<kiv_os::TDir_Entry> retrieve_dir_items(int num_sectors, std::vector<unsigned char> dir_clusters, bool is_root);
 directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table_dec, bool is_folder, std::vector<std::string> path);
 std::vector<directory_item> retrieve_folders_cur_folder(std::vector<int> fat_table_dec, int working_dir_sector);
