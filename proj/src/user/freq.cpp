@@ -58,7 +58,7 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
     kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
 
 
-    // printing the gathered frequencies:
+    // printing the gathered frequencies from 0x00 to 0xff:
     size_t n = 0;
     //int c = -1;
     for (int i = 128; i < frequencies.size(); i++) {
