@@ -22,6 +22,8 @@ extern "C" size_t __stdcall find(const kiv_hal::TRegisters & regs) {
     const size_t buffer_size = 256;
     char buffer[buffer_size];
 
+    memset(buffer, 0, buffer_size);
+
     // load the arg from rdi register
     char* data = (char*)regs.rdi.r;
 
@@ -35,6 +37,7 @@ extern "C" size_t __stdcall find(const kiv_hal::TRegisters & regs) {
 
     int lines_count = 0;
     char last_char = '\0';
+    bool closeFileHandle = true;
 
 
     // parse the data here:
@@ -50,37 +53,115 @@ extern "C" size_t __stdcall find(const kiv_hal::TRegisters & regs) {
     }
 
 
-    if (kiv_os_rtl::Open_File(args.c_str(), 0, 0, file_handle)) {
-        size_t read;
-        char buff[buffer_size];
-        size_t written;
+    if (args.c_str() && strlen(args.c_str()) > 0) {
+        // we will be reading from a file
 
-        // read till EOF
-        while (kiv_os_rtl::Read_File(file_handle, buff, buffer_size, read)) {
-            //kiv_os_rtl::Write_File(std_out, buff, read, written);
-            for (int i = 0; i < read; i++) {
-                if (buff[i] == '\n') {
+        //auto attributes = static_cast<uint8_t>(static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only));
+        if (kiv_os_rtl::Open_File(args.c_str(), 0, 0, file_handle)) {
+            ;;
+        }
+        else {
+            size_t written;
+            char* message = "File not found (find)\n";
+            kiv_os_rtl::Write_File(std_out, message, strlen(message), written);
+            return 0; // 0?
+        }
+    }
+    else {
+        // we will be reading from std input
+        file_handle = std_in;
+        closeFileHandle = false;
+    }
+
+    bool doContinue = true; // flag to tell if we should break out of the reading cycle
+    do {
+        if (kiv_os_rtl::Read_File(file_handle, buffer, buffer_size, counter)) {
+            //if (counter < buffer_size) {
+            //    // this happens on Enter?
+            //    size_t written = 0;
+            //    kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), written); // write the new line
+            //    buffer[counter] = '\n'; // add the char to the buffer
+            //    counter++; // increase the counter, bc we added one char (\n)
+            //}
+
+
+            for (int i = 0; i < counter; i++) {
+
+                // check for EOT:
+                if (static_cast<kiv_hal::NControl_Codes>(buffer[i]) == kiv_hal::NControl_Codes::EOT) {
+                    doContinue = false;
+                    //if (last_char != '\n') {
+                    //    lines_count++; // todo this might be wrong, e.g for completely empty file we get 1 line
+                    //}
+                    break; // EOT
+                }
+
+                if (buffer[i] == '\n') {
                     lines_count++;
                 }
             }
-            if(read > 0)
-                last_char = buff[read - 1];
+            if (counter > 0)
+                last_char = buffer[counter - 1];
         }
-        // eof happened
-        if (last_char != '\n') {
-            lines_count++; // todo this might be wrong, e.g for completely empty file we get 1 line
+        else {
+            doContinue = false;
+            //if (last_char != '\n') {
+            //    lines_count++; // todo this might be wrong, e.g for completely empty file we get 1 line
+            //}
+            break; // EOF
         }
-        memset(buff, 0, buffer_size);
-        //size_t n = sprintf_s(buff, "Number of lines is : %d", lines_count);
-        size_t n = sprintf_s(buff, "%d", lines_count);
-        kiv_os_rtl::Write_File(std_out, buff, n, written);
-        kiv_os_rtl::Write_File(std_out, "\n", 1, written);
+
+    } while (doContinue);
+
+
+    memset(buffer, 0, buffer_size);
+    //size_t n = sprintf_s(buff, "Number of lines is : %d", lines_count);
+    size_t n = sprintf_s(buffer, "%d", lines_count);
+    size_t written = 0;
+    kiv_os_rtl::Write_File(std_out, buffer, n, written);
+    kiv_os_rtl::Write_File(std_out, "\n", 1, written);
+
+    if(closeFileHandle)
         kiv_os_rtl::Close_Handle(file_handle);
-    }
-    else {
-        size_t written;
-        char* message = "File not found\n";
-        kiv_os_rtl::Write_File(std_out, message, strlen(message), written);
-    }
+
+
+
+
+
+
+    //if (kiv_os_rtl::Open_File(args.c_str(), 0, 0, file_handle)) {
+    //    size_t read;
+    //    char buff[buffer_size];
+    //    size_t written;
+
+    //    // read till EOF
+    //    while (kiv_os_rtl::Read_File(file_handle, buff, buffer_size, read)) {
+    //        //kiv_os_rtl::Write_File(std_out, buff, read, written);
+    //        for (int i = 0; i < read; i++) {
+    //            if (buff[i] == '\n') {
+    //                lines_count++;
+    //            }
+    //        }
+    //        if(read > 0)
+    //            last_char = buff[read - 1];
+    //    }
+    //    // eof happened
+    //    if (last_char != '\n') {
+    //        lines_count++; // todo this might be wrong, e.g for completely empty file we get 1 line
+    //    }
+    //    memset(buff, 0, buffer_size);
+    //    //size_t n = sprintf_s(buff, "Number of lines is : %d", lines_count);
+    //    size_t n = sprintf_s(buff, "%d", lines_count);
+    //    kiv_os_rtl::Write_File(std_out, buff, n, written);
+    //    kiv_os_rtl::Write_File(std_out, "\n", 1, written);
+    //    kiv_os_rtl::Close_Handle(file_handle);
+    //}
+    //else {
+    //    size_t written;
+    //    char* message = "File not found\n";
+    //    kiv_os_rtl::Write_File(std_out, message, strlen(message), written);
+    //}
+
+
     return 0;
 }

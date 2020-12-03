@@ -21,6 +21,8 @@ extern "C" size_t __stdcall sort(const kiv_hal::TRegisters & regs) {
     const size_t buffer_size = 256;
     char buffer[buffer_size];
 
+    memset(buffer, 0, buffer_size);
+
     // load the arg from rdi register
     char* data = (char*)regs.rdi.r;
 
@@ -57,13 +59,13 @@ extern "C" size_t __stdcall sort(const kiv_hal::TRegisters & regs) {
     bool doContinue = true; // flag to tell if we should break out of the reading cycle
     do {
         if (kiv_os_rtl::Read_File(file_handle, buffer, buffer_size, counter)) {
-            if (counter < buffer_size) {
-                // this happens on Enter?
-                size_t written = 0;
-                kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), written); // write the new line
-                buffer[counter] = '\n'; // add the char to the buffer
-                counter++; // increase the counter, bc we added one char (\n)
-            }
+            //if (counter < buffer_size) {
+            //    // this happens on Enter?
+            //    size_t written = 0;
+            //    kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), written); // write the new line
+            //    buffer[counter] = '\n'; // add the char to the buffer
+            //    counter++; // increase the counter, bc we added one char (\n)
+            //}
 
 
             for (int i = 0; i < counter; i++) {

@@ -141,11 +141,18 @@ std::vector<program> parse_programs(char* input) {
 
                 //printf("data is now %s\n", saved.c_str());
 
-                memset(curr_prog_name, 0, NAME_LEN);
+                memset(curr_prog_name, 0, NAME_LEN); 
+                // copy it back to the variable we use for everything else:
                 strncpy_s(curr_prog_name, saved.c_str(), NAME_LEN);
-                i = k;
+                i = k; // set the positions properly
                 j = saved.size();
-                continue;
+
+                if(i < len - 1)
+                    continue; // if we're not at the end yet, keep reading
+                else {
+                    // if we are at the end, parse it again and move on
+                    actual_name = strtok_s(curr_prog_name, " ", &data); 
+                }
             }
             
 

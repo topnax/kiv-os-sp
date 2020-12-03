@@ -352,12 +352,13 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 }
             }
 
-            if (names_ok && programs.size() > 1) {
+            if (names_ok && !(programs.size() == 1 && strcmp(programs[0].name, "echo") == 0)/*&& programs.size() > 1*/) {
                 call_piped_programs(programs, regs);
             }
             
             // after all is done, go back to the reading loop, do not go ahead to 'normal' commands execution
-            if(programs.size() > 1)
+            //if(programs.size() > 1)
+            if(!(programs.size() == 1 && strcmp(programs[0].name, "echo") == 0))
                 continue;
         }
 
