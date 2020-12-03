@@ -41,7 +41,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
                     ;;
                 }
                 else {
-                    // file not found?
+                    // file not found
                     char buff[200];
                     memset(buff, 0, 200);
                     size_t n = sprintf_s(buff, "File %s not found.", programs[i].input.name);
@@ -72,7 +72,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
                     ;;
                 }
                 else {
-                    // file not found?
+                    // file not found
                     char buff[200];
                     memset(buff, 0, 200);
                     size_t n = sprintf_s(buff, "File %s not found.", programs[i].output.name);
@@ -290,8 +290,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
         // TODO proper PROPER format checking?
         // - current state allows this to happen:
-        // user types 'echo hello | freq |' -> last pipe symbol doesn't allow piped programs to be called,
-        // the result is 'hello' printed to the console - OK?
+        // echo "hello | freq" -> result is: Program  ' freq" '  not found :(
 
         // checking for program piping - TODO make this more elegant
         bool io_chain = false;
@@ -353,12 +352,13 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 }
             }
 
-            if (names_ok) {
+            if (names_ok && programs.size() > 1) {
                 call_piped_programs(programs, regs);
             }
             
             // after all is done, go back to the reading loop, do not go ahead to 'normal' commands execution
-            continue;
+            if(programs.size() > 1)
+                continue;
         }
 
 
@@ -400,9 +400,9 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                     }
                     
 
-                    if (args[0] == '\"' && args[args.size() - 1] == '\"') { // escaping the double quotes, maybe this is not necessary
-                        args = args.substr(1, args.size() - 2);
-                    }
+                    //if (args[0] == '\"' && args[args.size() - 1] == '\"') { // escaping the double quotes, maybe this is not necessary
+                    //    args = args.substr(1, args.size() - 2);
+                    //}
 
                     //if (echoOn) {
                         // i think we can afford this, bc piped programs are handled elswhere, so this 

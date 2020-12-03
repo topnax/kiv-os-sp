@@ -71,7 +71,8 @@ extern "C" size_t __stdcall find(const kiv_hal::TRegisters & regs) {
             lines_count++; // todo this might be wrong, e.g for completely empty file we get 1 line
         }
         memset(buff, 0, buffer_size);
-        size_t n = sprintf_s(buff, "Number of lines is : %d", lines_count);
+        //size_t n = sprintf_s(buff, "Number of lines is : %d", lines_count);
+        size_t n = sprintf_s(buff, "%d", lines_count);
         kiv_os_rtl::Write_File(std_out, buff, n, written);
         kiv_os_rtl::Write_File(std_out, "\n", 1, written);
         kiv_os_rtl::Close_Handle(file_handle);

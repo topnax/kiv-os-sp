@@ -27,6 +27,13 @@ extern "C" size_t __stdcall echo(const kiv_hal::TRegisters &regs) {
     if (strcmp(text, "test_exit") == 0) {
         kiv_os_rtl::Exit(kiv_os::NOS_Error::IO_Error);
     } else {
+        
+        if (text[0] == '\"' && text[strlen(text) - 1] == '\"') { // escaping the double quotes, maybe this is not necessary
+            text++;
+            text[strlen(text) - 1] = '\0';
+        }
+
+
         // output the text
         kiv_os_rtl::Write_File(std_out, text, strlen(text), counter);
 
