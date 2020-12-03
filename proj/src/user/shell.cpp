@@ -367,10 +367,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 }
             }
             if (strcmp(command, "type") == 0) {
-                // TODO improve argparsing
-                if (args) {
-                    call_program("type", regs, args);
-                }
+                call_program("type", regs, args);
             }
             // TODO this command might not be present in the release
             if (strcmp(command, "shutdown") == 0) {
