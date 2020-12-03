@@ -525,3 +525,95 @@ std::vector<std::string> path_to_indiv_items(const char* path_file) {
     }
     return folders_in_path;
 }
+
+/*
+* Zjisti pocet volnych bytu v ramci zvoleneho clusteru.
+* sector_num - cislo sektoru, u ktereho chci zjistit pocet volnych bytu
+/**/
+int retrieve_free_byte_count(int sector_num) {
+    std::vector<unsigned char> retrieved_data_clust = read_data_from_fat_fs(sector_num, 1); //obsahuje data zkoumaneho clusteru
+
+    int free_byte_count = 0; //pocet volnych bytu v sektoru
+    int occ_byte_count = 0; //pocet obsazenych bytu v sektoru
+    char convert_buffer[3]; //buffer pro prevod
+
+    for (int i = 0; i < retrieved_data_clust.size(); i += 32) { //projdu byty a hledam volne
+        snprintf(convert_buffer, sizeof(convert_buffer), "%.2X", retrieved_data_clust[i]);
+
+        printf("got char num %i: %c%c so %i\n", i, convert_buffer[0], convert_buffer[1], retrieved_data_clust[i]);
+        if (retrieved_data_clust[i] == 246 || retrieved_data_clust[i] == 0) { //v hexu F6, rezervovane misto
+            free_byte_count += 32;
+        }
+        else {
+            occ_byte_count += 32;
+        }
+    }
+
+    std::cout << "got free bytes: " << free_byte_count << "and occupied: " << occ_byte_count;
+
+    return free_byte_count;
+}
+
+/*
+* Nacte ze souboroveho systemu spicifikovany pocet bytu, ktere zacinaji na danem sektoru.
+* newly_created_fol_clust = cislo clusteru, na kterem bude umistena nove vytvorena slozka
+* newly_created_fol_name = nazev nove vytvorene slozky
+* upper_fol_clust_first = prvni cluster nadrazene slozky, v ramci ktere bude nove vytvorena slozka jako podslozka
+* upper_fol_clust_last = posledni cluster nadrazene slozky, v ramci ktere bude nove vytvorena slozka jako podslozka
+* upper_fol_clust_last_free = pocet volnych bytu v ramci posledniho clusteru
+/**/
+int write_folder_to_fs(int newly_created_fol_clust, std::string newly_created_fol_name, int upper_fol_clust_first, int upper_fol_clust_last, int upper_fol_clust_last_free) {
+    //std::ofstream floppy_img_file_write(FLOPPY_FILENAME, std::ios_base::app); //nacteny obraz s disketou pro zapis
+
+    //floppy_img_file_write.seekp((newly_created_fol_clust + 31) * SECTOR_SIZE_B, std::ios::beg);
+    //if (!floppy_img_file_write.is_open()) {
+    //    std::cout << "something went wrong!\n";
+    //}
+    //else {
+    //    std::cout << "opened as stazina!\n";
+    //}
+
+    //vytvoreni odkazu na novou slozku v nove slozce - START
+    directory_item dir_item_current;
+    dir_item_current.filename = ".";
+    dir_item_current.extension = ""; //20 v hexu znaci konec = 32 v dec
+    dir_item_current.filezise = 0; //velikost slozky je nulova ve fatce
+    dir_item_current.first_cluster = newly_created_fol_clust;
+    //vytvoreni odkazu na novou slozku v nove slozce - KONEC
+
+    //vytvoreni odkazu na nadrazenou slozku v nove slozce - START
+    directory_item dir_item_upfolder;
+    dir_item_upfolder.filename = "..";
+    dir_item_upfolder.extension = ""; //20 v hexu znaci konec = 32 v dec
+    dir_item_upfolder.filezise = 0; //velikost slozky je nulova ve fatce
+    dir_item_upfolder.first_cluster = upper_fol_clust_first;
+    //vytvoreni odkazu na nadrazenou slozku v nove slozce - KONEC
+
+    //zapsat udaje o nove vytvorene podslozce do nadrazene (jiz existujici) slozky - START
+    //floppy_img_file_write.seekp((upper_fol_clust_last + 31) * SECTOR_SIZE_B + (SECTOR_SIZE_B - upper_fol_clust_last_free), std::ios::beg);
+    std::vector<unsigned char> to_write_subfolder;
+
+    directory_item dir_item_to_add;
+    dir_item_to_add.filename = newly_created_fol_name; //nazev nove slozky
+    dir_item_to_add.extension = ""; //20 v hexu znaci konec = 32 v dec
+    dir_item_to_add.filezise = 0; //velikost slozky je nulova ve fatce
+    dir_item_to_add.first_cluster = newly_created_fol_clust; //prvni cluster nadrazene slozky
+
+    int i = 0;
+    for (; i < newly_created_fol_name.length() - 1; i++) {
+        to_write_subfolder.push_back(dir_item_to_add.filename[i]);
+    }
+
+    for (; i < 8; i++) { //doplnit na 8 bytu, ve fat nazev vzdy 8 byt
+        to_write_subfolder.push_back(32);
+    }
+
+    //floppy_img_file_write.write(reinterpret_cast<const char*>(to_write_subfolder.data()), 8);
+    //floppy_img_file_write.flush();
+    std::cout << "writed!";
+    //zapsat udaje o nove vytvorene podslozce do nadrazene (jiz existujici) slozky - KONEC
+
+    //floppy_img_file_write.close();
+
+    return 3;
+}

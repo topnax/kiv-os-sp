@@ -35,3 +35,5 @@ std::vector<directory_item> retrieve_folders_cur_folder(std::vector<int> fat_tab
 std::vector<directory_item> get_dir_items(int num_sectors, std::vector<unsigned char> dir_cont);
 std::vector<int> retrieve_sectors_nums_fs(std::vector<int> fat_table_dec, int starting_sector);
 std::vector<std::string> path_to_indiv_items(const char *path_file);
+int retrieve_free_byte_count(int sector_num);
+int write_folder_to_fs(int newly_created_fol_clust, std::string newly_created_fol_name, int upper_fol_clust_first, int upper_fol_clust_last, int upper_fol_clust_last_free);
