@@ -6,7 +6,7 @@
 #include "vga_file.h"
 #include "../api/hal.h"
 
-bool Vga_File::write(char *buffer, size_t size, size_t &written) {
+bool Tty_File::write(char *buffer, size_t size, size_t &written) {
     kiv_hal::TRegisters registers;
     registers.rax.h = static_cast<decltype(registers.rax.h)>(kiv_hal::NVGA_BIOS::Write_String);
 
@@ -24,7 +24,7 @@ bool Vga_File::write(char *buffer, size_t size, size_t &written) {
     return !error;
 }
 
-bool Vga_File::read(size_t size, char *out_buffer, size_t &read) {
+bool Tty_File::read(size_t size, char *out_buffer, size_t &read) {
     // cannot read from VGA
     return false;
 }

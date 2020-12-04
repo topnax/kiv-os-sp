@@ -10,7 +10,7 @@
 /**
  * Wrapper over the VGA driver
  */
-class Vga_File: public Generic_File {
+class Tty_File: public Generic_File {
 public:
     bool write(char *buffer, size_t size, size_t &written) override;
 

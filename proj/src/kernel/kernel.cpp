@@ -85,11 +85,11 @@ void run_shell(const kiv_hal::TRegisters &regs) {
     kiv_hal::TRegisters shell_regs;
 
     // open a VGA as the STDOUT for the shell
-    std::string vga = "/dev/vga";
-    auto std_out = Open_File(vga.c_str(), 0, 0);
+    std::string tty = "\\sys\\tty";
+    auto std_out = Open_File(tty.c_str(), 0, 0);
 
     // open keyboard as the STDIN for shell
-    std::string kb = "/dev/kb";
+    std::string kb = "\\sys\\kb";
     auto std_in = Open_File(kb.c_str(), 0, 0);
 
     // "shell" program should be run

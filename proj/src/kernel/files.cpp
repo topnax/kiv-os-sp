@@ -123,9 +123,9 @@ kiv_os::THandle Open_File(const char *file_name, uint8_t flags, uint8_t attribut
     }
     printf("end #######################\n");*/
     // TODO this could be improved in the future
-    if (strcmp(file_name, "/dev/vga") == 0) {
-        file = new Vga_File();
-    } else if (strcmp(file_name, "/dev/kb") == 0) {
+    if (strcmp(file_name, "\\sys\\tty") == 0) {
+        file = new Tty_File();
+    } else if (strcmp(file_name, "\\sys\\kb") == 0) {
         file = new Keyboard_File();
     } else {
         std::filesystem::path resolved_path_relative_to_fs;
