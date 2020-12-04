@@ -255,6 +255,7 @@ void fill_supported_commands_set(std::set<std::string>& set) {
     set.insert("tasklist");
     set.insert("shutdown");
     set.insert("charcnt");
+    set.insert("shell");
 }
 
 size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
@@ -414,6 +415,9 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
 
                 }
+            }
+            else if (command == "shell") {
+                call_program("shell", regs, args.c_str());
             }
             else if (command == "rgen") {
                     call_program("rgen", regs, args.c_str());
