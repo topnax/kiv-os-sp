@@ -214,3 +214,13 @@ bool kiv_os_rtl::Delete_File(const char *file_name) {
 
     return result;
 }
+
+bool kiv_os_rtl::Set_File_Attributes(const char *file_name, kiv_os::NFile_Attributes attributes) {
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::File_System, static_cast<uint8_t>(kiv_os::NOS_File_System::Set_File_Attribute));
+    regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(file_name);
+    regs.rdi.i = static_cast<uint16_t>(attributes);
+
+    const bool result = kiv_os::Sys_Call(regs);
+
+    return result;
+}

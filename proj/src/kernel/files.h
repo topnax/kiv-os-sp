@@ -54,3 +54,5 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
 void Seek(kiv_hal::TRegisters &registers);
 
 void Delete_File(kiv_hal::TRegisters &registers);
+
+void Set_File_Attributes(kiv_hal::TRegisters &registers);

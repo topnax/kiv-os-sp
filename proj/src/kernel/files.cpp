@@ -361,7 +361,7 @@ void Delete_File(kiv_hal::TRegisters &registers) {
         char *name = new char[length];
         strcpy_s(name, length, resolved_path_relative_to_fs.string().c_str());
 
-        // open a file with the found filesystem
+        // unlink a file with the found filesystem
         auto result = fs->unlink(name);
         if (result == kiv_os::NOS_Error::Success) {
             // unlink successful, do not set error
@@ -369,5 +369,30 @@ void Delete_File(kiv_hal::TRegisters &registers) {
         }
     }
     // file does not exist or unlink has failed
+    registers.flags.carry = 1;
+}
+
+void Set_File_Attributes(kiv_hal::TRegisters &registers) {
+    char *file_name = reinterpret_cast<char * >(registers.rdx.r);
+    auto attributes = static_cast<kiv_os::NFile_Attributes>(registers.rdi.i);
+
+    std::filesystem::path resolved_path_relative_to_fs;
+    std::filesystem::path absolute_path;
+
+    auto fs = File_Exists(file_name, resolved_path_relative_to_fs, absolute_path);
+    if (fs != nullptr) {
+        // convert the resolved path into a char*
+        auto length = resolved_path_relative_to_fs.string().length() + 1;
+        char *name = new char[length];
+        strcpy_s(name, length, resolved_path_relative_to_fs.string().c_str());
+
+        // set file attributes with the found filesystem
+        auto result = fs->set_attributes(file_name, attributes);
+        if (result == kiv_os::NOS_Error::Success) {
+            // attributes set successfully, do not set error
+            return;
+        }
+    }
+
     registers.flags.carry = 1;
 }

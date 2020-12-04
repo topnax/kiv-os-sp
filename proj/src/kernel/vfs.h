@@ -71,6 +71,10 @@ public:
      */
     virtual bool file_exists(int32_t current_fd, const char *name, bool start_from_root, int32_t &found_fd) = 0;
 
+    virtual kiv_os::NOS_Error set_attributes(const char *name, kiv_os::NFile_Attributes attributes) {
+        return kiv_os::NOS_Error::Permission_Denied;
+    };
+
     /**
      *  Closes the given file
      */

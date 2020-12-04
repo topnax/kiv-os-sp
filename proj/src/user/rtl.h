@@ -45,4 +45,6 @@ namespace kiv_os_rtl {
     bool Seek(const kiv_os::THandle handle, size_t position, const kiv_os::NFile_Seek pos_type, const kiv_os::NFile_Seek op, size_t &pos_from_start);
 
     bool Delete_File(const char *file_name);
+
+    bool Set_File_Attributes(const char *file_name, kiv_os::NFile_Attributes attributes);
 }
