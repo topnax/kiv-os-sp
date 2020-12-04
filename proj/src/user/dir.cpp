@@ -18,8 +18,31 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
 
     bool recursive = false;
 
+
+
     // load text to be echoed from rdi register
     char* args = (char*) regs.rdi.r;
+    printf("args: %s\n", args);
+    if (regs.rdi.r != 0 && strlen(args) > 0) {
+        const char separator[] = " ";
+        char *token;
+        char *next_token1 = NULL;
+
+        /* get the first token */
+        token = strtok_s(args, separator, &next_token1);
+        printf("splitting");
+        /* walk through other tokens */
+
+        printf("strtokd: '%s'\n", token );
+        while( token != NULL)
+        {
+            token = strtok_s(NULL, separator, &next_token1);
+            if (token != nullptr) {
+                printf("strtokd: '%s'\n", token);
+            }
+        }
+    }
+
 //    if (strcmp(args, "/S") == 0) {
         recursive = true;
  //   }
