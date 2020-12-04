@@ -7,7 +7,7 @@ constexpr auto PROMPT_BUFFER_SIZE = 5000;
 
 bool echoOn = true;
 
-void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters& registers) {
+void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters &registers) {
 
     // get references to std_in and out from respective registers:
     const auto std_out = static_cast<kiv_os::THandle>(registers.rbx.x);
@@ -37,10 +37,8 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             kiv_os::THandle first_handle;
 
             if (programs[i].input.type == ProgramHandleType::File) {
-                if (kiv_os_rtl::Open_File(programs[i].input.name, 0, 0, file_handle_first_in)) {
-                    ;;
-                }
-                else {
+                if (kiv_os_rtl::Open_File(programs[i].input.name, 0, 0, file_handle_first_in)) { ;;
+                } else {
                     // file not found
                     char buff[200];
                     memset(buff, 0, 200);
@@ -48,30 +46,27 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
                     kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
                     return;
                 }
-            }
-            else if (programs[i].input.type == ProgramHandleType::Standard) {
+            } else if (programs[i].input.type == ProgramHandleType::Standard) {
                 file_handle_first_in = std_in;
             }
 
             if (i < programs.size() - 1) {
-                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, file_handle_first_in/*std_in*/, pipe_handles[0], first_handle);
-            }
-            else if (i == programs.size() - 1) {
-                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, file_handle_first_in/*std_in*/, std_out, first_handle);
+                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, file_handle_first_in/*std_in*/,
+                                          pipe_handles[0], first_handle);
+            } else if (i == programs.size() - 1) {
+                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, file_handle_first_in/*std_in*/, std_out,
+                                          first_handle);
             }
 
             handles.push_back(first_handle);
 
-        }
-        else if (i == programs.size() - 1) { // TODO test output to file!
+        } else if (i == programs.size() - 1) { // TODO test output to file!
             // the last program gets std out or a file as output
             kiv_os::THandle last_handle;
 
             if (programs[i].output.type == ProgramHandleType::File) {
-                if (kiv_os_rtl::Open_File(programs[i].output.name, 0, 0, file_handle_last_out)) {
-                    ;;
-                }
-                else {
+                if (kiv_os_rtl::Open_File(programs[i].output.name, 0, 0, file_handle_last_out)) { ;;
+                } else {
                     // file not found
                     char buff[200];
                     memset(buff, 0, 200);
@@ -79,31 +74,31 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
                     kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
                     return;
                 }
-            }
-            else if (programs[i].output.type == ProgramHandleType::Standard) {
+            } else if (programs[i].output.type == ProgramHandleType::Standard) {
                 file_handle_last_out = std_out;
             }
 
             if (programs.size() > 1) {
-                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[pipe_handles.size() - 1], file_handle_last_out/*std_out*/, last_handle);
-            }
-            else {
-                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, std_in, file_handle_last_out/*std_out*/, last_handle);
+                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[pipe_handles.size() - 1],
+                                          file_handle_last_out/*std_out*/, last_handle);
+            } else {
+                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, std_in, file_handle_last_out/*std_out*/,
+                                          last_handle);
             }
 
             handles.push_back(last_handle);
-        }
-        else { // TODO this should be fine
+        } else { // TODO this should be fine
             // else connect it correctly
             kiv_os::THandle handle;
-            kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[2 * i - 1], pipe_handles[2 * i], handle);
+            kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[2 * i - 1], pipe_handles[2 * i],
+                                      handle);
             handles.push_back(handle);
         }
     }
 
     // index to the handles vector of a handle that signalled it ended:
     uint8_t handleThatSignalledIndex = 0;
-    
+
     // how many programs are still running: 
     int running_progs_num = programs.size();
 
@@ -127,14 +122,13 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             //printf("closing handle %d (ind %d)\n", pipe_handles[0], 0);
 
             // if it was the first program that ended, close only the input of the first pipe (at pipe_handles[0])
-            if(pipe_handles.size() > 0)
+            if (pipe_handles.size() > 0)
                 kiv_os_rtl::Close_Handle(pipe_handles[0]);
-            if(programs[0].input.type == ProgramHandleType::File)
+            if (programs[0].input.type == ProgramHandleType::File)
                 kiv_os_rtl::Close_Handle(file_handle_first_in);
 
             num_of_handles_closed++;
-        }
-        else if (ind == orig_handles.size() - 1) {
+        } else if (ind == orig_handles.size() - 1) {
             //printf("closing handle %d (ind %d)\n", pipe_handles[pipe_handles.size() - 1], pipe_handles.size() - 1);
 
             // if it was the last program that ended, close only the output of the last pipe (at pipe_handles[size - 1])
@@ -144,8 +138,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
                 kiv_os_rtl::Close_Handle(file_handle_last_out);
 
             num_of_handles_closed++;
-        }
-        else {
+        } else {
             //printf("closing handles %d (ind %d) and %d (ind %d)\n", pipe_handles[2 * ind], 2 * ind, pipe_handles[2 * ind - 1], 2 * ind - 1);
 
             // else close the input or output of the pipes surounding the process
@@ -241,7 +234,7 @@ void call_program(char *program, const kiv_hal::TRegisters &registers, const cha
 
 }
 
-void fill_supported_commands_set(std::set<std::string>& set) {
+void fill_supported_commands_set(std::set<std::string> &set) {
     // hardcoded filling of supported commands:
     set.insert("type");
     set.insert("md");
@@ -256,6 +249,7 @@ void fill_supported_commands_set(std::set<std::string>& set) {
     set.insert("shutdown");
     set.insert("charcnt");
     set.insert("shell");
+    set.insert("cd");
 }
 
 void fill_prompt_buffer(char *path, char *prompt_buffer, size_t prompt_buffer_size) {
@@ -287,7 +281,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
 
     do {
-        if(echoOn)
+        if (echoOn)
             kiv_os_rtl::Write_File(std_out, prompt, strlen(prompt), counter);
 
         if (kiv_os_rtl::Read_File(std_in, buffer, buffer_size, counter)) {
@@ -303,7 +297,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
         // checking for program piping - TODO make this more elegant
         bool io_chain = false;
-        
+
         // removing leading and tailing white spaces:
         strtrim(buffer);
         int input_len = strlen(buffer);
@@ -315,7 +309,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 // possibility of io chain in the correct format
 
                 if (buffer[i] == '|' &&
-                    (i == input_len - 1 || i == 0) ) {
+                    (i == input_len - 1 || i == 0)) {
                     // the pipe symbol was at the beginning with nothing before it
                     // or it was at the end with nothing behind it
                     //
@@ -323,8 +317,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                     // program calling is not prepared for this situation
                     io_chain = false;
                     break; // this break might be unnecessary
-                }
-                else {
+                } else {
                     io_chain = true;
                 }
             }
@@ -350,9 +343,9 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 // call piped programs if it's not just echo to execute
                 call_piped_programs(programs, regs);
             }
-            
+
             // if the case WASN'T that we only had the echo program, go back to the reading loop
-            if(!(programs.size() == 1 && strcmp(programs[0].name, "echo") == 0))
+            if (!(programs.size() == 1 && strcmp(programs[0].name, "echo") == 0))
                 continue;
         }
 
@@ -361,10 +354,10 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         char *token1;
         //char *command;
         std::vector<std::string> command_and_args;
-        char* p = strtok_s(buffer, " \"", &token1); // make it into two tokns only
-        if(p)
+        char *p = strtok_s(buffer, " \"", &token1); // make it into two tokns only
+        if (p)
             command_and_args.push_back(p);
-        if(token1)
+        if (token1)
             command_and_args.push_back(token1);
 
         if (command_and_args.empty())
@@ -388,25 +381,24 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                     if (args == "on") {
                         echoOn = true;
                         continue;
-                    }
-                    else if (args == "off") {
+                    } else if (args == "off") {
                         echoOn = false;
                         continue;
                     }
 
                     // todo echo on/off only hides the prompt?
                     //if (echoOn) {
-                        // i think we can afford this, bc piped programs are handled elswhere, so this
-                        // only prevents the echo from printing to std
-                        call_program("echo", regs, args.c_str());
+                    // i think we can afford this, bc piped programs are handled elswhere, so this
+                    // only prevents the echo from printing to std
+                    call_program("echo", regs, args.c_str());
                     //}
 
 
 
                 }
-            } else if (strcmp(command, "cd") == 0) {
-                if (args)  {
-                    if (kiv_os_rtl::Set_Working_Dir(args)) {
+            } else if (command == "cd") {
+                if (!args.empty()) {
+                    if (kiv_os_rtl::Set_Working_Dir(args.c_str())) {
                         kiv_os_rtl::Get_Working_Dir(working_directory, PROMPT_BUFFER_SIZE, get_wd_read_count);
                         if (get_wd_read_count > 0) {
                             fill_prompt_buffer(working_directory, prompt, PROMPT_BUFFER_SIZE);
@@ -415,49 +407,39 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                         // TODO print
                     }
                 }
-                else if (command == "shell") {
+            } else if (command == "shell") {
                 call_program("shell", regs, args.c_str());
-            }
-            else if (command == "rgen") {
-                    call_program("rgen", regs, args.c_str());
-            }
-            else if (command == "pipetest") {
+            } else if (command == "rgen") {
+                call_program("rgen", regs, args.c_str());
+            } else if (command == "pipetest") {
                 pipe_test(std_in, std_out);
-            }
-            else if (command == "freq") {
+            } else if (command == "freq") {
                 call_program("freq", regs, args.c_str());
-            }
-            else if (command == "charcnt") {
+            } else if (command == "charcnt") {
                 call_program("charcnt", regs, args.c_str());
-            }
-            else if (command == "tasklist") {
+            } else if (command == "tasklist") {
                 call_program("tasklist", regs, args.c_str());
-            }
-            else if (command == "sort") {
+            } else if (command == "sort") {
                 args = trim(args, " ");
                 call_program("sort", regs, args.c_str());
-            }
-            else if (command == "find") {
+            } else if (command == "find") {
 
                 call_program("find", regs, args.c_str());
-            }
-            else if (command == "dir") {
+            } else if (command == "dir") {
                 // TODO improve arg parsing
                 if (args.size() > 0) {
                     call_program("dir", regs, args.c_str());
                 }
-            }
-            else if (command == "type") {
-                    call_program("type", regs, args.c_str());
+            } else if (command == "type") {
+                call_program("type", regs, args.c_str());
 
             }
-            // TODO this command might not be present in the release
+                // TODO this command might not be present in the release
             else if (command == "shutdown") {
                 kiv_os_rtl::Shutdown();
             }
         }
     } while (strcmp(buffer, "exit") != 0);
-
 
     return 0;
 }
