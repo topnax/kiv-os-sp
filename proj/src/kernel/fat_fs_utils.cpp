@@ -109,7 +109,7 @@ bool check_fat_table_consistency(std::vector<unsigned char> first_table, std::ve
 
 /*
 * Prevede fat tabulku na dec, pro snazsi vyhledavani.
-* fat_table_hex = obsah fat tabulky (byty)
+* fat_table_hex = obsah fat tabulky (hex)
 /**/
 std::vector<int> convert_fat_table_to_dec(std::vector<unsigned char> fat_table_hex) {
     std::cout << "received size is: " << fat_table_hex.size();
@@ -647,4 +647,37 @@ void write_data_to_fat_fs(int start_sector_num, std::vector<char> buffer_to_writ
     kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::Disk_IO, reg_to_write);
 
     std::cout << "Writed!!\n" << ap_to_write.count;
+}
+
+/*
+* Najde ve fat tabulce index prvniho volneho clusteru a vrati jeho index.
+* fat_table_hex = obsah fat tabulky (byty)
+/**/
+int retrieve_free_cluster_index(std::vector<int> fat_table_dec) {
+    int free_clust_num = -1;
+
+    for (int i = 0; i < fat_table_dec.size(); i++) {
+        if (fat_table_dec.at(i) == 0) { //nasel se neobsazeny cluster, koncime
+            free_clust_num = i;
+            break;
+        }
+    }
+
+    return free_clust_num;
+}
+
+unsigned char conv_char_to_hex(char character)
+{
+    if (character >= 'A')
+        return character - 'A' + 10;
+    else
+        return character - '0';
+}
+
+/*
+* Prevod dvou pismen reprezentujicich bajt na hodnotu bajtu.
+/**/
+unsigned char conv_char_arr_to_hex(char char_arr[2])
+{
+    return conv_char_to_hex(char_arr[0]) * 16 + conv_char_to_hex(char_arr[1]);
 }
