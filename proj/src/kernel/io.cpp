@@ -1,14 +1,8 @@
-#include <map>
 #include "io.h"
-#include "kernel.h"
-#include "handles.h"
-#include "pipe.h"
 #include "pipes.h"
 #include "files.h"
-#include <set>
+#include "dir.h"
 
-
-void Open_File(kiv_hal::TRegisters &registers);
 
 void Handle_IO(kiv_hal::TRegisters &regs) {
 
@@ -49,6 +43,19 @@ void Handle_IO(kiv_hal::TRegisters &regs) {
             break;
         }
 
+        case kiv_os::NOS_File_System::Set_Working_Dir: {
+            bool result = Set_Working_Dir(regs);
+            if (!result) regs.flags.carry = 1;
+            break;
+        }
+
+        case kiv_os::NOS_File_System::Get_Working_Dir: {
+            bool result = Get_Working_Dir(regs);
+            if (!result) regs.flags.carry = 1;
+            break;
+        }
+
+        // TODO remove this
 	/* Nasledujici dve vetve jsou ukazka, ze starsiho zadani, ktere ukazuji, jak mate mapovat Windows HANDLE na kiv_os handle a zpet, vcetne jejich alokace a uvolneni
 
 		case kiv_os::scCreate_File: {
@@ -71,11 +78,4 @@ void Handle_IO(kiv_hal::TRegisters &regs) {
 
 	*/
 	}
-}
-
-void Open_File(kiv_hal::TRegisters &registers) {
-    char *file_name = reinterpret_cast<char * >(registers.rdx.r);
-    uint8_t flags = registers.rcx.l;
-    auto attributes = static_cast<uint8_t>(registers.rdi.i);
-    registers.rax.x = Open_File(file_name, flags, attributes);
 }

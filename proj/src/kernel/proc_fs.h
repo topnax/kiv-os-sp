@@ -32,6 +32,12 @@ public:
 
     kiv_os::NOS_Error close(File file) override;
 
+    bool file_exists(int32_t current_fd, const char *name, bool start_from_root, int32_t &found_fd) override;
+
+    void print_name() override{
+        printf("printing procfs\n");
+    }
+
 private:
     static std::vector<char> generate_readproc_vector(Process process);
 

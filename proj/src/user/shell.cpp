@@ -3,6 +3,8 @@
 #include "argparser.h"
 #include <vector>
 
+constexpr auto PROMPT_BUFFER_SIZE = 5000;
+
 
 void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters& registers) {
 
@@ -198,6 +200,10 @@ void fill_supported_commands_set(std::set<std::string>& set) {
     set.insert("charcnt");
 }
 
+void fill_prompt_buffer(char *path, char *prompt_buffer, size_t prompt_buffer_size) {
+    sprintf_s(prompt_buffer, prompt_buffer_size, "%s>", path);
+}
+
 size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
     std::set<std::string> supported_commands;
     fill_supported_commands_set(supported_commands);
@@ -213,7 +219,15 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                         "Shell zobrazuje echo zadaneho retezce. Prikaz exit ukonci shell.\n";
     kiv_os_rtl::Write_File(std_out, intro, strlen(intro), counter);
 
-    const char *prompt = "C:\\>";
+    char prompt[PROMPT_BUFFER_SIZE];
+    char working_directory[PROMPT_BUFFER_SIZE];
+    size_t get_wd_read_count;
+
+    kiv_os_rtl::Get_Working_Dir(working_directory, PROMPT_BUFFER_SIZE, get_wd_read_count);
+
+    fill_prompt_buffer(working_directory, prompt, PROMPT_BUFFER_SIZE);
+
+
     do {
         kiv_os_rtl::Write_File(std_out, prompt, strlen(prompt), counter);
 
@@ -312,6 +326,20 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         if (command) {
             // separate command arguments
             char *args = strtok_s(NULL, " ", &token1);
+
+            if (strcmp(command, "cd") == 0) {
+                if (args)  {
+                    if (kiv_os_rtl::Set_Working_Dir(args)) {
+                        kiv_os_rtl::Get_Working_Dir(working_directory, PROMPT_BUFFER_SIZE, get_wd_read_count);
+                        if (get_wd_read_count > 0) {
+                            fill_prompt_buffer(working_directory, prompt, PROMPT_BUFFER_SIZE);
+                        }
+                    } else {
+                        // TODO print
+                    }
+                }
+            }
+
             if (strcmp(command, "echo") == 0) {
                 if (args) {
                     call_program("echo", regs, args);
@@ -339,10 +367,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 }
             }
             if (strcmp(command, "type") == 0) {
-                // TODO improve argparsing
-                if (args) {
-                    call_program("type", regs, args);
-                }
+                call_program("type", regs, args);
             }
             // TODO this command might not be present in the release
             if (strcmp(command, "shutdown") == 0) {

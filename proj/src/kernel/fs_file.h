@@ -20,6 +20,8 @@ public:
 
     void close() override;
 
+    ~Filesystem_File() override;
+
 private:
     /**
      * A structure that holds the state of the file

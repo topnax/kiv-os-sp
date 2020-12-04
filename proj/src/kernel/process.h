@@ -38,7 +38,10 @@ struct Wait_For_Listener {
 class Thread_Control_Block {
 public:
     std::map<kiv_os::THandle, std::unique_ptr<std::vector<Wait_For_Listener *>>> Wait_For_Listeners;
+    std::map<kiv_os::THandle, kiv_os::THandle> Parent_Processes;
 };
+
+bool resolve_native_thread_id_to_thandle(std::thread::id native_thread_id, kiv_os::THandle &out_handle);
 
 void thread_post_execute(bool is_process);
 
@@ -63,3 +66,7 @@ void signal(kiv_os::NSignal_Id signal_id, Process *process);
 void shutdown();
 
 Process_Control_Block* Get_Pcb();
+
+Thread_Control_Block* Get_Tcb();
+
+Process* resolve_current_thread_handle_to_process();

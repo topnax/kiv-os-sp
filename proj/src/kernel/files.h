@@ -3,6 +3,7 @@
 
 #include <map>
 #include <memory>
+#include <filesystem>
 
 #include "generic_file.h"
 #include "pipe_file.h"
@@ -32,6 +33,8 @@ protected:
 
 Generic_File* Resolve_THandle_To_File(kiv_os::THandle handle);
 
+void Open_File(kiv_hal::TRegisters &registers);
+
 kiv_os::THandle Open_File(const char *file_name, uint8_t flags, uint8_t attributes);
 
 kiv_os::THandle Add_File_To_Table(Generic_File *file);
@@ -45,3 +48,5 @@ void Read_File(kiv_hal::TRegisters &registers);
 void Add_Filesystem(const std::string &name, VFS *vfs);
 
 void Init_Filesystems();
+
+VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relative_to_fs, std::filesystem::path &absolute_path);

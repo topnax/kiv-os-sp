@@ -7,17 +7,33 @@
 
 #include <map>
 #include "../../api/api.h"
+#include <filesystem>
 
+///////////////////////////////////////
+/// these should be defined in api.h.
+/// for now both the following enum and structure are hardcoded and shared between userspace and kernel
 enum class Process_Status {
     Ready = 0,
     Running = 1,
     Zombie = 2
 };
 
+struct PCB_Entry {
+    kiv_os::THandle handle;
+    kiv_os::THandle std_in;
+    kiv_os::THandle std_out;
+    Process_Status status;
+    kiv_os::NOS_Error exit_code;
+    char program_name[42];
+    char working_directory[256];
+};
+/// to be added to api.h in the future KIV/OS SP iterations
+////////////////////////////////////////
+
 class Process {
 
 public:
-    Process(kiv_os::THandle handle, kiv_os::THandle std_in, kiv_os::THandle std_out, char *program_name);
+    Process(kiv_os::THandle handle, kiv_os::THandle std_in, kiv_os::THandle std_out, char *program_name, std::filesystem::path working_directory);
 
     /**
      * Handle of this process
@@ -53,5 +69,13 @@ public:
      * Status of the process
      */
      Process_Status status = Process_Status::Ready;
+
+     /**
+      * Path to current working directory
+      */
+     std::filesystem::path working_directory;
+
+     PCB_Entry Get_Pcb_Entry();
+
 };
 
