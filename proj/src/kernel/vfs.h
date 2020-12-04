@@ -10,7 +10,7 @@
 
 struct File {
     kiv_os::THandle handle;
-    uint16_t attributes;
+    uint8_t attributes;
     size_t size;
     size_t position;
     char *name;
