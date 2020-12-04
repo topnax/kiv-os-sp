@@ -28,7 +28,8 @@ extern "C" size_t __stdcall echo(const kiv_hal::TRegisters &regs) {
         kiv_os_rtl::Exit(kiv_os::NOS_Error::IO_Error);
     } else {
         
-        if (text[0] == '\"' && text[strlen(text) - 1] == '\"') { // escaping the double quotes, maybe this is not necessary
+        if (text[0] == '\"' && text[strlen(text) - 1] == '\"') { 
+            // if the text starts and ends with double quotes - remove them
             text++;
             text[strlen(text) - 1] = '\0';
         }

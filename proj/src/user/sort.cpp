@@ -7,7 +7,6 @@
 #include "rtl.h"
 #include <vector>
 #include <string>
-//#include <iostream>
 #include <algorithm>
 #include <locale>
 
@@ -59,6 +58,7 @@ extern "C" size_t __stdcall sort(const kiv_hal::TRegisters & regs) {
     bool doContinue = true; // flag to tell if we should break out of the reading cycle
     do {
         if (kiv_os_rtl::Read_File(file_handle, buffer, buffer_size, counter)) {
+            // TODO uncomment this for newline addition in user's input of text:
             //if (counter < buffer_size) {
             //    // this happens on Enter?
             //    size_t written = 0;
@@ -96,12 +96,6 @@ extern "C" size_t __stdcall sort(const kiv_hal::TRegisters & regs) {
     } while (doContinue);
     if(curr_string.size() > 0)
         lines.push_back(curr_string); // the last line does not have to end with \n
-
-    /*printf("\n%s\n", "--- Printing the original file: ---");
-    for (int i = 0; i < input_vec.size(); i++) {
-        printf("%c", input_vec[i]);
-    }
-    printf("\n%s\n", "---  ---");*/
 
     // sorting the lines - using locale argument so that uppercase appears after lowercase
     std::sort(lines.begin(), lines.end(), std::locale("en_US.UTF-8"));

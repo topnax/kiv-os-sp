@@ -26,6 +26,7 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
     bool doContinue = true; // flag to tell if we should break out of the reading cycle
     do {
         if (kiv_os_rtl::Read_File(std_in, buffer, buffer_size, counter)) {
+            // TODO uncomment this for newline addition in user's input of text:
             //if (counter < buffer_size) {
             //    // this happens on Enter?
             //    size_t written = 0;

@@ -7,8 +7,6 @@ bool echoOn = true;
 
 void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters& registers) {
 
-    //printf("running piped programs\n");
-
     // get references to std_in and out from respective registers:
     const auto std_out = static_cast<kiv_os::THandle>(registers.rbx.x);
     const auto std_in = static_cast<kiv_os::THandle>(registers.rax.x);
@@ -289,10 +287,6 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         } else
             break;    //EOF
 
-        // TODO proper PROPER format checking?
-        // - current state allows this to happen:
-        // echo "hello | freq" -> result is: Program  ' freq" '  not found :(
-
         // checking for program piping - TODO make this more elegant
         bool io_chain = false;
         
@@ -325,21 +319,6 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         if (io_chain) {
             std::vector<program> programs = parse_programs(buffer);
 
-            //for (int i = 0; i < programs.size()/**program_count*/; i++) {
-            //    char* name = programs[i].name;
-            //    char* data = programs[i].data;
-            //    io in = programs[i].input;
-            //    io out = programs[i].output;
-
-            //    printf("%d name: '%s'\n", i, name);
-            //    printf("%d data: '%s'\n", i, data);
-            //    printf("%d input type: %d\n", i, in.type);
-            //    printf("%d input name: '%s'\n", i, in.name);
-            //    printf("%d output type: %d\n", i, out.type);
-            //    printf("%d output name: '%s'\n", i, out.name);
-            //    printf("\n");
-            //}
-
             // checking if all the program names are valid:
             bool names_ok = false;
             for (int i = 0; i < programs.size(); i++) {
@@ -353,12 +332,12 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 }
             }
 
-            if (names_ok && !(programs.size() == 1 && strcmp(programs[0].name, "echo") == 0)/*&& programs.size() > 1*/) {
+            if (names_ok && !(programs.size() == 1 && strcmp(programs[0].name, "echo") == 0)) {
+                // call piped programs if it's not just echo to execute
                 call_piped_programs(programs, regs);
             }
             
-            // after all is done, go back to the reading loop, do not go ahead to 'normal' commands execution
-            //if(programs.size() > 1)
+            // if the case WASN'T that we only had the echo program, go back to the reading loop
             if(!(programs.size() == 1 && strcmp(programs[0].name, "echo") == 0))
                 continue;
         }
@@ -401,11 +380,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                         continue;
                     }
                     
-
-                    //if (args[0] == '\"' && args[args.size() - 1] == '\"') { // escaping the double quotes, maybe this is not necessary
-                    //    args = args.substr(1, args.size() - 2);
-                    //}
-
+                    // todo echo on/off only hides the prompt?
                     //if (echoOn) {
                         // i think we can afford this, bc piped programs are handled elswhere, so this 
                         // only prevents the echo from printing to std
@@ -439,17 +414,6 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 call_program("sort", regs, args.c_str());
             }
             else if (command == "find") {
-
-                // the format is find /v /c "" file.txt
-                //std::string form = "/v /c \"\"";
-                //int pos = 0;
-                //int index = args.find(form, pos);
-                //if (index == 0) {
-                //    // the format is ok, now separate the file path:
-                //    args = args.substr(form.size(), args.size() - 1);
-                //    args = trim(args, " ");
-                //    call_program("find", regs, args.c_str());
-                //}
 
                 call_program("find", regs, args.c_str());
             }

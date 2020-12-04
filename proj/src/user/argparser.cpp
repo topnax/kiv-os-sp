@@ -127,6 +127,7 @@ std::vector<program> parse_programs(char* input) {
 
             
             // special case for echo, bc it can have any characters in double quotes - ignore these characters, only send them to args:
+            // todo think of prettier way to do this?
             if (strcmp(actual_name, "echo") == 0 && data && data[0] == '\"' && !echoQuotes) {
                 // they want to echo something in quotes
                 echoQuotes = true;
@@ -170,7 +171,6 @@ std::vector<program> parse_programs(char* input) {
             }
             
             
-            //programs[prog_count] = curr_p;
             programs_vec.push_back(curr_p); // save the program to the vector
             prog_count++;
             actual_prog_count++;

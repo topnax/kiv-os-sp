@@ -83,7 +83,7 @@ std::vector<char> Proc_Fs::generate_readproc_vector(Process p) {
 }
 
 std::vector<char> Proc_Fs::generate_test_vector() {
-    std::string testStr = "abc test\n123 TEST\nAhoj\nahoj\nzmrzlina mnam\n96haha\nABCDEF\n";
+    std::string testStr = "abc test\n123 TEST\nAhoj\nahoj\nzmrzlina mnam\n556haha\nABCDEF\n";
 
     std::vector<char> out(testStr.begin(), testStr.end());
 
@@ -120,7 +120,7 @@ kiv_os::NOS_Error Proc_Fs::read(File file, size_t size, size_t offset, std::vect
         auto p = Get_Pcb()->operator[](file.handle);
         if (p != nullptr) {
             generated = generate_readproc_vector(*p);
-            //generated = generate_test_vector(); // TODO remove this line
+            //generated = generate_test_vector(); // TODO uncomment this line to get a multiline output on type /procfs/{valid_id}
         } else {
             return kiv_os::NOS_Error::File_Not_Found;
         }
