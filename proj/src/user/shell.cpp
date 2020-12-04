@@ -307,7 +307,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 buffer[i] == '<') {
                 // possibility of io chain in the correct format
 
-                if (buffer[i] == '|' &&
+                if ((buffer[i] == '|' || buffer[i] == '>' || buffer[i] == '<') &&
                     (i == input_len - 1 || i == 0)) {
                     // the pipe symbol was at the beginning with nothing before it
                     // or it was at the end with nothing behind it
@@ -353,7 +353,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         char *token1;
         
         std::vector<std::string> command_and_args;
-        char *p = strtok_s(buffer, " \"", &token1); // make it into two tokns only
+        char *p = strtok_s(buffer, " ", &token1); // make it into two tokns only
         if (p)
             command_and_args.push_back(p);
         if (token1)
@@ -402,8 +402,6 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 }
                 continue;
             }
-
-            // todo shutdown
 
             // actual command execution:
             // cast from const to non const - todo?

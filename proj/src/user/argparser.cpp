@@ -116,6 +116,7 @@ std::vector<program> parse_programs(char* input) {
             if (i == len - 1) {
                 // add the last character if we're at the end
                 curr_prog_name[j] = input[i];
+                curr_prog_name[j + 1] = '\0';
             }
 
             
@@ -128,33 +129,34 @@ std::vector<program> parse_programs(char* input) {
             
             // special case for echo, bc it can have any characters in double quotes - ignore these characters, only send them to args:
             // todo think of prettier way to do this?
-            if (strcmp(actual_name, "echo") == 0 && data && data[0] == '\"' && !echoQuotes) {
-                // they want to echo something in quotes
-                echoQuotes = true;
+            //if (strcmp(actual_name, "echo") == 0 /*&& data && data[0] == '\"' && !echoQuotes*/) {
 
-                // get the whole data:
-                int k = i;
-                for (k = i; k < len && input[k] != '\"'; k++) {
-                    saved += input[k];
-                }
-                if(k < len)
-                    saved += input[k];
+            //    // they want to echo something in quotes
+            //    echoQuotes = true;
 
-                //printf("data is now %s\n", saved.c_str());
+            //    // get the whole data:
+            //    int k = i;
+            //    for (k = i; k < len && input[k] != '\"'; k++) {
+            //        saved += input[k];
+            //    }
+            //    if(k < len)
+            //        saved += input[k];
 
-                memset(curr_prog_name, 0, NAME_LEN); 
-                // copy it back to the variable we use for everything else:
-                strncpy_s(curr_prog_name, saved.c_str(), NAME_LEN);
-                i = k; // set the positions properly
-                j = saved.size();
+            //    //printf("data is now %s\n", saved.c_str());
 
-                if(i < len - 1)
-                    continue; // if we're not at the end yet, keep reading
-                else {
-                    // if we are at the end, parse it again and move on
-                    actual_name = strtok_s(curr_prog_name, " ", &data); 
-                }
-            }
+            //    memset(curr_prog_name, 0, NAME_LEN); 
+            //    // copy it back to the variable we use for everything else:
+            //    strncpy_s(curr_prog_name, saved.c_str(), NAME_LEN);
+            //    i = k; // set the positions properly
+            //    j = saved.size();
+
+            //    if(i < len - 1)
+            //        continue; // if we're not at the end yet, keep reading
+            //    else {
+            //        // if we are at the end, parse it again and move on
+            //        actual_name = strtok_s(curr_prog_name, " ", &data); 
+            //    }
+            //}
             
 
             // trim the name and the data
@@ -187,6 +189,46 @@ std::vector<program> parse_programs(char* input) {
         curr_prog_name[j] = input[i];
         curr_prog_name[j + 1] = '\0';
         j++;
+
+
+        // check if we got echo and if so, take care of it:
+        if (strcmp(curr_prog_name, "echo ") == 0) {
+            printf("echoocococo\n");
+
+            // there is echo. Check the following input and look for double quotes
+            std::string echoArg;
+            std::vector<int> quotesIndexes;
+            bool quotesOpen = false;
+
+            // read until we encounter a pipe/fwd symbol, which is not closed in double quotes:
+            for (int k = i + 1; k < len; k++) {
+                if (input[k] == '\"') {
+                    quotesOpen = !quotesOpen;
+                }
+                if ((input[k] == pipe_symb || input[k] == in_symb || input[k] == out_symb) &&
+                    !quotesOpen) {
+
+                    // add the echo program with the whole arg and move on!
+                    echoArg = "echo " + echoArg;
+                    strcpy_s(curr_prog_name, echoArg.c_str());
+                    i = k - 1;
+                    j = echoArg.size();
+                    break;
+
+                }
+
+                echoArg += input[k];
+
+                if (k == len - 1) {
+                    echoArg = "echo " + echoArg;
+                    strcpy_s(curr_prog_name, echoArg.c_str());
+                    i = k - 1;
+                    j = echoArg.size();
+                    break;
+                }
+            }
+
+        }
     }
 
 
