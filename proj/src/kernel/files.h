@@ -56,3 +56,5 @@ void Seek(kiv_hal::TRegisters &registers);
 void Delete_File(kiv_hal::TRegisters &registers);
 
 void Set_File_Attributes(kiv_hal::TRegisters &registers);
+
+void Get_File_Attributes(kiv_hal::TRegisters &registers);

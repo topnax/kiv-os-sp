@@ -396,3 +396,28 @@ void Set_File_Attributes(kiv_hal::TRegisters &registers) {
 
     registers.flags.carry = 1;
 }
+
+void Get_File_Attributes(kiv_hal::TRegisters &registers) {
+    char *file_name = reinterpret_cast<char * >(registers.rdx.r);
+
+    std::filesystem::path resolved_path_relative_to_fs;
+    std::filesystem::path absolute_path;
+
+    auto fs = File_Exists(file_name, resolved_path_relative_to_fs, absolute_path);
+    if (fs != nullptr) {
+        // convert the resolved path into a char*
+        auto length = resolved_path_relative_to_fs.string().length() + 1;
+        char *name = new char[length];
+        strcpy_s(name, length, resolved_path_relative_to_fs.string().c_str());
+
+        uint8_t attributes;
+
+        auto result = fs->get_attributes(name, attributes);
+        if (result == kiv_os::NOS_Error::Success) {
+            registers.rdi.i = attributes;
+            return;
+        }
+    }
+
+    registers.flags.carry = 1;
+}

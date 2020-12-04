@@ -47,4 +47,6 @@ namespace kiv_os_rtl {
     bool Delete_File(const char *file_name);
 
     bool Set_File_Attributes(const char *file_name, kiv_os::NFile_Attributes attributes);
+
+    bool Get_File_Attributes(const char *file_name, uint8_t &attributes);
 }

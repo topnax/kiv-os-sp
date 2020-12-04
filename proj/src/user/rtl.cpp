@@ -224,3 +224,14 @@ bool kiv_os_rtl::Set_File_Attributes(const char *file_name, kiv_os::NFile_Attrib
 
     return result;
 }
+
+bool kiv_os_rtl::Get_File_Attributes(const char *file_name, uint8_t &attributes) {
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::File_System, static_cast<uint8_t>(kiv_os::NOS_File_System::Get_File_Attribute));
+    regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(file_name);
+
+    const bool result = kiv_os::Sys_Call(regs);
+
+    attributes = regs.rdi.i;
+
+    return result;
+}
