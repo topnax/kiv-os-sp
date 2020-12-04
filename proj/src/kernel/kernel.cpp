@@ -82,7 +82,7 @@ void __stdcall Bootstrap_Loader(kiv_hal::TRegisters &context) {
 }
 
 void run_shell(const kiv_hal::TRegisters &regs) {
-    kiv_hal::TRegisters shell_regs;
+    kiv_hal::TRegisters shell_regs{};
 
     // open a VGA as the STDOUT for the shell
     std::string tty = "\\sys\\tty";
@@ -107,22 +107,21 @@ void run_shell(const kiv_hal::TRegisters &regs) {
     // perform clone
     clone(shell_regs, User_Programs);
 
-    // created THandle is stored in rax
-    kiv_os::THandle handles[] = {(kiv_os::THandle) shell_regs.rax.x};
-
-    kiv_hal::TRegisters wait_for_regs;
-
-    // TODO change to Handle_Process instead of calling wait_for directly
-
-    wait_for_regs.rdx.x = static_cast<decltype(regs.rdx.x)>((kiv_os::THandle)shell_regs.rax.x);
-   // // wait for this array of handles
-   // wait_for_regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(handles);
-
-   // // store the count of handles to registers
-   // wait_for_regs.rcx.l = (uint8_t) 1;
+    // prepare read exit code regs
+    kiv_hal::TRegisters read_exit_code_regs{};
+    read_exit_code_regs.rdx.x = static_cast<decltype(regs.rdx.x)>((kiv_os::THandle)shell_regs.rax.x);
 
     // perform Wait_For
-    read_exit_code(wait_for_regs);
+    read_exit_code(read_exit_code_regs);
+
+    kiv_hal::TRegisters close_regs{};
+    // close shell's std_out
+    close_regs.rdx.x = std_out;
+    Close_File(close_regs);
+
+    // close shell's std_in
+    close_regs.rdx.x = std_in;
+    Close_File(close_regs);
 }
 
 void Set_Error(const bool failed, kiv_hal::TRegisters &regs) {
