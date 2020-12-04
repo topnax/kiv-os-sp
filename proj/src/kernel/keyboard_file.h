@@ -17,5 +17,7 @@ public:
     bool read(size_t size, char *out_buffer, size_t &read) override;
 
 private:
-    static size_t Read_Line_From_Console(char *buffer, size_t buffer_size);
+    size_t Read_Line_From_Console(char *buffer, size_t buffer_size);
+
+    bool eot_read = false;
 };
