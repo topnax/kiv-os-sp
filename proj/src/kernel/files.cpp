@@ -78,7 +78,7 @@ void Init_Filesystems() {
             //pokus o precteni \FDSETUP\BIN\ATTRIB.COM
             File test_file;
             std::vector<char> test_out_buffer; //buffer pro prectene informace
-            //fs -> open("\\FDSETUP\\SETUP\\FDASK000.BAT", 0, 0, test_file); //name, flags, attributes, file
+            fs -> open("\\AUTOEXEC.BAT", 0, 0, test_file); //name, flags, attributes, file
             //fs -> read(test_file, 4, 1, test_out_buffer); //file, size, offset, out buffer
 
             //printf("Got bytes %i !!!!!!!!!!!!\n", test_out_buffer.size());
@@ -90,7 +90,17 @@ void Init_Filesystems() {
 
             //std::vector<kiv_os::TDir_Entry> folders_in_path;
             //fs->readdir("\\FDSETUP\\SETUP\\TR", folders_in_path);
-            fs->mkdir("\\FDSETUP\\SETUP\\TR");
+            //fs->mkdir("\\FDSETUP\\SETUP\\TR");
+
+            std::string text = "igotbitches";
+            std::vector<char> string_to_pass;
+
+            for (int i = 0; i < text.size(); i++) {
+                string_to_pass.push_back(text.at(i));
+            }
+
+            size_t written;
+            fs->write(test_file, string_to_pass, 0, 511, written);
 
             break;
         }

@@ -642,7 +642,6 @@ void write_data_to_fat_fs(int start_sector_num, std::vector<char> buffer_to_writ
         buffer_to_write.push_back(last_sector_data.at(last_cluster_occupied + added_bytes));
         added_bytes++;
     }
-    std::cout << "Final buffer size is: " << buffer_to_write.size();
 
     ap_to_write.sectors = static_cast<void*>(buffer_to_write.data()); //vector with bytes, that should be written to file
     kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::Disk_IO, reg_to_write);
