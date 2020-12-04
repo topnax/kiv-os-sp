@@ -404,7 +404,9 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                             fill_prompt_buffer(working_directory, prompt, PROMPT_BUFFER_SIZE);
                         }
                     } else {
-                        // TODO print
+                        size_t written = 0;
+                        const char* error = "Directory not found\n";
+                        kiv_os_rtl::Write_File(std_out, error, strlen(error), written);
                     }
                 }
             } else if (command == "shell") {
