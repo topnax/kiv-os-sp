@@ -426,10 +426,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
                 call_program("find", regs, args.c_str());
             } else if (command == "dir") {
-                // TODO improve arg parsing
-                if (args.size() > 0) {
-                    call_program("dir", regs, args.c_str());
-                }
+                call_program("dir", regs, args.c_str());
             } else if (command == "type") {
                 call_program("type", regs, args.c_str());
 

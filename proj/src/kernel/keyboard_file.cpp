@@ -66,6 +66,7 @@ size_t Keyboard_File::Read_Line_From_Console(char *buffer, const size_t buffer_s
                     kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::VGA_BIOS, registers);
                 } else {
                     // EOT has been read, stop waiting for remaining characters
+                    eot_read = true;
                     return pos;
                 }
                 break;
@@ -77,6 +78,9 @@ size_t Keyboard_File::Read_Line_From_Console(char *buffer, const size_t buffer_s
 }
 
 bool Keyboard_File::read(size_t size, char *out_buffer, size_t &read) {
+    if (eot_read) {
+        return false;
+    }
     read = Read_Line_From_Console(reinterpret_cast<char*>(out_buffer), size);
     // TODO should we always return true?
     return true;

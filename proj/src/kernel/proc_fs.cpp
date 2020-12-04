@@ -74,7 +74,8 @@ kiv_os::NOS_Error Proc_Fs::readdir(const char *name, std::vector<kiv_os::TDir_En
     auto pcb = Get_Pcb();
     for (Process *process : pcb->Get_Processes()) {
         auto entry = kiv_os::TDir_Entry{
-                static_cast<uint16_t>(kiv_os::NFile_Attributes::Directory) |
+                static_cast<uint16_t>(kiv_os::NFile_Attributes::System_File) |
+                static_cast<uint16_t>(kiv_os::NFile_Attributes::Directory) | // TODO PCB entry is not a directory
                 static_cast<uint16_t>(kiv_os::NFile_Attributes::Read_Only)
         };
         sprintf_s(entry.file_name, 12, "%d", process->handle);
