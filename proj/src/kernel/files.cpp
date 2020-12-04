@@ -100,7 +100,7 @@ void Init_Filesystems() {
             }
 
             size_t written;
-            fs->write(test_file, string_to_pass, 0, 511, written);
+            fs->write(test_file, string_to_pass, 0, 550, written);
 
             break;
         }

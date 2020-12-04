@@ -209,12 +209,19 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
     std::vector<unsigned char> fat_table1_hex = load_first_fat_table_bytes();
     std::vector<int> fat_table1_dec = convert_fat_table_to_dec(fat_table1_hex);
     std::vector<int> file_clust_nums = retrieve_sectors_nums_fs(fat_table1_dec, file.handle); //seznam clusteru, na kterych se soubor nachazi
-    std::cout << "fileclust size is: " << file_clust_nums.size() << "\n";
 
     int cluster_fully_occ_bef = (offset) / SECTOR_SIZE_B; //pocet plne obsazenych clusteru pred offsetem
     int bytes_to_save = (offset) - (cluster_fully_occ_bef * SECTOR_SIZE_B);
         
-    int sector_num = offset / SECTOR_SIZE_B + (offset % SECTOR_SIZE_B != 0); //poradi sektoru, na ktery ma byt zapsano ; zaokrouhleno nahoru
+    int sector_num; //poradi sektoru, na ktery ma byt zapsano ; zaokrouhleno nahoru
+    
+    if (offset == 0) {
+        sector_num = 1;
+    }
+    else {
+        sector_num = offset / SECTOR_SIZE_B + (offset % SECTOR_SIZE_B != 0);
+    }
+
     std::cout << "about to write on sector num: " << sector_num << "\n";
 
     int sector_num_vect = file_clust_nums.at(sector_num - 1); //nalezeni odpovidajiciho sektoru v poradi v ramci vektoru
@@ -235,7 +242,7 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
     std::cout << "to write is: " << data_to_write.size();
     std::string content_clust;
 
-    for (int i = 0; i < 512; i++) {
+    for (int i = 0; i < data_to_write.size(); i++) {
         content_clust.push_back(data_to_write.at(i));
     }
 
@@ -243,7 +250,7 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
     int clusters_count = data_to_write.size() / SECTOR_SIZE_B + (data_to_write.size() % SECTOR_SIZE_B != 0); //pocet clusteru, pres ktere bude buffer ulozen
     std::cout << "cluster count is: " << clusters_count;
 
-    std::vector<unsigned char> clust_data_write; //data pro zapis do jednoho clusteru
+    std::vector<char> clust_data_write; //data pro zapis do jednoho clusteru
     for (int i = 0; i < clusters_count; i++) {
         if (i == (clusters_count - 1)) { //posledni cluster, nemusi byt vyuzity cely
             for (int j = 0; j < data_to_write.size() - (i * SECTOR_SIZE_B); j++) {
@@ -251,19 +258,20 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
             }
 
             std::cout << "last cluster size is: " << clust_data_write.size();
-            clust_data_write.clear();
         }
         else { //ćluster, ktery neni posledni bude vyuzit cely
             for (int j = 0; j < SECTOR_SIZE_B; j++) {
-                clust_data_write.push_back(data_to_write.at(j + (i *  SECTOR_SIZE_B)));
+                clust_data_write.push_back(data_to_write.at(j + (i * SECTOR_SIZE_B)));
             }
 
             std::cout << "other cluster size is: " << clust_data_write.size();
-            clust_data_write.clear();
         }
+
+        write_data_to_fat_fs(file_clust_nums.at(sector_num - 1 + i), clust_data_write); //zapis dat do fs, postupne posun po alokovanych clusterech
+        clust_data_write.clear();
     }
 
-    //std::cout << "content is: " << content_clust;
+    std::cout << "content is: " << content_clust;
     //write_data_to_fat_fs(sector_num_vect, buffer);
 
     return kiv_os::NOS_Error::IO_Error;
