@@ -5,8 +5,6 @@
 
 constexpr auto PROMPT_BUFFER_SIZE = 5000;
 
-bool echoOn = true;
-
 void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters &registers) {
 
     // get references to std_in and out from respective registers:
@@ -259,6 +257,7 @@ void fill_prompt_buffer(char *path, char *prompt_buffer, size_t prompt_buffer_si
 size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
     std::set<std::string> supported_commands;
     fill_supported_commands_set(supported_commands);
+    bool echoOn = true;
 
     const kiv_os::THandle std_in = static_cast<kiv_os::THandle>(regs.rax.x);
     const kiv_os::THandle std_out = static_cast<kiv_os::THandle>(regs.rbx.x);
@@ -352,7 +351,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
         // TODO improve parsing of shell commands
         char *token1;
-        //char *command;
+        
         std::vector<std::string> command_and_args;
         char *p = strtok_s(buffer, " \"", &token1); // make it into two tokns only
         if (p)
@@ -375,69 +374,107 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             // args will be the rest after the command:
             std::string args = command_and_args[1];
 
+            // before executing anything else check for echo on/off...
             if (command == "echo") {
                 if (args.size() > 0) {
 
                     if (args == "on") {
                         echoOn = true;
                         continue;
-                    } else if (args == "off") {
+                    }
+                    else if (args == "off") {
                         echoOn = false;
                         continue;
                     }
-
-                    // todo echo on/off only hides the prompt?
-                    //if (echoOn) {
-                    // i think we can afford this, bc piped programs are handled elswhere, so this
-                    // only prevents the echo from printing to std
-                    call_program("echo", regs, args.c_str());
-                    //}
-
-
-
                 }
-            } else if (command == "cd") {
+            }
+            else if (command == "cd") { // ...or cd
                 if (!args.empty()) {
                     if (kiv_os_rtl::Set_Working_Dir(args.c_str())) {
                         kiv_os_rtl::Get_Working_Dir(working_directory, PROMPT_BUFFER_SIZE, get_wd_read_count);
                         if (get_wd_read_count > 0) {
                             fill_prompt_buffer(working_directory, prompt, PROMPT_BUFFER_SIZE);
                         }
-                    } else {
+                    }
+                    else {
                         // TODO print
                     }
                 }
-            } else if (command == "shell") {
-                call_program("shell", regs, args.c_str());
-            } else if (command == "rgen") {
-                call_program("rgen", regs, args.c_str());
-            } else if (command == "pipetest") {
-                pipe_test(std_in, std_out);
-            } else if (command == "freq") {
-                call_program("freq", regs, args.c_str());
-            } else if (command == "charcnt") {
-                call_program("charcnt", regs, args.c_str());
-            } else if (command == "tasklist") {
-                call_program("tasklist", regs, args.c_str());
-            } else if (command == "sort") {
-                args = trim(args, " ");
-                call_program("sort", regs, args.c_str());
-            } else if (command == "find") {
-
-                call_program("find", regs, args.c_str());
-            } else if (command == "dir") {
-                // TODO improve arg parsing
-                if (args.size() > 0) {
-                    call_program("dir", regs, args.c_str());
-                }
-            } else if (command == "type") {
-                call_program("type", regs, args.c_str());
-
+                continue;
             }
-                // TODO this command might not be present in the release
-            else if (command == "shutdown") {
-                kiv_os_rtl::Shutdown();
-            }
+
+            // todo shutdown
+
+            // actual command execution:
+            // cast from const to non const - todo?
+            char* command_c = const_cast<char*>(command.c_str());
+            // call the program:
+            call_program(command_c, regs, args.c_str());
+            //continue;
+
+
+            //if (command == "echo") {
+            //    if (args.size() > 0) {
+
+            //        if (args == "on") {
+            //            echoOn = true;
+            //            continue;
+            //        } else if (args == "off") {
+            //            echoOn = false;
+            //            continue;
+            //        }
+
+            //        // todo echo on/off only hides the prompt?
+            //        //if (echoOn) {
+            //        // i think we can afford this, bc piped programs are handled elswhere, so this
+            //        // only prevents the echo from printing to std
+            //        call_program("echo", regs, args.c_str());
+            //        //}
+
+
+
+            //    }
+            //} else if (command == "cd") {
+            //    if (!args.empty()) {
+            //        if (kiv_os_rtl::Set_Working_Dir(args.c_str())) {
+            //            kiv_os_rtl::Get_Working_Dir(working_directory, PROMPT_BUFFER_SIZE, get_wd_read_count);
+            //            if (get_wd_read_count > 0) {
+            //                fill_prompt_buffer(working_directory, prompt, PROMPT_BUFFER_SIZE);
+            //            }
+            //        } else {
+            //            // TODO print
+            //        }
+            //    }
+            //} else if (command == "shell") {
+            //    call_program("shell", regs, args.c_str());
+            //} else if (command == "rgen") {
+            //    call_program("rgen", regs, args.c_str());
+            //} else if (command == "pipetest") {
+            //    pipe_test(std_in, std_out);
+            //} else if (command == "freq") {
+            //    call_program("freq", regs, args.c_str());
+            //} else if (command == "charcnt") {
+            //    call_program("charcnt", regs, args.c_str());
+            //} else if (command == "tasklist") {
+            //    call_program("tasklist", regs, args.c_str());
+            //} else if (command == "sort") {
+            //    args = trim(args, " ");
+            //    call_program("sort", regs, args.c_str());
+            //} else if (command == "find") {
+            //    call_program("find", regs, args.c_str());
+            //} else if (command == "dir") {
+            //    // TODO improve arg parsing
+            //    if (args.size() > 0) {
+            //        call_program("dir", regs, args.c_str());
+            //    }
+            //} else if (command == "type") {
+            //    call_program("type", regs, args.c_str());
+
+            //}
+            //    // TODO this command might not be present in the release
+            //else if (command == "shutdown") {
+            //    kiv_os_rtl::Shutdown();
+            //}
         }
     } while (strcmp(buffer, "exit") != 0);
 
