@@ -77,7 +77,7 @@ public:
      * @param attributes attributes to be set (see kiv_os::NFile_Attributes)
      * @return result code
      */
-    virtual kiv_os::NOS_Error set_attributes(const char *name, kiv_os::NFile_Attributes attributes) {
+    virtual kiv_os::NOS_Error set_attributes(const char *name, uint8_t attributes) {
         // TODO implement
         return kiv_os::NOS_Error::Permission_Denied;
     };

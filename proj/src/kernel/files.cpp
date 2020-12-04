@@ -374,7 +374,7 @@ void Delete_File(kiv_hal::TRegisters &registers) {
 
 void Set_File_Attributes(kiv_hal::TRegisters &registers) {
     char *file_name = reinterpret_cast<char * >(registers.rdx.r);
-    auto attributes = static_cast<kiv_os::NFile_Attributes>(registers.rdi.i);
+    auto attributes = static_cast<uint8_t>(registers.rdi.i);
 
     std::filesystem::path resolved_path_relative_to_fs;
     std::filesystem::path absolute_path;
