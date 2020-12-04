@@ -328,3 +328,23 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
 
     return nullptr;
 }
+
+void Seek(kiv_hal::TRegisters &registers) {
+    kiv_os::THandle handle = registers.rdx.x;
+    size_t position = registers.rdi.r;
+    auto pos_type = static_cast<kiv_os::NFile_Seek>(registers.rcx.l);
+    auto op = static_cast<kiv_os::NFile_Seek>(registers.rcx.h);
+
+    // check whether file exists
+    if (Files::Ft->Exists(handle)) {
+        size_t pos_from_start;
+        auto file_object = (*Files::Ft)[handle];
+        // try to perform seek
+        if (file_object->seek(position, pos_type, op, pos_from_start) == kiv_os::NOS_Error::Success) {
+            registers.rax.r = pos_from_start;
+            return;
+        }
+    }
+    // file not found or seek has failed, set error
+    registers.flags.carry = 1;
+}

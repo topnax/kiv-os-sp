@@ -41,4 +41,6 @@ namespace kiv_os_rtl {
     bool Set_Working_Dir(const char* path);
 
     bool Get_Working_Dir(char *buffer, size_t buffer_size, size_t &read);
+
+    bool Seek(const kiv_os::THandle handle, size_t position, const kiv_os::NFile_Seek pos_type, const kiv_os::NFile_Seek op, size_t &pos_from_start);
 }

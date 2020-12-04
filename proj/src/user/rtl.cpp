@@ -190,3 +190,18 @@ bool kiv_os_rtl::Get_Working_Dir(char *buffer, size_t buffer_size, size_t &read)
 
     return result;
 }
+
+bool kiv_os_rtl::Seek(const kiv_os::THandle handle, size_t position, const kiv_os::NFile_Seek pos_type, const kiv_os::NFile_Seek op, size_t &pos_from_start) {
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::File_System, static_cast<uint8_t>(kiv_os::NOS_File_System::Seek));
+
+    regs.rdx.x = handle;
+    regs.rdi.r = position;
+    regs.rcx.l = static_cast<decltype(regs.rcx.l)>(pos_type);
+    regs.rcx.h = static_cast<decltype(regs.rcx.h)>(op);
+
+    const bool result = kiv_os::Sys_Call(regs);
+
+    pos_from_start = regs.rax.r;
+
+    return result;
+}
