@@ -205,3 +205,12 @@ bool kiv_os_rtl::Seek(const kiv_os::THandle handle, size_t position, const kiv_o
 
     return result;
 }
+
+bool kiv_os_rtl::Delete_File(const char *file_name) {
+    kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::File_System, static_cast<uint8_t>(kiv_os::NOS_File_System::Delete_File));
+    regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(file_name);
+
+    const bool result = kiv_os::Sys_Call(regs);
+
+    return result;
+}

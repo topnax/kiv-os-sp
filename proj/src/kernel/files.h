@@ -52,3 +52,5 @@ void Init_Filesystems();
 VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relative_to_fs, std::filesystem::path &absolute_path);
 
 void Seek(kiv_hal::TRegisters &registers);
+
+void Delete_File(kiv_hal::TRegisters &registers);

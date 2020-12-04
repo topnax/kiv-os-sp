@@ -60,6 +60,11 @@ void Handle_IO(kiv_hal::TRegisters &regs) {
             break;
         }
 
+        case kiv_os::NOS_File_System::Delete_File: {
+            Delete_File(regs);
+            break;
+        }
+
         // TODO remove this
 	/* Nasledujici dve vetve jsou ukazka, ze starsiho zadani, ktere ukazuji, jak mate mapovat Windows HANDLE na kiv_os handle a zpet, vcetne jejich alokace a uvolneni
 

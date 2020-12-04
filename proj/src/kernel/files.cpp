@@ -348,3 +348,26 @@ void Seek(kiv_hal::TRegisters &registers) {
     // file not found or seek has failed, set error
     registers.flags.carry = 1;
 }
+
+void Delete_File(kiv_hal::TRegisters &registers) {
+    char *file_name = reinterpret_cast<char * >(registers.rdx.r);
+    std::filesystem::path resolved_path_relative_to_fs;
+    std::filesystem::path absolute_path;
+
+    auto fs = File_Exists(file_name, resolved_path_relative_to_fs, absolute_path);
+    if (fs != nullptr) {
+        // convert the resolved path into a char*
+        auto length = resolved_path_relative_to_fs.string().length() + 1;
+        char *name = new char[length];
+        strcpy_s(name, length, resolved_path_relative_to_fs.string().c_str());
+
+        // open a file with the found filesystem
+        auto result = fs->unlink(name);
+        if (result == kiv_os::NOS_Error::Success) {
+            // unlink successful, do not set error
+            return;
+        }
+    }
+    // file does not exist or unlink has failed
+    registers.flags.carry = 1;
+}
