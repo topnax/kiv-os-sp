@@ -26,8 +26,13 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
     bool doContinue = true; // flag to tell if we should break out of the reading cycle
     do {
         if (kiv_os_rtl::Read_File(std_in, buffer, buffer_size, counter)) {
+            // TODO uncomment this for newline addition in user's input of text:
             //if (counter < buffer_size) {
-            //    doContinue = false; // this is here so that we quit when there is nothing more to read - ok?
+            //    // this happens on Enter?
+            //    size_t written = 0;
+            //    kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), written); // write the new line
+            //    buffer[counter] = '\n'; // add the char to the buffer
+            //    counter++; // increase the counter, bc we added one char (\n)
             //}
 
             // build the frequency table:
@@ -54,7 +59,7 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
     kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
 
 
-    // printing the gathered frequencies:
+    // printing the gathered frequencies from 0x00 to 0xff:
     size_t n = 0;
     //int c = -1;
     for (int i = 128; i < frequencies.size(); i++) {

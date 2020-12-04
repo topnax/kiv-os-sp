@@ -7,6 +7,7 @@
 #include <vector>
 #include "rtl.h"
 #include "argparser.h"
+#include <string>
 
 void strtrim(char *str) {
     int start = 0; // number of leading spaces
@@ -20,6 +21,20 @@ void strtrim(char *str) {
     str = buffer + start;
     while ((*buffer++ = *str++));  // remove leading spaces: K&R
 }
+
+std::string trim(const std::string& str, const std::string& whitespace)
+{
+    const auto strBegin = str.find_first_not_of(whitespace);
+    if (strBegin == std::string::npos)
+        return ""; // no content
+
+    const auto strEnd = str.find_last_not_of(whitespace);
+    const auto strRange = strEnd - strBegin + 1;
+
+    return str.substr(strBegin, strRange);
+}
+
+
 
 void parse_programs_unused(char *input, program *programs, int *length) {
 
@@ -77,6 +92,7 @@ std::vector<program> parse_programs(char* input) {
     int j = 0; // pointer to buffer containing one program's name (and potentially data)
     int prog_count = 0; // number of programs but also files in the whole pipeline
     int actual_prog_count = 0; // number of programs alone in the pipeline
+    bool echoQuotes = false;
 
     // this cycle goes through the user input and saves names and data of programs and names of files
     for (int i = 0; i < len; ++i) {
@@ -86,7 +102,8 @@ std::vector<program> parse_programs(char* input) {
         if (input[i] == pipe_symb || 
             input[i] == in_symb || 
             input[i] == out_symb ||
-            i == len - 1) { 
+            i == len - 1
+            /*(echoQuotes && input[i] == '\"')*/) {
 
             // create new program struct
             program curr_p = program{};
@@ -103,8 +120,42 @@ std::vector<program> parse_programs(char* input) {
 
             
             // check if there're any arguments:
+            //std::string savedStr = curr_prog_name;
             char* data;
+            std::string saved = curr_prog_name;
             char* actual_name = strtok_s(curr_prog_name, " ", &data); // actual_name is the name of the program
+
+            
+            // special case for echo, bc it can have any characters in double quotes - ignore these characters, only send them to args:
+            // todo think of prettier way to do this?
+            if (strcmp(actual_name, "echo") == 0 && data && data[0] == '\"' && !echoQuotes) {
+                // they want to echo something in quotes
+                echoQuotes = true;
+
+                // get the whole data:
+                int k = i;
+                for (k = i; k < len && input[k] != '\"'; k++) {
+                    saved += input[k];
+                }
+                if(k < len)
+                    saved += input[k];
+
+                //printf("data is now %s\n", saved.c_str());
+
+                memset(curr_prog_name, 0, NAME_LEN); 
+                // copy it back to the variable we use for everything else:
+                strncpy_s(curr_prog_name, saved.c_str(), NAME_LEN);
+                i = k; // set the positions properly
+                j = saved.size();
+
+                if(i < len - 1)
+                    continue; // if we're not at the end yet, keep reading
+                else {
+                    // if we are at the end, parse it again and move on
+                    actual_name = strtok_s(curr_prog_name, " ", &data); 
+                }
+            }
+            
 
             // trim the name and the data
             strtrim(actual_name);
@@ -120,7 +171,6 @@ std::vector<program> parse_programs(char* input) {
             }
             
             
-            //programs[prog_count] = curr_p;
             programs_vec.push_back(curr_p); // save the program to the vector
             prog_count++;
             actual_prog_count++;
@@ -131,9 +181,11 @@ std::vector<program> parse_programs(char* input) {
             j = 0; // reset the pointer to curr_name
             i++; // skip this char, bc it's the delimiter
             memset(curr_prog_name, 0, NAME_LEN); // null the name
+            echoQuotes = false; // reset the quotes flag
         }
 
         curr_prog_name[j] = input[i];
+        curr_prog_name[j + 1] = '\0';
         j++;
     }
 

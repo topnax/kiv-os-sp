@@ -131,6 +131,8 @@ set(Source_Files
         "../../src/user/tasklist.cpp"
         "../../src/user/type.cpp"
         "../../src/user/echo.cpp"
+        "../../src/user/find.cpp"
+        "../../src/user/sort.cpp"
         "../../src/user/freq.cpp")
 source_group("Source Files" FILES ${Source_Files})
 

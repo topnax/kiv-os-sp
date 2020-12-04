@@ -4,6 +4,7 @@
 
 #include <thread>
 #include <random>
+#include <limits>
 #include "rtl.h"
 
 struct Rgen_Stdin_Guard_Parameters {
@@ -41,7 +42,7 @@ extern "C" size_t __stdcall stdin_guard(const kiv_hal::TRegisters &regs) {
                 }
             }
         } else {
-            terminate = true;
+            terminate = true; // EOF
         }
 
     } while (!terminate);
@@ -83,24 +84,41 @@ extern "C" size_t __stdcall rgen(const kiv_hal::TRegisters &regs) {
     // TODO random_device causes a memory leak, move it to a static namespace?
     std::random_device rd; // obtain a random number from hardware
     std::mt19937 gen(rd()); // seed the generator
-    std::uniform_int_distribution<> distr(-128, 127); // define the range
+    //std::uniform_int_distribution<> distr(-128.0, 127.0); // define the range
+    std::uniform_real_distribution<> distr(std::numeric_limits<float>::min(), std::numeric_limits<float>::max());
 
     size_t counter;
+    bool res;
+    char small_buff[sizeof(float)];
     while (*generate) {
         // std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        int random_number = distr(gen); // generate a random number
-        char random_char = (char) random_number; // convert it to a char
+        float random_number = distr(gen); // generate a random number
+        //char random_char = (char) random_number; // convert it to a char
+        const char* bytes = reinterpret_cast<const char*>(&random_number);
+        for (size_t i = 0; i != sizeof(float); ++i)
+        {
+            auto byte = bytes[i];
+            if (static_cast<kiv_hal::NControl_Codes>(bytes[i]) == kiv_hal::NControl_Codes::EOT) {
+                continue;
+            }
+            small_buff[i] = byte;
 
-        if (static_cast<kiv_hal::NControl_Codes>(random_char) == kiv_hal::NControl_Codes::EOT) {
-            continue;
+            
         }
 
-        // write to std_out (1 char)
-        if (!kiv_os_rtl::Write_File(std_out, &random_char, 1, counter)) {
+        // write to std_out (multiple bytes)
+        res = kiv_os_rtl::Write_File(std_out, small_buff/*&bytes[i]*/, sizeof(float) - 1, counter);
+        if (!res) {
             // could not write to file, abort
             is_generating = false;
             break;
         }
+        /*if (!res) {
+            break;
+        }*/
+        
+
+        
     }
 
     // check whether std_in guard has not yet signalled us to stop generating
