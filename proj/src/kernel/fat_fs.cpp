@@ -283,64 +283,125 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
             fat_table1_dec.at(free_clust_index) = 4095;
 
             for (int i = 0; i < fat_table1_dec.size(); i++) {
-                printf("Fat on index %d got %d\n", i, fat_table1_dec.at(i));
+               // printf("Fat on index %d got %d\n", i, fat_table1_dec.at(i));
             }
             std::cout << "Writing to: " << file_clust_nums.at(file_clust_nums.size() - 1);
 
+            int index_to_edit = file_clust_nums.at(file_clust_nums.size() - 1);
+            index_to_edit = 1;
+
             //v hex tabulkach upravit cislo na indexu nove prideleneho clusteru a posledniho clusteru puvodne prideleno souboru
-            int first_index_hex_tab = 1105 * 1.5; //index volneho clusteru v hex(na dvou bajtech)
+            if (index_to_edit % 2 == 0) { //sudy index
+                int first_index_hex_tab = index_to_edit * 1.5; //index volneho clusteru v hex(na dvou bajtech)
 
-            char free_cluster_index_first = fat_table1_hex.at(first_index_hex_tab);
-            char free_cluster_index_sec = fat_table1_hex.at(first_index_hex_tab + 1);
+                char free_cluster_index_first = fat_table1_hex.at(first_index_hex_tab);
+                char free_cluster_index_sec = fat_table1_hex.at(first_index_hex_tab + 1);
 
-            //v hex tabulce je ulozeno na indexu first_index_hex_tab a first_index_hex_tab + 1
+                //v hex tabulce je ulozeno na indexu first_index_hex_tab a first_index_hex_tab + 1
 
-            std::cout << "size hex: " << fat_table1_hex.size();
-            std::cout << "got free clust: " << free_clust_index;
+                std::cout << "size hex: " << fat_table1_hex.size();
+                std::cout << "got free clust: " << free_clust_index;
 
-            for (int i = 0; i < fat_table1_hex.size(); i++) { //printing hex
-                //printf("First hex is %.2X\n", fat_table1_hex.at(i));
+                for (int i = 0; i < fat_table1_hex.size(); i++) { //printing hex
+                    //printf("First hex is %.2X\n", fat_table1_hex.at(i));
+                }
+
+                printf("First hex is %.2X, sec is %.2X\n", free_cluster_index_first, free_cluster_index_sec); //z druheho vzit prvni a druhy / PRVNI - prvni
+                //std::cout << "in hex got: " << free_cluster_hex[0] << free_cluster_hex[1] << free_cluster_hex[2];
+
+                char convert_buffer[5]; //buffer pro prevod hex na dec
+                snprintf(convert_buffer, sizeof(convert_buffer), "%.2X%.2X", free_cluster_index_first, free_cluster_index_sec); //obsahuje 16 bitu
+                std::cout << "buffer is: " << convert_buffer;
+
+                char hex_free_clust[4];
+                snprintf(hex_free_clust, sizeof(hex_free_clust), "%.3X", free_clust_index);
+                printf("In hex got: %s", hex_free_clust);
+
+                char byte_to_save_first[2];
+                char byte_to_save_second[2];
+                char first_byte;
+                char second_byte;
+
+                byte_to_save_first[0] = hex_free_clust[1]; //druhe cislo free clust v hex
+                byte_to_save_first[1] = hex_free_clust[2]; //treti cislo free clust v hex
+
+                byte_to_save_second[0] = convert_buffer[2]; //cislo mimo
+                byte_to_save_second[1] = hex_free_clust[0]; //prvni cislo free clust v hex
+
+                std::cout << "would save: " << byte_to_save_first[0] << byte_to_save_first[1] << byte_to_save_second[0] << byte_to_save_second[1];
+
+                first_byte = conv_char_arr_to_hex(byte_to_save_first);
+                second_byte = conv_char_arr_to_hex(byte_to_save_second);
+
+                //fat_table1_hex.at(first_index_hex_tab) = first_byte;
+                //fat_table1_hex.at(first_index_hex_tab + 1) = second_byte;
+                std::vector<int> fat_table1_dec = convert_fat_table_to_dec(fat_table1_hex);
+                for (int i = 0; i < fat_table1_dec.size() - 3000; i++) {
+                    printf("Fat on index %d got %d\n", i, fat_table1_dec.at(i));
+                }
+
+                std::vector<char> test_ride;
+                test_ride.push_back(first_byte);
+                test_ride.push_back(second_byte);
+                write_data_to_fat_fs(-31, test_ride);
+
+                //to_save[0] = convert_buffer[2];
+                //to_save[1] = convert_buffer[3];
+                //to_save[2] = convert_buffer[0];
+
+                //std::cout << "next is: " << to_save[0] << to_save[1] << to_save[2];
+
+                //write_data_to_fat_fs(1 - 31, fat_table1_hex); //-31, fce pocita s dat clustery
+                //write_data_to_fat_fs(10 - 31, fat2_table_hex); //-31, fce pocita s dat clustery
+            }
+            else { //lichy index
+                int first_index_hex_tab = index_to_edit * 1.5; //index volneho clusteru v hex(na dvou bajtech)
+
+                char free_cluster_index_first = fat_table1_hex.at(first_index_hex_tab);
+                char free_cluster_index_sec = fat_table1_hex.at(first_index_hex_tab + 1);
+
+                printf("First hex is %.2X, sec is %.2X\n", free_cluster_index_first, free_cluster_index_sec); //z druheho vzit prvni a druhy / PRVNI - prvni
+                //std::cout << "in hex got: " << free_cluster_hex[0] << free_cluster_hex[1] << free_cluster_hex[2];
+
+                char convert_buffer[5]; //buffer pro prevod hex na dec
+                snprintf(convert_buffer, sizeof(convert_buffer), "%.2X%.2X", free_cluster_index_first, free_cluster_index_sec); //obsahuje 16 bitu
+                std::cout << "buffer is: " << convert_buffer;
+
+                char hex_free_clust[4];
+                snprintf(hex_free_clust, sizeof(hex_free_clust), "%.3X", free_clust_index);
+                printf("In hex got: %s", hex_free_clust);
+
+                char byte_to_save_first[2];
+                char byte_to_save_second[2];
+                char first_byte;
+                char second_byte;
+
+                byte_to_save_first[0] = hex_free_clust[2]; //treti cislo free clust v hex
+                byte_to_save_first[1] = convert_buffer[1]; //cislo mimo
+
+                byte_to_save_second[0] = hex_free_clust[0]; //prvni cislo free clust v hex
+                byte_to_save_second[1] = hex_free_clust[1]; //druhe cislo free clust v hex
+
+
+                std::cout << "would save: " << byte_to_save_first[0] << byte_to_save_first[1] << byte_to_save_second[0] << byte_to_save_second[1];
+                printf("originally got %.2X%.2X", free_cluster_index_first, free_cluster_index_sec);
+
+                first_byte = conv_char_arr_to_hex(byte_to_save_first);
+                second_byte = conv_char_arr_to_hex(byte_to_save_second);
+
+                fat_table1_hex.at(first_index_hex_tab) = first_byte;
+                fat_table1_hex.at(first_index_hex_tab + 1) = second_byte;
+                std::vector<int> fat_table1_dec = convert_fat_table_to_dec(fat_table1_hex);
+                for (int i = 0; i < fat_table1_dec.size(); i++) {
+                    printf("Fat on index %d got %d\n", i, fat_table1_dec.at(i));
+                }
+                std::cout << "got free clust: " << free_clust_index;
+                std::vector<char> test_ride;
+                test_ride.push_back(first_byte);
+                test_ride.push_back(second_byte);
+                write_data_to_fat_fs(-31, test_ride);
             }
 
-            printf("First hex is %.2X, sec is %.2X\n", free_cluster_index_first, free_cluster_index_sec); //z druheho vzit prvni a druhy / PRVNI - prvni
-            //std::cout << "in hex got: " << free_cluster_hex[0] << free_cluster_hex[1] << free_cluster_hex[2];
-
-            char convert_buffer[5]; //buffer pro prevod hex na dec
-            snprintf(convert_buffer, sizeof(convert_buffer), "%.2X%.2X", free_cluster_index_first, free_cluster_index_sec); //obsahuje 16 bitu
-            std::cout << "buffer is: " << convert_buffer;
-
-            char hex_free_clust[4];
-            snprintf(hex_free_clust, sizeof(hex_free_clust), "%.3X", free_clust_index);
-            printf("In hex got: %s", hex_free_clust);
-
-            char byte_to_save_first[2];
-            char byte_to_save_second[2];
-            char first_byte;
-            char second_byte;
-
-            byte_to_save_first[0] = hex_free_clust[2]; //treti cislo free clust v hex
-            byte_to_save_first[1] = convert_buffer[1]; //cislo mimo
-
-            byte_to_save_second[0] = hex_free_clust[0]; //prvni cislo free clust v hex
-            byte_to_save_second[1] = hex_free_clust[1]; //druhe cislo free clust v hex
-            std::cout << "would save: " << byte_to_save_first[0] << byte_to_save_first[1] << byte_to_save_second[0] << byte_to_save_second[1];
-
-            first_byte = conv_char_arr_to_hex(byte_to_save_first);
-            second_byte = conv_char_arr_to_hex(byte_to_save_second);
-            printf("Next is: %.2X", second_byte);
-            std::vector<char> test_ride;
-            test_ride.push_back(first_byte);
-            test_ride.push_back(second_byte);
-            write_data_to_fat_fs(-31, test_ride);
-
-            //to_save[0] = convert_buffer[2];
-            //to_save[1] = convert_buffer[3];
-            //to_save[2] = convert_buffer[0];
-            
-            //std::cout << "next is: " << to_save[0] << to_save[1] << to_save[2];
-
-            //write_data_to_fat_fs(1 - 31, fat_table1_hex); //-31, fce pocita s dat clustery
-            //write_data_to_fat_fs(10 - 31, fat2_table_hex); //-31, fce pocita s dat clustery
         }
         else { //musime se pokusit alokovat novy cluster pro soubor
             int free_clust_index = retrieve_free_cluster_index(fat_table1_dec);
