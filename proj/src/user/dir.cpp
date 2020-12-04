@@ -12,42 +12,72 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
 
     // directory file contains information about the directory itself, read the whole file
     auto attributes = static_cast<uint8_t>(static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory));
-    char* dir_to_be_read = (char*) regs.rdi.r;
 
+    // stack used to hold directory names to be processed
     std::stack<std::string> path_stack;
 
+    // flag indicating whether printing of directories should be recursive (print all subdirectories)
     bool recursive = false;
 
+    // maximum argument length
+    const auto max_arg_length = 120;
 
+    // variable used to store number of arguments provided
+    uint8_t arg_c = 0;
+
+    // array used to hold provided arguments
+    char parsed_args[2][max_arg_length];
 
     // load text to be echoed from rdi register
     char* args = (char*) regs.rdi.r;
-    printf("args: %s\n", args);
+
+    // check whether arguments were provided
     if (regs.rdi.r != 0 && strlen(args) > 0) {
+        // use whitespace as a separator
         const char separator[] = " ";
+
+        // to be used in strtok_s
         char *token;
         char *next_token1 = NULL;
 
-        /* get the first token */
+        // try to find the next token (argument)
         token = strtok_s(args, separator, &next_token1);
-        printf("splitting");
-        /* walk through other tokens */
 
-        printf("strtokd: '%s'\n", token );
-        while( token != NULL)
-        {
+        if( token != NULL) {
+            // an argument found, copy it to the args array
+            strcpy_s(parsed_args[0], max_arg_length, token);
+            arg_c++;
+
+            // try to find another argument
             token = strtok_s(NULL, separator, &next_token1);
             if (token != nullptr) {
-                printf("strtokd: '%s'\n", token);
+                // second argument found, copy it to the args array
+                strcpy_s(parsed_args[1], max_arg_length, token);
+                arg_c++;
             }
         }
     }
 
-//    if (strcmp(args, "/S") == 0) {
-        recursive = true;
- //   }
+    if (arg_c > 0) {
+        if (strcmp(parsed_args[0], "/S") == 0) {
+            // S argument provided, print all subdirectories
+            recursive = true;
 
-    path_stack.push(std::string(dir_to_be_read));
+            if (arg_c == 1) {
+                // no path specified, print the current folder
+                path_stack.push(".");
+            } else {
+                // both argument S and path provided
+                path_stack.push(parsed_args[1]);
+            }
+        } else {
+            // path provided
+            path_stack.push(parsed_args[0]);
+        }
+    } else {
+        // no path provided, print the current folder
+        path_stack.push(".");
+    }
 
     while (!path_stack.empty()) {
         auto path_to_open = path_stack.top();
