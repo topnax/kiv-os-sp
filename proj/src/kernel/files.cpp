@@ -202,7 +202,7 @@ void Read_File(kiv_hal::TRegisters &regs) {
         size_t read;
         bool res = file->read(buff_size, buff, read);
         regs.rax.r = read;
-        if (!res) {
+        if (!res || read == 0) {
             // some error has happened
             regs.flags.carry = 1;
         }

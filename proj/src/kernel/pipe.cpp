@@ -55,6 +55,8 @@ std::vector<char> Pipe::Read(size_t nodes_to_read) {
 
         if (read_char == static_cast<char>(kiv_hal::NControl_Codes::EOT)) {
             // EOT has been read, stop reading
+            read.pop_back();
+            this->closed_out = true;
             return read;
         }
     }
