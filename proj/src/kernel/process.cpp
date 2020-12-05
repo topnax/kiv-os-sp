@@ -238,6 +238,9 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
 
                 // we have gathered all necessary information about the spawned thread and have created a PCB entry based on it
                 s->notify();
+            } else {
+                registers.flags.carry = 1;
+                registers.rax.x = static_cast<uint16_t>(kiv_os::NOS_Error::Invalid_Argument);
             }
 
             break;

@@ -180,56 +180,29 @@ int pipe_test(kiv_os::THandle std_in, kiv_os::THandle std_out) {
     return 0;
 }
 
-void call_program(char *program, const kiv_hal::TRegisters &registers, const char *data) {
+void call_program(char *program, const kiv_hal::TRegisters &registers, const char *data, kiv_os::THandle std_out) {
     // call clone from RTL
     // RTL is used we do not have to set register values here
 
-    // TODO remove such test in release
-    if (data && strcmp(data, "test_handles") == 0) {
-        // the handle of the created thread/process
-        kiv_os::THandle handle;
 
-        // delayed echo
-        kiv_os::THandle test_handle;
-        kiv_os_rtl::Clone_Process(program, "delayed_echo", registers.rax.x, registers.rbx.x, test_handle);
-
-        // clone syscall to call a program (TThread_Proc)
-        kiv_os_rtl::Clone_Process(program, data, registers.rax.x, registers.rbx.x, handle);
-
-        kiv_os::THandle handles[] = {test_handle, handle};
-
-        uint8_t handleThatSignalledIndex = 0;
-        kiv_os::NOS_Error exit_code;
-
-        // wait for the program to finish
-        kiv_os_rtl::Wait_For(handles, 2, handleThatSignalledIndex);
-        kiv_os_rtl::Read_Exit_Code(handles[handleThatSignalledIndex], exit_code);
-        printf("Handle that signalled first: %d, exit_code=%d\n", handleThatSignalledIndex, exit_code);
-
-        kiv_os::THandle handles_test[] = {test_handle};
-        // wait for the program to finish
-        kiv_os_rtl::Wait_For(handles_test, 1, handleThatSignalledIndex);
-        kiv_os_rtl::Read_Exit_Code(handles[handleThatSignalledIndex], exit_code);
-
-        printf("Second handle that signalled: %d, exit_code=%d\n", handleThatSignalledIndex, exit_code);
-
-    } else {
         // the handle of the created thread/process
         kiv_os::THandle handle;
 
         // clone syscall to call a program (TThread_Proc)
-        kiv_os_rtl::Clone_Process(program, data, registers.rax.x, registers.rbx.x, handle);
+        if (kiv_os_rtl::Clone_Process(program, data, registers.rax.x, registers.rbx.x, handle)) {
 
-        // wait for the program to finish by attempting to read it's exit code
-        kiv_os::NOS_Error exit_code;
-        kiv_os_rtl::Read_Exit_Code(handle, exit_code);
+            // wait for the program to finish by attempting to read it's exit code
+            kiv_os::NOS_Error exit_code;
+            kiv_os_rtl::Read_Exit_Code(handle, exit_code);
 
-        if (exit_code != kiv_os::NOS_Error::Success) {
-            // TODO remove in release
-            printf("\nProgram resulted in %d\n", exit_code);
+            if (exit_code != kiv_os::NOS_Error::Success) {
+                size_t written;
+                char message_buffer[100];
+                sprintf_s(message_buffer, 100, "\nProgram resulted in %d exit code.\n", exit_code);
+                kiv_os_rtl::Write_File(std_out, message_buffer, strlen(message_buffer), written);
+            }
         }
-    }
-
+        // TODO checking registers.rax.x will be done after merging into master
 }
 
 void fill_supported_commands_set(std::set<std::string> &set) {
@@ -368,8 +341,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
 
         // if command name was provided and it is valid
-        if (command.size() > 0 &&
-            supported_commands.find(command) != supported_commands.end()) {
+        if (command.size() > 0) {
 
             // args will be the rest after the command:
             std::string args;
@@ -410,7 +382,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             // cast from const to non const - todo?
             char* command_c = const_cast<char*>(command.c_str());
             // call the program:
-            call_program(command_c, regs, args.c_str());
+            call_program(command_c, regs, args.c_str(), std_out);
 
         }
     } while (strcmp(buffer, "exit") != 0);
