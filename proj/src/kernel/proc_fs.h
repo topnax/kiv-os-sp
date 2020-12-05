@@ -34,14 +34,17 @@ public:
 
     bool file_exists(int32_t current_fd, const char *name, bool start_from_root, int32_t &found_fd) override;
 
+    // TODO remove this
     void print_name() override{
         printf("printing procfs\n");
     }
 
+    kiv_os::NOS_Error set_attributes(const char *name, uint8_t attributes) override;
+
+    kiv_os::NOS_Error get_attributes(const char *name, uint8_t &out_attributes) override;
+
 private:
     static std::vector<char> generate_readproc_vector(Process process);
     static std::vector<char> generate_test_vector(); // TODO remove
-
-    static std::vector<char> generate_tasklist_vector();
 
 };
