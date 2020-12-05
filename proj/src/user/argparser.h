@@ -36,5 +36,5 @@ struct program {
 void strtrim(char* str);
 std::string trim(const std::string& str, const std::string& whitespace);
 void parse_programs_unused(char *input, program *programs, int *length);
-std::vector<program> parse_programs(char* input/*, program* programs, int* length*/);
+std::vector<program> parse_programs(char* input/*, program* programs, int* length*/, std::string& errorMessage);
 void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters& registers);
