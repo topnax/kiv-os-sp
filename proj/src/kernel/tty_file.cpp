@@ -3,7 +3,7 @@
 //
 
 #include <cstdio>
-#include "vga_file.h"
+#include "tty_file.h"
 #include "../api/hal.h"
 
 kiv_os::NOS_Error Tty_File::write(char *buffer, size_t size, size_t &written) {

@@ -2,7 +2,7 @@
 #include <stack>
 #include <random>
 #include "files.h"
-#include "vga_file.h"
+#include "tty_file.h"
 #include "keyboard_file.h"
 #include "proc_fs.h"
 #include "fat_fs.h"
