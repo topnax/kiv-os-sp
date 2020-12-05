@@ -38,8 +38,7 @@ Thread_Control_Block *Get_Tcb() {
 
 size_t __stdcall default_signal_handler(const kiv_hal::TRegisters &regs) {
     auto signal_id = static_cast<kiv_os::NSignal_Id>(regs.rcx.l);
-    auto resolved = Handle_To_THandle.find(std::this_thread::get_id());
-    printf("Default handler of signal=%hhu executed...\n", signal_id);
+    // process the signal
     return 0;
 }
 
