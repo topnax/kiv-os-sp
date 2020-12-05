@@ -7,7 +7,7 @@
 #include "../api/hal.h"
 
 kiv_os::NOS_Error Keyboard_File::write(char *buffer, size_t size, size_t &written) {
-    kiv_hal::TRegisters registers;
+    kiv_hal::TRegisters registers{};
 
     size_t pos = 0;
     while (pos < size) {
@@ -26,7 +26,7 @@ kiv_os::NOS_Error Keyboard_File::write(char *buffer, size_t size, size_t &writte
 }
 
 size_t Keyboard_File::Read_Line_From_Console(char *buffer, const size_t buffer_size) {
-    kiv_hal::TRegisters registers;
+    kiv_hal::TRegisters registers{};
 
     size_t pos = 0;
     while (pos < buffer_size) {

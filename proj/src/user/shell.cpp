@@ -298,11 +298,6 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         if (kiv_os_rtl::Read_File(std_in, buffer, buffer_size, counter)) {
             if ((counter > 0) && (counter == buffer_size)) counter--;
             buffer[counter] = 0;    //udelame z precteneho vstup null-terminated retezec
-
-            const char *new_line = "\n";
-            kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
-            //kiv_os_rtl::Write_File(std_out, buffer, strlen(buffer), counter);    //a vypiseme ho
-            kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
         } else
             break;    //EOF
 
@@ -316,12 +311,21 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         for (int i = 0; i < input_len; i++) {
             if (buffer[i] == static_cast<char>(kiv_hal::NControl_Codes::EOT)) {
                 eot_read = true;
+                buffer[i] = '\0';
+                break;
             }
             if (buffer[i] == '\n') {
                 // "read a line" => this allows "echo tasklist | shell" to work
                 buffer[i] = '\0';
+                break;
             }
         }
+        const char *new_line = "\n";
+        kiv_os_rtl::Write_File(std_out, "\r", 1, counter);
+        if (echoOn)
+            kiv_os_rtl::Write_File(std_out, prompt, strlen(prompt), counter);
+        kiv_os_rtl::Write_File(std_out, buffer, strlen(buffer), counter);    //a vypiseme ho
+        kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
 
         for (int i = 0; i < input_len; i++) {
             if (buffer[i] == '|' ||
@@ -461,7 +465,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         }
     } while (strcmp(buffer, "exit") != 0 && !eot_read);
 
-    const char* bye_message = "Shell exiting...\n";
+    const char* bye_message = "\nShell exiting...\n";
     size_t written;
     kiv_os_rtl::Write_File(std_out, bye_message, strlen(bye_message), written);
     return 0;

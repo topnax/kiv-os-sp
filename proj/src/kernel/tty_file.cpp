@@ -7,7 +7,7 @@
 #include "../api/hal.h"
 
 kiv_os::NOS_Error Tty_File::write(char *buffer, size_t size, size_t &written) {
-    kiv_hal::TRegisters registers;
+    kiv_hal::TRegisters registers{};
     registers.rax.h = static_cast<decltype(registers.rax.h)>(kiv_hal::NVGA_BIOS::Write_String);
 
     registers.rdx.r = reinterpret_cast<decltype(registers.rdx.r)>(buffer);

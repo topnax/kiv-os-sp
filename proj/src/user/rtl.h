@@ -7,7 +7,7 @@ namespace kiv_os_rtl {
 
 	extern std::atomic<kiv_os::NOS_Error> Last_Error;
 
-	bool Read_File(const kiv_os::THandle file_handle, char* const buffer, const size_t buffer_size, size_t &read);
+	bool Read_File(const kiv_os::THandle file_handle, const char* const buffer, const size_t buffer_size, size_t &read);
 		//zapise do souboru identifikovaneho deskriptor data z buffer o velikosti buffer_size a vrati pocet zapsanych dat ve written
 		//vraci true, kdyz vse OK
 		//vraci true, kdyz vse OK
@@ -18,7 +18,7 @@ namespace kiv_os_rtl {
 	//vraci true, kdyz vse OK
 
 
-	bool Clone_Thread(kiv_os::TThread_Proc const thread_proc, char* data, kiv_os::THandle &t_handle);
+	bool Clone_Thread(kiv_os::TThread_Proc const thread_proc, const char* data, kiv_os::THandle &t_handle);
 
     bool Clone_Process(const char* program, const char* data, kiv_os::THandle std_in, kiv_os::THandle std_out, kiv_os::THandle &t_handle);
 
@@ -40,7 +40,7 @@ namespace kiv_os_rtl {
 
     bool Set_Working_Dir(const char* path);
 
-    bool Get_Working_Dir(char *buffer, size_t buffer_size, size_t &read);
+    bool Get_Working_Dir(const char *buffer, size_t buffer_size, size_t &read);
 
     bool Seek(const kiv_os::THandle handle, size_t position, const kiv_os::NFile_Seek pos_type, const kiv_os::NFile_Seek op, size_t &pos_from_start);
 

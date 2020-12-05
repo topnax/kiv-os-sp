@@ -68,10 +68,10 @@ void Init_Filesystems() {
 
 
     // find a fat drive
-    kiv_hal::TRegisters regs;
+    kiv_hal::TRegisters regs{};
     for (regs.rdx.l = 0;; regs.rdx.l++) {
-        kiv_hal::TDrive_Parameters params;
-        regs.rax.h = static_cast<uint8_t>(kiv_hal::NDisk_IO::Drive_Parameters);;
+        kiv_hal::TDrive_Parameters params{};
+        regs.rax.h = static_cast<uint8_t>(kiv_hal::NDisk_IO::Drive_Parameters);
         regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(&params);
         kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::Disk_IO, regs);
         if (!regs.flags.carry) {
@@ -94,7 +94,7 @@ void Add_Filesystem(const std::string &name, VFS *vfs) {
     Files::Filesystems[name] = std::unique_ptr<VFS>(vfs);
 }
 
-VFS *Get_Filesystem(std::string file_name) {
+VFS *Get_Filesystem(const std::string& file_name) {
     auto resolved = Files::Filesystems.find(file_name);
     if (resolved != Files::Filesystems.end()) {
         return resolved->second.get();
@@ -343,7 +343,7 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
 
 void Seek(kiv_hal::TRegisters &registers) {
     kiv_os::THandle handle = registers.rdx.x;
-    size_t position = static_cast<size_t>(registers.rdi.r);
+    auto position = static_cast<size_t>(registers.rdi.r);
     auto pos_type = static_cast<kiv_os::NFile_Seek>(registers.rcx.l);
     auto op = static_cast<kiv_os::NFile_Seek>(registers.rcx.h);
 

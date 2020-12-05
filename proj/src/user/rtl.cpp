@@ -10,7 +10,7 @@ kiv_hal::TRegisters Prepare_SysCall_Context(kiv_os::NOS_Service_Major major, uin
 }
 
 
-bool kiv_os_rtl::Read_File(const kiv_os::THandle file_handle, char* const buffer, const size_t buffer_size, size_t &read) {
+bool kiv_os_rtl::Read_File(const kiv_os::THandle file_handle, const char* const buffer, const size_t buffer_size, size_t &read) {
 	kiv_hal::TRegisters regs =  Prepare_SysCall_Context(kiv_os::NOS_Service_Major::File_System, static_cast<uint8_t>(kiv_os::NOS_File_System::Read_File));
 	regs.rdx.x = static_cast<decltype(regs.rdx.x)>(file_handle);
 	regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(buffer);
@@ -34,7 +34,7 @@ bool kiv_os_rtl::Write_File(const kiv_os::THandle file_handle, const char *buffe
     return result;
 }
 
-bool kiv_os_rtl::Clone_Thread(const kiv_os::TThread_Proc thread_proc, char* data, kiv_os::THandle &t_handle) {
+bool kiv_os_rtl::Clone_Thread(const kiv_os::TThread_Proc thread_proc, const char* data, kiv_os::THandle &t_handle) {
     // get syscall context (registers) - specifying we want the Process service and Clone task
     kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::Process, static_cast<uint8_t>(kiv_os::NOS_Process::Clone));
 
@@ -184,7 +184,7 @@ bool kiv_os_rtl::Set_Working_Dir(const char *path) {
     return result;
 }
 
-bool kiv_os_rtl::Get_Working_Dir(char *buffer, size_t buffer_size, size_t &read) {
+bool kiv_os_rtl::Get_Working_Dir(const char *buffer, size_t buffer_size, size_t &read) {
     kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::File_System, static_cast<uint8_t>(kiv_os::NOS_File_System::Get_Working_Dir));
 
     regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(buffer);
