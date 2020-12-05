@@ -742,3 +742,122 @@ void save_fat_tables(std::vector<unsigned char> fat_table) {
     write_data_to_fat_fs(1 - 31, fat_table_to_save); //prvni fat
     write_data_to_fat_fs(10 - 31, fat_table_to_save); //druha fat
 }
+
+/*
+* Prevod cisla v dec na 4 bajty, hex soustava.
+* num_dec - cislo v desitkove soustave
+/**/
+std::vector<unsigned char> convert_dec_num_to_hex(long num_dec) {
+    unsigned char bytes[4];
+    unsigned long num = num_dec;
+
+    bytes[0] = (num >> 24) & 0xFF;
+    bytes[1] = (num >> 16) & 0xFF;
+    bytes[2] = (num >> 8) & 0xFF;
+    bytes[3] = num & 0xFF;
+
+    //vracime obracene, pro ulozeni do souboru
+    std::vector<unsigned char> to_return;
+    to_return.push_back(bytes[3]);
+    to_return.push_back(bytes[2]);
+    to_return.push_back(bytes[1]);
+    to_return.push_back(bytes[0]);
+
+    return to_return;
+}
+
+/*
+* Aktualizuje velikost souboru ve slozce.
+/**/
+void update_size_file_in_folder(char *filename_path, int offset, int original_size, int newly_written_bytes, std::vector<int> fat_table_dec) {
+    std::vector<std::string> folders_in_path = path_to_indiv_items(filename_path); //rozdeleni na indiv. polozky v ceste
+    std::string filename = folders_in_path.at(folders_in_path.size() - 1); //nazev souboru
+
+    folders_in_path.pop_back(); //posledni polozka v seznamu je nazev souboru, ten ted nehledame
+
+    int start_sector = -1;
+    std::vector<int> sectors_nums_data; //sektory nadrazene slozky
+    if (folders_in_path.size() == 0) { //jsme v rootu
+        start_sector = 19;
+
+        for (int i = 19; i < 33; i++) {
+            sectors_nums_data.push_back(i);
+        }
+    }
+    else { //klasicka slozka, ne root
+        directory_item target_folder = retrieve_item_clust(19, fat_table_dec, true, folders_in_path); //nalezeni clusteru nadrazene slozky
+        sectors_nums_data = retrieve_sectors_nums_fs(fat_table_dec, target_folder.first_cluster); //zjisteni sektoru nadrazene slozky
+
+        start_sector = sectors_nums_data.at(0);
+    }
+
+    std::vector<directory_item> items_folder = retrieve_folders_cur_folder(fat_table_dec, start_sector);  //ziskani obsahu nadrazene slozky
+    for (int i = 0; i < items_folder.size(); i++) {
+        std::cout << "Content is:" << items_folder.at(i).filename << ", clust: " << items_folder.at(i).first_cluster << "size is: " << items_folder.at(i).filezise << "\n";
+    }
+
+    int target_index = -1; //poradi slozky
+
+    for (int i = 0; i < items_folder.size(); i++) { //kontrola poradi souboru v dane slozce
+        std::string item_to_check = "";  //nazev souboru + pripona
+        directory_item dir_item = items_folder.at(i);
+
+        if (!dir_item.extension.empty()) {
+            item_to_check = dir_item.filename + "." + dir_item.extension;
+        }
+        else {
+            item_to_check = dir_item.filename;
+        }
+
+        if (item_to_check.compare(filename) == 0) { //shoduje se nazev vcetne pripony
+            std::cout << "Target is:" << items_folder.at(i).filename << ", clust: " << items_folder.at(i).first_cluster << "size is: " << items_folder.at(i).filezise << "\n";
+            target_index = i;
+            break; //nalezen index soubru, koncime
+        }
+    }
+
+    if (folders_in_path.size() == 0) { //pokud root, pak index +1 (neobsahuje nadrazenou slozku)
+        target_index += 1;
+    }
+    else { //mimo root +2 (. a ..)
+        target_index += 2;
+    }
+
+    std::vector<unsigned char> new_file_size_hex = convert_dec_num_to_hex(original_size + newly_written_bytes); //nova velikost = aktualni + kolik zapsano
+    new_file_size_hex = convert_dec_num_to_hex(original_size); //nova velikost = aktualni + kolik zapsano
+    printf("got: %.2X %.2X %.2X %.2X\n", new_file_size_hex.at(0), new_file_size_hex.at(1), new_file_size_hex.at(2), new_file_size_hex.at(3));
+
+    printf("Index is %d\n!!", target_index);
+
+    //zjisteni clusteru, na kterem polozka lezi
+    int cluster_num = (target_index) / 16; //poradi slozky / 16 (jeden cluster mi pojme 16 polozek)
+    int item_num_clust_rel = (target_index) % 16; //poradi polozky v ramci jednoho clusteru
+
+    std::vector<unsigned char> data_clust_fol; //obsahuje data daneho clusteru se slozkou
+    if (folders_in_path.size() == 0) { //jsme v root slozce
+        data_clust_fol = read_data_from_fat_fs(sectors_nums_data.at(cluster_num) - 31, 1); //-31; fce cte z dat sektoru
+        printf("Printing SECTOR - START\n");
+        for (int i = 0; i < data_clust_fol.size(); i++) {
+            //printf("%c", data_clust_fol.at(i));
+        }
+        printf("Printing SECTOR - END\n");
+
+        printf("Relative item clust is %d\n", item_num_clust_rel);
+        data_clust_fol.at(item_num_clust_rel * 32 + 28) = new_file_size_hex.at(0);
+        data_clust_fol.at(item_num_clust_rel * 32 + 29) = new_file_size_hex.at(1);
+        data_clust_fol.at(item_num_clust_rel * 32 + 30) = new_file_size_hex.at(2);
+        data_clust_fol.at(item_num_clust_rel * 32 + 31) = new_file_size_hex.at(3);
+
+        std::vector<char> data_to_save;
+        for (int i = 0; i < data_clust_fol.size(); i++) {
+            data_to_save.push_back(data_clust_fol.at(i));
+        }
+
+        write_data_to_fat_fs(sectors_nums_data.at(cluster_num) - 31, data_to_save);
+    }
+    else {
+        data_clust_fol = read_data_from_fat_fs(sectors_nums_data.at(cluster_num), 1); //fce cte z dat sektoru
+    }
+
+
+}

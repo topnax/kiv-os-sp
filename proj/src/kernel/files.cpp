@@ -78,12 +78,12 @@ void Init_Filesystems() {
             //pokus o precteni \FDSETUP\BIN\ATTRIB.COM
             File test_file;
             std::vector<char> test_out_buffer; //buffer pro prectene informace
-            fs -> open("\\FDCONFIG.SYS", 0, 0, test_file); //name, flags, attributes, file
+            fs -> open("\\SETUP.BAT", 0, 0, test_file); //name, flags, attributes, file
             fs -> read(test_file, 512, 0, test_out_buffer); //file, size, offset, out buffer
 
             printf("Printing FDCONFIG.SYS - START\n");
             for (int i = 0; i < test_out_buffer.size(); i++) {
-                printf("%c", test_out_buffer.at(i));
+                //printf("%c", test_out_buffer.at(i));
             }
             printf("Printing FDCONFIG.SYS - END\n");
 
@@ -113,7 +113,7 @@ void Init_Filesystems() {
 
             printf("Printing FDCONFIG.SYS - START\n");
             for (int i = 0; i < test_out_buffer.size(); i++) {
-                printf("%c", test_out_buffer.at(i));
+                //printf("%c", test_out_buffer.at(i));
             }
             printf("Printing FDCONFIG.SYS - END\n");
 

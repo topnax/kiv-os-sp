@@ -42,3 +42,5 @@ int retrieve_free_cluster_index(std::vector<int> fat_table_dec);
 unsigned char conv_char_arr_to_hex(char char_arr[2]);
 std::vector<unsigned char> convert_num_to_bytes_fat(int target_index, std::vector<unsigned char> fat_table_hex, int num_to_inject);
 void save_fat_tables(std::vector<unsigned char> fat_table);
+std::vector<unsigned char> convert_dec_num_to_hex(long num_dec);
+void update_size_file_in_folder(char* filename_path, int offset, int original_size, int newly_written_bytes, std::vector<int> fat_table_dec);
