@@ -3,7 +3,7 @@
 std::atomic<kiv_os::NOS_Error> kiv_os_rtl::Last_Error;
 
 kiv_hal::TRegisters Prepare_SysCall_Context(kiv_os::NOS_Service_Major major, uint8_t minor) {
-	kiv_hal::TRegisters regs;
+	kiv_hal::TRegisters regs{};
 	regs.rax.h = static_cast<uint8_t>(major);
 	regs.rax.l = minor;
 	return regs;
