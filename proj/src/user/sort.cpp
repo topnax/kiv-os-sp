@@ -38,7 +38,7 @@ extern "C" size_t __stdcall sort(const kiv_hal::TRegisters & regs) {
         // we will be reading from a file
 
         //auto attributes = static_cast<uint8_t>(static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only));
-        if (kiv_os_rtl::Open_File(data, 0, 0, file_handle)) {
+        if (kiv_os_rtl::Open_File(data, kiv_os::NOpen_File::fmOpen_Always, 0, file_handle)) {
             ;;
         }
         else {

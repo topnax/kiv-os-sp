@@ -37,7 +37,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             kiv_os::THandle first_handle;
 
             if (programs[i].input.type == ProgramHandleType::File) {
-                if (kiv_os_rtl::Open_File(programs[i].input.name, 0, 0, file_handle_first_in)) { ;;
+                if (kiv_os_rtl::Open_File(programs[i].input.name, kiv_os::NOpen_File::fmOpen_Always, 0, file_handle_first_in)) { ;;
                 } else {
                     // file not found
                     char buff[200];
@@ -65,7 +65,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             kiv_os::THandle last_handle;
 
             if (programs[i].output.type == ProgramHandleType::File) {
-                if (kiv_os_rtl::Open_File(programs[i].output.name, 0, 0, file_handle_last_out)) { ;;
+                if (kiv_os_rtl::Open_File(programs[i].output.name, static_cast<kiv_os::NOpen_File>(0), 0, file_handle_last_out)) { ;;
                 } else {
                     // file not found
                     char buff[200];

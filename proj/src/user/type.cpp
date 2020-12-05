@@ -23,7 +23,7 @@ extern "C" size_t __stdcall type(const kiv_hal::TRegisters &regs) {
         // get path of the file to be read
 
         // try to open a file at the specified path
-        if (kiv_os_rtl::Open_File(file_path, 0, 0, handle_to_read_from)) {
+        if (kiv_os_rtl::Open_File(file_path, kiv_os::NOpen_File::fmOpen_Always, 0, handle_to_read_from)) {
             file_opened = true;
             handle_found = true;
         } else {

@@ -83,7 +83,7 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
         auto path_to_open = path_stack.top();
         auto path_to_open_char_ptr = path_to_open.c_str();
         path_stack.pop();
-        if (kiv_os_rtl::Open_File(path_to_open_char_ptr, 0, attributes, handle)) {
+        if (kiv_os_rtl::Open_File(path_to_open_char_ptr, kiv_os::NOpen_File::fmOpen_Always, attributes, handle)) {
             // get the size of the TDir_Entry structure
             const auto dir_entry_size = sizeof(kiv_os::TDir_Entry);
             size_t read;

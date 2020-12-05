@@ -39,7 +39,7 @@ std::vector<kiv_os::TDir_Entry> read_procfs_dir_items() {
     // directory file contains information about the directory itself, read the whole file
     auto attributes = static_cast<uint8_t>(static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory));
 
-    if (kiv_os_rtl::Open_File("C:\\procfs", 0, attributes, handle)) {
+    if (kiv_os_rtl::Open_File("C:\\procfs", kiv_os::NOpen_File::fmOpen_Always, attributes, handle)) {
         // get the size of the TDir_Entry structure
         const auto dir_entry_size = sizeof(kiv_os::TDir_Entry);
         size_t read;
@@ -120,7 +120,7 @@ extern "C" size_t __stdcall tasklist(const kiv_hal::TRegisters &regs) {
         for (auto dir_item: procfs_dir_items) {
             // generate the path to the currently iterated directory item representing an entry in the PCB table
             sprintf_s(pcb_item_path, 42, "C:\\procfs\\%s", dir_item.file_name);
-            if (kiv_os_rtl::Open_File(pcb_item_path, 0, 0, pcb_item_handle)) {
+            if (kiv_os_rtl::Open_File(pcb_item_path, kiv_os::NOpen_File::fmOpen_Always, 0, pcb_item_handle)) {
                 // file containing a table entry opened successfully
                 if (kiv_os_rtl::Read_File(pcb_item_handle, pcb_entry_buffer, pcb_entry_size, pcb_read) &&
                     pcb_read == pcb_entry_size) {
