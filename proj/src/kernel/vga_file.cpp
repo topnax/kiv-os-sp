@@ -21,10 +21,11 @@ kiv_os::NOS_Error Tty_File::write(char *buffer, size_t size, size_t &written) {
     // TODO error?
 
     written = size; //VGA BIOS nevraci pocet zapsanych znaku, tak predpokladame, ze zapsal vsechny
-    return !error;
+
+    return !error ? kiv_os::NOS_Error::Success : kiv_os::NOS_Error:: IO_Error;
 }
 
 kiv_os::NOS_Error Tty_File::read(size_t size, char *out_buffer, size_t &read) {
     // cannot read from VGA
-    return false;
+    return kiv_os::NOS_Error::IO_Error;
 }
