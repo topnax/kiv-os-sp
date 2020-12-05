@@ -23,7 +23,10 @@ kiv_os::NOS_Error Filesystem_File::read(size_t to_read, char *out_buffer, size_t
     // move the position by the amount of bytes we have read
     file.position += read;
 
-    return result == kiv_os::NOS_Error::Success && read > 0;
+    if (read > 0 && result == kiv_os::NOS_Error::Success) {
+        return kiv_os::NOS_Error::Success;
+    }
+    return result;
 }
 
 kiv_os::NOS_Error Filesystem_File::seek(size_t value, kiv_os::NFile_Seek seek_position, kiv_os::NFile_Seek op, size_t &res) {
@@ -73,7 +76,7 @@ kiv_os::NOS_Error Filesystem_File::write(char *buffer, size_t buf_size, size_t &
     // move the position boy the amount of bytes we have written
     file.position += written;
 
-    return result == kiv_os::NOS_Error::Success;
+    return result;
 }
 
 void Filesystem_File::close() {
