@@ -121,8 +121,8 @@ extern "C" size_t __stdcall rgen(const kiv_hal::TRegisters &regs) {
         
     }
 
-    // check whether std_in guard has not yet signalled us to stop generating
-    // and check whether we have stopped generating due to write failure
+    //check whether std_in guard has not yet signalled us to stop generating
+    //and check whether we have stopped generating due to write failure
     if (*generate && !is_generating) {
         // write EOT to the std_in of the guard thread, signalling it to end
         char eot = static_cast<char>(kiv_hal::NControl_Codes::EOT);

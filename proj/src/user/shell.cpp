@@ -5,7 +5,38 @@
 
 constexpr auto PROMPT_BUFFER_SIZE = 5000;
 
-void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters &registers) {
+void cancel_all_programs(std::vector<program> programs, std::vector<kiv_os::THandle> pipe_handles, std::vector<kiv_os::THandle> handles, 
+    kiv_os::THandle file_handle_first_in, kiv_os::THandle file_handle_last_out, int num_of_running, kiv_os::THandle std_in) {
+
+    // close all the pipe handles and the file handles:
+    for (int i = 0; i < pipe_handles.size(); i++) {
+        kiv_os_rtl::Close_Handle(pipe_handles[i]);
+    }
+
+    
+    if (programs[0].input.type == ProgramHandleType::File) {
+        kiv_os_rtl::Close_Handle(file_handle_first_in);
+    }
+    else {
+        // this should never be necessary!
+        /*char eot = static_cast<char>(kiv_hal::NControl_Codes::EOT);
+        size_t w;
+        kiv_os_rtl::Write_File(std_in, &eot, 1, w);*/
+    }
+
+    if (programs[programs.size() - 1].input.type == ProgramHandleType::File) {
+        kiv_os_rtl::Close_Handle(file_handle_last_out);
+    }
+
+    // now read the exit codes of the programs that were cloned:
+    for (int i = num_of_running - 1; i >= 0; i--) {
+        kiv_os::NOS_Error exit_code;
+        kiv_os_rtl::Read_Exit_Code(handles[i], exit_code);
+    }
+}
+
+
+void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegisters &registers, std::string& nonexistProg) {
 
     // get references to std_in and out from respective registers:
     const auto std_out = static_cast<kiv_os::THandle>(registers.rbx.x);
@@ -15,8 +46,8 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
     // preparing lists for the pipe handles (ins and outs) and the program handles:
     std::vector<kiv_os::THandle> pipe_handles;
     std::vector<kiv_os::THandle> handles;
-    kiv_os::THandle file_handle_first_in;
-    kiv_os::THandle file_handle_last_out;
+    kiv_os::THandle file_handle_first_in = -1;
+    kiv_os::THandle file_handle_last_out = -1;
 
     // create enough pipe handles and push them to the vector:
     for (int i = 0; i < pipes_num; i++) {
@@ -29,7 +60,10 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
     }
 
     // for each program assign input and output, clone the process and save it's handle:
-    for (int i = 0; i < programs.size(); i++) {
+    bool successCloning;
+    int running_progs_num = 0;
+    //for (int i = 0; i < programs.size(); i++) {
+    for (int i = programs.size() - 1; i >= 0; i--) {
         if (i == 0) {
             // first program gets std in or a file as input and first pipe's in as output
             kiv_os::THandle first_handle;
@@ -40,7 +74,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
                     // file not found
                     char buff[200];
                     memset(buff, 0, 200);
-                    size_t n = sprintf_s(buff, "File %s not found.", programs[i].input.name);
+                    size_t n = sprintf_s(buff, "File '%s' not found.", programs[i].input.name);
                     kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
                     return;
                 }
@@ -49,11 +83,28 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             }
 
             if (i < programs.size() - 1) {
-                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, file_handle_first_in/*std_in*/,
+                successCloning = kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, file_handle_first_in/*std_in*/,
                                           pipe_handles[0], first_handle);
+                if (!successCloning) {
+                    cancel_all_programs(programs, pipe_handles, handles, file_handle_first_in, file_handle_last_out, running_progs_num, std_in);
+                    nonexistProg = programs[i].name;
+                    return;
+                }
+                else {
+                    running_progs_num++;
+                }
+
             } else if (i == programs.size() - 1) {
-                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, file_handle_first_in/*std_in*/, std_out,
+                successCloning = kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, file_handle_first_in/*std_in*/, std_out,
                                           first_handle);
+                if (!successCloning) {
+                    cancel_all_programs(programs, pipe_handles, handles, file_handle_first_in, file_handle_last_out, running_progs_num, std_in);
+                    nonexistProg = programs[i].name;
+                    return;
+                }
+                else {
+                    running_progs_num++;
+                }
             }
 
             handles.push_back(first_handle);
@@ -68,8 +119,11 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
                     // file not found
                     char buff[200];
                     memset(buff, 0, 200);
-                    size_t n = sprintf_s(buff, "File %s not found.", programs[i].output.name);
+                    size_t n = sprintf_s(buff, "File '%s' not found.", programs[i].output.name);
                     kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
+
+                    // todo test canceling here too!
+                    cancel_all_programs(programs, pipe_handles, handles, file_handle_first_in, file_handle_last_out, running_progs_num, std_in);
                     return;
                 }
             } else if (programs[i].output.type == ProgramHandleType::Standard) {
@@ -77,28 +131,55 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             }
 
             if (programs.size() > 1) {
-                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[pipe_handles.size() - 1],
+                successCloning = kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[pipe_handles.size() - 1],
                                           file_handle_last_out/*std_out*/, last_handle);
+                if (!successCloning) {
+                    cancel_all_programs(programs, pipe_handles, handles, file_handle_first_in, file_handle_last_out, running_progs_num, std_in);
+                    nonexistProg = programs[i].name;
+                    return;
+                }
+                else {
+                    running_progs_num++;
+                }
             } else {
-                kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, std_in, file_handle_last_out/*std_out*/,
+                successCloning = kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, std_in, file_handle_last_out/*std_out*/,
                                           last_handle);
+                if (!successCloning) {
+                    cancel_all_programs(programs, pipe_handles, handles, file_handle_first_in, file_handle_last_out, running_progs_num, std_in);
+                    nonexistProg = programs[i].name;
+                    return;
+                }
+                else {
+                    running_progs_num++;
+                }
             }
 
             handles.push_back(last_handle);
         } else { // TODO this should be fine
             // else connect it correctly
             kiv_os::THandle handle;
-            kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[2 * i - 1], pipe_handles[2 * i],
+            successCloning = kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[2 * i - 1], pipe_handles[2 * i],
                                       handle);
+            if (!successCloning) {
+                cancel_all_programs(programs, pipe_handles, handles, file_handle_first_in, file_handle_last_out, running_progs_num, std_in);
+                nonexistProg = programs[i].name;
+                return;
+            }
+            else {
+                running_progs_num++;
+            }
             handles.push_back(handle);
         }
     }
+
+    // reverse the order of the handles, bc we cloned them last to first
+    std::reverse(handles.begin(), handles.end());
 
     // index to the handles vector of a handle that signalled it ended:
     uint8_t handleThatSignalledIndex = 0;
 
     // how many programs are still running: 
-    int running_progs_num = programs.size();
+    running_progs_num = programs.size();
 
     // copy the handles before we start ereasing them so that we know which ones to close:
     std::vector<kiv_os::THandle> orig_handles = handles;
@@ -202,25 +283,14 @@ void call_program(char *program, const kiv_hal::TRegisters &registers, const cha
             kiv_os_rtl::Write_File(std_out, message_buffer, strlen(message_buffer), written);
         }
     }
+    else {
+        size_t written;
+        char message_buffer[100];
+        sprintf_s(message_buffer, 100, "\nProgram '%s' not found.\n", program);
+        kiv_os_rtl::Write_File(std_out, message_buffer, strlen(message_buffer), written);
+        return; // unnecessary but more readable
+    }
     // TODO checking registers.rax.x will be implemented after merging into master
-}
-
-void fill_supported_commands_set(std::set<std::string> &set) {
-    // hardcoded filling of supported commands:
-    set.insert("type");
-    set.insert("md");
-    set.insert("rd");
-    set.insert("dir");
-    set.insert("echo");
-    set.insert("find");
-    set.insert("sort");
-    set.insert("rgen");
-    set.insert("freq");
-    set.insert("tasklist");
-    set.insert("shutdown");
-    set.insert("charcnt");
-    set.insert("shell");
-    set.insert("cd");
 }
 
 void fill_prompt_buffer(char *path, char *prompt_buffer, size_t prompt_buffer_size) {
@@ -228,8 +298,6 @@ void fill_prompt_buffer(char *path, char *prompt_buffer, size_t prompt_buffer_si
 }
 
 size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
-    std::set<std::string> supported_commands;
-    fill_supported_commands_set(supported_commands);
     bool echoOn = true;
 
     const kiv_os::THandle std_in = static_cast<kiv_os::THandle>(regs.rax.x);
@@ -284,35 +352,34 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         }
 
         if (io_chain) {
-            std::string errorMessage;
-            std::vector<program> programs = parse_programs(buffer, errorMessage);
-            if (!errorMessage.empty()) {
-                kiv_os_rtl::Write_File(std_out, errorMessage.c_str(), errorMessage.size(), counter);
+            std::string wrongStr;
+            std::vector<program> programs = parse_programs(buffer, wrongStr);
+            if (!wrongStr.empty()) {
+                kiv_os_rtl::Write_File(std_out, wrongStr.c_str(), wrongStr.size(), counter);
                 continue;
-            }
-
-            // checking if all the program names are valid:
-            bool names_ok = false;
-            for (int i = 0; i < programs.size(); i++) {
-                names_ok = supported_commands.find(programs[i].name) != supported_commands.end();
-                if (!names_ok) {
-                    char msg[100];
-                    size_t written;
-                    sprintf_s(msg, 100, "Program \"%s\" not found\n", programs[i].name);
-                    kiv_os_rtl::Write_File(std_out, msg, strlen(msg), written);
-                    break;
-                }
             }
 
             // todo improve this condition?:
-            if (names_ok && programs.size() == 1 && strcmp(programs[0].name, "echo") == 0 &&
+            if (programs.size() == 1 && strcmp(programs[0].name, "echo") == 0 &&
                 (programs[0].input.type == ProgramHandleType::File || programs[0].output.type == ProgramHandleType::File)) {
-                call_piped_programs(programs, regs);
+                call_piped_programs(programs, regs, wrongStr);
+                if (!wrongStr.empty()) {
+                    size_t written;
+                    char message_buffer[100];
+                    sprintf_s(message_buffer, 100, "\nProgram '%s' not found.\n", wrongStr.c_str());
+                    kiv_os_rtl::Write_File(std_out, message_buffer, strlen(message_buffer), written);
+                }
                 continue;
             }
-            if (names_ok && !(programs.size() == 1 && strcmp(programs[0].name, "echo") == 0)) {
+            else if (!(programs.size() == 1 && strcmp(programs[0].name, "echo") == 0)) {
                 // call piped programs if it's not just echo to execute
-                call_piped_programs(programs, regs);
+                call_piped_programs(programs, regs, wrongStr);
+                if (!wrongStr.empty()) {
+                    size_t written;
+                    char message_buffer[100];
+                    sprintf_s(message_buffer, 100, "\nProgram '%s' not found.\n", wrongStr.c_str());
+                    kiv_os_rtl::Write_File(std_out, message_buffer, strlen(message_buffer), written);
+                }
                 continue;
             }
 
@@ -322,10 +389,8 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         }
 
 
-        // TODO improve parsing of shell commands
-        char *token1;
-
         std::vector<std::string> command_and_args;
+        char* token1;
         char *p = strtok_s(buffer, " ", &token1); // make it into two tokens only
         if (p)
             command_and_args.push_back(p);
@@ -337,10 +402,12 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
 
         // get the command name:
-        std::string command = command_and_args[0];
+        std::string command = "";
+        if (command_and_args.size() > 0)
+            command = command_and_args[0];
 
 
-        // if command name was provided and it is valid
+        // if command name was provided
         if (command.size() > 0) {
 
             // args will be the rest after the command:
@@ -376,6 +443,9 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                     }
                 }
                 continue;
+            }
+            else if (command == "exit") { // todo if we dont check here we will try to execute exit
+                break;
             }
 
             // actual command execution:
