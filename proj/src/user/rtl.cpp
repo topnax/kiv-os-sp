@@ -205,7 +205,7 @@ bool kiv_os_rtl::Seek(const kiv_os::THandle handle, size_t position, const kiv_o
 
     const bool result = kiv_os::Sys_Call(regs);
 
-    pos_from_start = regs.rax.r;
+    pos_from_start = static_cast<size_t>(regs.rax.r);
 
     return result;
 }
@@ -239,7 +239,7 @@ bool kiv_os_rtl::Get_File_Attributes(const char *file_name, uint8_t &attributes)
 
     const bool result = kiv_os::Sys_Call(regs);
 
-    attributes = regs.rdi.i;
+    attributes = static_cast<uint8_t>(regs.rdi.i);
 
     return result;
 }
