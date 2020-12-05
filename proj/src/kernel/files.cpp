@@ -213,10 +213,6 @@ void Read_File(kiv_hal::TRegisters &regs) {
         auto res = file->read(buff_size, buff, read);
         regs.rax.r = read;
 
-        if (read == 0) {
-            res = kiv_os::NOS_Error::IO_Error;
-        }
-
         if (res != kiv_os::NOS_Error::Success) {
             // some error has happened
             regs.rax.r = static_cast<decltype(regs.rax.r)>(res);

@@ -32,14 +32,6 @@ std::vector<char> Proc_Fs::generate_readproc_vector(Process p) {
     return out;
 }
 
-std::vector<char> Proc_Fs::generate_test_vector() {
-    std::string testStr = "abc test\n123 TEST\nAhoj\nahoj\nzmrzlina mnam\n556haha\nABCDEF\n";
-
-    std::vector<char> out(testStr.begin(), testStr.end());
-
-    return out;
-}
-
 kiv_os::NOS_Error Proc_Fs::read(File file, size_t size, size_t offset, std::vector<char> &out) {
 
     // prepare a vector of characters where the generated content will be stored
@@ -60,7 +52,6 @@ kiv_os::NOS_Error Proc_Fs::read(File file, size_t size, size_t offset, std::vect
         auto p = Get_Pcb()->operator[](file.handle);
         if (p != nullptr) {
             generated = generate_readproc_vector(*p);
-            //generated = generate_test_vector(); // TODO uncomment this line to get a multiline output on type /procfs/{valid_id}
         } else {
             return kiv_os::NOS_Error::File_Not_Found;
         }
@@ -103,7 +94,7 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, kiv_os::NOpen_File flags, uint
         file = File{
                 0,
                 ROOT_DIRECTORY_ATTRIBUTES,
-                sizeof(kiv_os::TDir_Entry::file_name),
+                sizeof(kiv_os::TDir_Entry) * pcb->Get_Processes().size(),
                 0,
                 const_cast<char *>(name),
         };
@@ -127,7 +118,7 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, kiv_os::NOpen_File flags, uint
             file = File{
                     process->handle,
                     PCB_ENTRY_ATTRIBUTES,
-                    TASK_LIST_PCB_ENTRY_OUT_BUFFER_SIZE,
+                    sizeof(PCB_Entry),
                     0,
                     const_cast<char *>(name)
             };

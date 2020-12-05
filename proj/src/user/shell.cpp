@@ -290,7 +290,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
     fill_prompt_buffer(working_directory, prompt, PROMPT_BUFFER_SIZE);
 
-
+    bool eot_read = false;
     do {
         if (echoOn)
             kiv_os_rtl::Write_File(std_out, prompt, strlen(prompt), counter);
@@ -312,6 +312,16 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         // removing leading and tailing white spaces:
         strtrim(buffer);
         int input_len = strlen(buffer);
+
+        for (int i = 0; i < input_len; i++) {
+            if (buffer[i] == static_cast<char>(kiv_hal::NControl_Codes::EOT)) {
+                eot_read = true;
+            }
+            if (buffer[i] == '\n') {
+                // "read a line" => this allows "echo tasklist | shell" to work
+                buffer[i] = '\0';
+            }
+        }
 
         for (int i = 0; i < input_len; i++) {
             if (buffer[i] == '|' ||
@@ -449,7 +459,10 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 kiv_os_rtl::Shutdown();
             }
         }
-    } while (strcmp(buffer, "exit") != 0);
+    } while (strcmp(buffer, "exit") != 0 && !eot_read);
 
+    const char* bye_message = "Shell exiting...\n";
+    size_t written;
+    kiv_os_rtl::Write_File(std_out, bye_message, strlen(bye_message), written);
     return 0;
 }

@@ -32,7 +32,7 @@ private:
 public:
     explicit Pipe(size_t capacity);
 
-    std::vector<char> Read(size_t nodes_to_read);
+    std::vector<char> Read(size_t nodes_to_read, bool &nothing_left_to_read);
 
     size_t Write(std::vector<char> data);
 

@@ -9,6 +9,13 @@ Filesystem_File::Filesystem_File(VFS *vfs, File file) : vfs(vfs), file(file) {}
 kiv_os::NOS_Error Filesystem_File::read(size_t to_read, char *out_buffer, size_t &read) {
     std::vector<char> out;
 
+    to_read = std::min(to_read, file.size - file.position);
+
+    if (to_read <= 0) {
+        // trying to read out of file's bounds
+        return kiv_os::NOS_Error::IO_Error;
+    }
+
     // read from fs
     auto result = vfs->read(file, to_read, file.position, out);
 
