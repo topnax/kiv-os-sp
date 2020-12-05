@@ -27,7 +27,7 @@ public:
 
     kiv_os::NOS_Error readdir(const char *name, std::vector<kiv_os::TDir_Entry> &entries) override;
 
-    kiv_os::NOS_Error open(const char *name, uint8_t flags, uint8_t attributes, File &file) override;
+    kiv_os::NOS_Error open(const char *name, kiv_os::NOpen_File flags, uint8_t attributes, File &file) override;
 
     kiv_os::NOS_Error mkdir(const char *name) override;
 

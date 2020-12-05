@@ -86,11 +86,11 @@ void run_shell(const kiv_hal::TRegisters &regs) {
 
     // open a VGA as the STDOUT for the shell
     std::string tty = "\\sys\\tty";
-    auto std_out = Open_File(tty.c_str(), 0, 0);
+    auto std_out = Open_File(tty.c_str(), kiv_os::NOpen_File::fmOpen_Always, 0);
 
     // open keyboard as the STDIN for shell
     std::string kb = "\\sys\\kb";
-    auto std_in = Open_File(kb.c_str(), 0, 0);
+    auto std_in = Open_File(kb.c_str(), kiv_os::NOpen_File::fmOpen_Always, 0);
 
     // "shell" program should be run
     shell_regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>("shell");

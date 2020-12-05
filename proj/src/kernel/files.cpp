@@ -105,23 +105,16 @@ VFS *Get_Filesystem(std::string file_name) {
 
 void Open_File(kiv_hal::TRegisters &registers) {
     char *file_name = reinterpret_cast<char * >(registers.rdx.r);
-    uint8_t flags = registers.rcx.l;
+    auto flags = static_cast<kiv_os::NOpen_File>(registers.rcx.l);
     auto attributes = static_cast<uint8_t>(registers.rdi.i);
     registers.rax.x = Open_File(file_name, flags, attributes);
 }
 
-kiv_os::THandle Open_File(const char *file_name, uint8_t flags, uint8_t attributes) {
+kiv_os::THandle Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8_t attributes) {
     std::lock_guard<std::mutex> guard(Files::Open_Guard);
     Generic_File *file = nullptr;
 
 
-
-/*    printf("start #######################\n");
-    std::filesystem::path resolved;
-    if (File_Exists(R"(C:\procfs\..\procfs\1)", resolved) != nullptr) {
-        printf("found %s at %s\n", file_name, resolved.string().c_str());
-    }
-    printf("end #######################\n");*/
     // TODO this could be improved in the future
     if (strcmp(file_name, "\\sys\\tty") == 0) {
         file = new Tty_File();

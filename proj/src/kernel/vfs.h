@@ -39,7 +39,7 @@ public:
     /**
      * Tries to open the file with the given name, flags and attributes. The information about the file is eventually stored in the `file` reference
      */
-    virtual kiv_os::NOS_Error open(const char *name, uint8_t flags, uint8_t attributes, File &file) = 0;
+    virtual kiv_os::NOS_Error open(const char *name, kiv_os::NOpen_File flags, uint8_t attributes, File &file) = 0;
 
     /**
      * Writes `size` bytes from `buffer` to the given file using the provided offset.

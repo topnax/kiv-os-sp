@@ -92,7 +92,9 @@ kiv_os::NOS_Error Proc_Fs::readdir(const char *name, std::vector<kiv_os::TDir_En
     return kiv_os::NOS_Error::Success;
 }
 
-kiv_os::NOS_Error Proc_Fs::open(const char *name, uint8_t flags, uint8_t attributes, File &file) {
+kiv_os::NOS_Error Proc_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8_t attributes, File &file) {
+    // procfs ignores NOpen_File flags, because it does not allow creation of new files - the file always has to exist
+
     std::lock_guard<std::recursive_mutex> guard(*Get_Pcb()->Get_Mutex());
     auto pcb = Get_Pcb();
 
