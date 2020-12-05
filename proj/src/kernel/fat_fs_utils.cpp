@@ -666,20 +666,11 @@ int retrieve_free_cluster_index(std::vector<int> fat_table_dec) {
     return free_clust_num;
 }
 
-unsigned char conv_char_to_hex(char character)
-{
-    if (character >= 'A')
-        return character - 'A' + 10;
-    else
-        return character - '0';
-}
-
 /*
 * Prevod dvou pismen reprezentujicich bajt na hodnotu bajtu.
 /**/
 unsigned char conv_char_arr_to_hex(char char_arr[2])
 {
-    //return conv_char_to_hex(char_arr[0]) * 16 + conv_char_to_hex(char_arr[1]);
     char buff[1];
     buff[0] = strtol(char_arr, NULL, 16); 
 
@@ -699,13 +690,6 @@ std::vector<unsigned char> convert_num_to_bytes_fat(int target_index, std::vecto
 
     unsigned char free_cluster_index_first = fat_table_hex.at(first_index_hex_tab);
     unsigned char free_cluster_index_sec = fat_table_hex.at(first_index_hex_tab + 1);
-  
-    char conv[3];
-    snprintf(conv, sizeof(conv), "%.2X", free_cluster_index_first);
-    char cond[3];
-    snprintf(cond, sizeof(cond), "%.2X", free_cluster_index_sec);
-    printf("ARRIVWED indexes %c%c %c%c\n", conv[0], conv[1], cond[0], cond[1]);
-
 
     char convert_buffer[5]; //buffer pro prevod hex na dec
     snprintf(convert_buffer, sizeof(convert_buffer), "%.2X%.2X", free_cluster_index_first, free_cluster_index_sec); //obsahuje 16 bitu
@@ -719,7 +703,6 @@ std::vector<unsigned char> convert_num_to_bytes_fat(int target_index, std::vecto
     unsigned char second_byte;
 
     if (target_index % 2 == 0) { //sudy index pro zapis
-        std::cout << "SUDY!!!!!!!";
         byte_to_save_first[0] = hex_free_clust[1]; //druhe cislo free clust v hex
         byte_to_save_first[1] = hex_free_clust[2]; //treti cislo free clust v hex
 
@@ -727,13 +710,13 @@ std::vector<unsigned char> convert_num_to_bytes_fat(int target_index, std::vecto
         byte_to_save_second[1] = hex_free_clust[0]; //prvni cislo free clust v hex
     }
     else { //lichy index pro zapis
-        std::cout << "LICHY!!!!!!!";
         byte_to_save_first[0] = hex_free_clust[2]; //treti cislo free clust v hex
         byte_to_save_first[1] = convert_buffer[1]; //cislo mimo
 
         byte_to_save_second[0] = hex_free_clust[0]; //prvni cislo free clust v hex
         byte_to_save_second[1] = hex_free_clust[1]; //druhe cislo free clust v hex
     }
+
     byte_to_save_first[2] = '\0';
     byte_to_save_second[2] = '\0';
 
@@ -742,11 +725,6 @@ std::vector<unsigned char> convert_num_to_bytes_fat(int target_index, std::vecto
 
     converted_bytes.push_back(first_byte);
     converted_bytes.push_back(second_byte);
-    std::cout << "Would save: " << byte_to_save_first[0] << byte_to_save_first[1] << byte_to_save_second[0] << byte_to_save_second[1];
-
-    printf("Received bytes %.2X%.2X returned %.2X%.2X", free_cluster_index_first, free_cluster_index_sec, first_byte, second_byte);
-
-    //write_data_to_fat_fs(-31, test);
 
     return converted_bytes;
 }

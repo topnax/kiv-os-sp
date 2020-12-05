@@ -288,7 +288,7 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
             std::cout << "Writing to: " << file_clust_nums.at(file_clust_nums.size() - 1);
 
             int index_to_edit = file_clust_nums.at(file_clust_nums.size() - 1);
-            index_to_edit = 6;
+            index_to_edit = 8;
             free_clust_index = 4095;
 
             //v hex tabulkach upravit cislo posledniho clusteru puvodne prideleno souboru - START

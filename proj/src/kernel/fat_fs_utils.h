@@ -39,6 +39,5 @@ std::vector<std::string> path_to_indiv_items(const char *path_file);
 int retrieve_free_byte_count(int sector_num);
 int write_folder_to_fs(int newly_created_fol_clust, std::string newly_created_fol_name, int upper_fol_clust_first, int upper_fol_clust_last, int upper_fol_clust_last_free);
 int retrieve_free_cluster_index(std::vector<int> fat_table_dec);
-unsigned char conv_char_to_hex(char character);
 unsigned char conv_char_arr_to_hex(char char_arr[2]);
 std::vector<unsigned char> convert_num_to_bytes_fat(int target_index, std::vector<unsigned char> fat_table_hex, int num_to_inject);
