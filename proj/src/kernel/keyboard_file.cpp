@@ -19,10 +19,10 @@ kiv_os::NOS_Error Keyboard_File::write(char *buffer, size_t size, size_t &writte
             pos++;
         } else {
             // an error has occurred
-            return false;
+            return kiv_os::NOS_Error::IO_Error;
         }
     }
-   return true;
+   return kiv_os::NOS_Error::Success;
 }
 
 size_t Keyboard_File::Read_Line_From_Console(char *buffer, const size_t buffer_size) {
@@ -79,5 +79,5 @@ size_t Keyboard_File::Read_Line_From_Console(char *buffer, const size_t buffer_s
 kiv_os::NOS_Error Keyboard_File::read(size_t size, char *out_buffer, size_t &read) {
     read = Read_Line_From_Console(reinterpret_cast<char*>(out_buffer), size);
     // TODO should we always return true?
-    return true;
+    return kiv_os::NOS_Error::Success;
 }
