@@ -112,7 +112,7 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, kiv_os::NOpen_File flags, uint
     num = strtol(str, &end, base);
     // check whether there were no errors when parsing the file name to an integer
     if (!*end) {
-        auto process = (*pcb)[num];
+        auto process = (*pcb)[static_cast<kiv_os::THandle>(num)];
         if (process != nullptr) {
             // we found the process that the reading of was requested
             file = File{
@@ -175,7 +175,7 @@ bool Proc_Fs::file_exists(int32_t current_fd, const char *name, bool start_from_
         num = strtol(name, &end, base);
         // check whether there were no errors when parsing the file name to an integer
         if (!*end) {
-            auto process = (*Get_Pcb())[num];
+            auto process = (*Get_Pcb())[static_cast<kiv_os::THandle>(num)];
             if (process != nullptr) {
                 found_fd = process->handle;
                 return true;
@@ -203,7 +203,7 @@ kiv_os::NOS_Error Proc_Fs::get_attributes(const char *name, uint8_t &out_attribu
     num = strtol(str, &end, base);
     // check whether there were no errors when parsing the file name to an integer
     if (!*end) {
-        auto process = (*pcb)[num];
+        auto process = (*pcb)[static_cast<kiv_os::THandle>(num)];
         if (process != nullptr) {
             out_attributes = PCB_ENTRY_ATTRIBUTES;
             return kiv_os::NOS_Error::Success;
