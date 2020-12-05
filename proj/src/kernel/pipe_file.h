@@ -16,10 +16,10 @@ public:
     // the pipe should be deleted once both file objects are destroyed
     explicit Pipe_In_File(std::shared_ptr<Pipe> pipe);
 
-    bool write(char *buffer, size_t size, size_t &written) override;
+    kiv_os::NOS_Error write(char *buffer, size_t size, size_t &written) override;
 
-    bool read(size_t size, char *out_buffer, size_t &read) override {
-        return false;
+    kiv_os::NOS_Error read(size_t size, char *out_buffer, size_t &read) override {
+        return kiv_os::NOS_Error::IO_Error;
     };
 
     kiv_os::NOS_Error seek(size_t value, kiv_os::NFile_Seek position, kiv_os::NFile_Seek op, size_t &res) override;
@@ -37,11 +37,11 @@ public:
     // the pipe should be deleted once both file objects are destroyed
     explicit Pipe_Out_File(std::shared_ptr<Pipe>);
 
-    bool write(char *buffer, size_t size, size_t &written) override {
-        return false;
+    kiv_os::NOS_Error write(char *buffer, size_t size, size_t &written) override {
+        return kiv_os::NOS_Error::IO_Error;
     };
 
-    bool read(size_t size, char *out_buffer, size_t &read) override;
+    kiv_os::NOS_Error read(size_t size, char *out_buffer, size_t &read) override;
 
     void close() override;
 

@@ -10,7 +10,7 @@
 
 struct File {
     kiv_os::THandle handle;
-    uint16_t attributes;
+    uint8_t attributes;
     size_t size;
     size_t position;
     char *name;
@@ -39,7 +39,7 @@ public:
     /**
      * Tries to open the file with the given name, flags and attributes. The information about the file is eventually stored in the `file` reference
      */
-    virtual kiv_os::NOS_Error open(const char *name, uint8_t flags, uint8_t attributes, File &file) = 0;
+    virtual kiv_os::NOS_Error open(const char *name, kiv_os::NOpen_File flags, uint8_t attributes, File &file) = 0;
 
     /**
      * Writes `size` bytes from `buffer` to the given file using the provided offset.
@@ -70,6 +70,28 @@ public:
      * @return `true` when the an item with the given name exists in the particular directory, otherwise `false`
      */
     virtual bool file_exists(int32_t current_fd, const char *name, bool start_from_root, int32_t &found_fd) = 0;
+
+    /**
+     * Sets the attributes of the file specified by the ˙name˙
+     * @param name name of the file (including the path)
+     * @param attributes attributes to be set (see kiv_os::NFile_Attributes)
+     * @return result code
+     */
+    virtual kiv_os::NOS_Error set_attributes(const char *name, uint8_t attributes) {
+        // TODO implement
+        return kiv_os::NOS_Error::Permission_Denied;
+    };
+
+    /**
+     * Gets the attributes of the file specified by the ˙name˙
+     * @param name name of the file (including the path)
+     * @param out_attributes reference to uint8_t in which the attributes should be stored
+     * @return result code
+     */
+    virtual kiv_os::NOS_Error get_attributes(const char *name, uint8_t &out_attributes) {
+        // TODO implement
+        return kiv_os::NOS_Error::Permission_Denied;
+    };
 
     /**
      *  Closes the given file

@@ -42,38 +42,8 @@ void __stdcall Bootstrap_Loader(kiv_hal::TRegisters &context) {
 	kiv_hal::Set_Interrupt_Handler(kiv_os::System_Int_Number, Sys_Call);
 
 	//v ramci ukazky jeste vypiseme dostupne disky
-	kiv_hal::TRegisters regs;
-	for (regs.rdx.l = 0; ; regs.rdx.l++) {
-		kiv_hal::TDrive_Parameters params;		
-		regs.rax.h = static_cast<uint8_t>(kiv_hal::NDisk_IO::Drive_Parameters);;
-		regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(&params);
-		kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::Disk_IO, regs);
-			
-		if (!regs.flags.carry) {
-			auto print_str = [](const char* str) {
-    			kiv_hal::TRegisters regs;
-				regs.rax.l = static_cast<uint8_t>(kiv_os::NOS_File_System::Write_File);
-				regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(str);
-				regs.rcx.r = strlen(str);
-                return;
-				Handle_IO(regs);
-			};
+	kiv_hal::TRegisters regs{};
 
-			const char dec_2_hex[16] = { L'0', L'1', L'2', L'3', L'4', L'5', L'6', L'7', L'8', L'9', L'A', L'B', L'C', L'D', L'E', L'F' };
-			char hexa[3];
-			hexa[0] = dec_2_hex[regs.rdx.l >> 4];
-			hexa[1] = dec_2_hex[regs.rdx.l & 0xf];
-			hexa[2] = 0;
-
-			// VGA not initialised at this moment
-			// print_str("Nalezen disk: 0x");
-			// print_str(hexa);
-			// print_str("\n");
-
-		}
-
-        if (regs.rdx.l == 255) break;
-    }
 
 	//spustime shell - v realnem OS bychom ovsem spousteli login
     run_shell(regs);
@@ -82,15 +52,22 @@ void __stdcall Bootstrap_Loader(kiv_hal::TRegisters &context) {
 }
 
 void run_shell(const kiv_hal::TRegisters &regs) {
-    kiv_hal::TRegisters shell_regs;
+    kiv_hal::TRegisters shell_regs{};
 
     // open a VGA as the STDOUT for the shell
-    std::string vga = "/dev/vga";
-    auto std_out = Open_File(vga.c_str(), 0, 0);
+    std::string tty = "\\sys\\tty";
+    kiv_os::NOS_Error error = kiv_os::NOS_Error::Success;
+    auto std_out = Open_File(tty.c_str(), kiv_os::NOpen_File::fmOpen_Always, 0, error);
+    if (error != kiv_os::NOS_Error::Success) {
+        return;
+    }
 
     // open keyboard as the STDIN for shell
-    std::string kb = "/dev/kb";
-    auto std_in = Open_File(kb.c_str(), 0, 0);
+    std::string kb = "\\sys\\kb";
+    auto std_in = Open_File(kb.c_str(), kiv_os::NOpen_File::fmOpen_Always, 0, error);
+    if (error != kiv_os::NOS_Error::Success) {
+        return;
+    }
 
     // "shell" program should be run
     shell_regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>("shell");
@@ -107,22 +84,21 @@ void run_shell(const kiv_hal::TRegisters &regs) {
     // perform clone
     clone(shell_regs, User_Programs);
 
-    // created THandle is stored in rax
-    kiv_os::THandle handles[] = {(kiv_os::THandle) shell_regs.rax.x};
-
-    kiv_hal::TRegisters wait_for_regs;
-
-    // TODO change to Handle_Process instead of calling wait_for directly
-
-    wait_for_regs.rdx.x = static_cast<decltype(regs.rdx.x)>((kiv_os::THandle)shell_regs.rax.x);
-   // // wait for this array of handles
-   // wait_for_regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(handles);
-
-   // // store the count of handles to registers
-   // wait_for_regs.rcx.l = (uint8_t) 1;
+    // prepare read exit code regs
+    kiv_hal::TRegisters read_exit_code_regs{};
+    read_exit_code_regs.rdx.x = static_cast<decltype(regs.rdx.x)>((kiv_os::THandle)shell_regs.rax.x);
 
     // perform Wait_For
-    read_exit_code(wait_for_regs);
+    read_exit_code(read_exit_code_regs);
+
+    kiv_hal::TRegisters close_regs{};
+    // close shell's std_out
+    close_regs.rdx.x = std_out;
+    Close_File(close_regs);
+
+    // close shell's std_in
+    close_regs.rdx.x = std_in;
+    Close_File(close_regs);
 }
 
 void Set_Error(const bool failed, kiv_hal::TRegisters &regs) {

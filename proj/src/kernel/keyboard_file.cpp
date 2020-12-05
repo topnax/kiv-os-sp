@@ -6,27 +6,27 @@
 #include "keyboard_file.h"
 #include "../api/hal.h"
 
-bool Keyboard_File::write(char *buffer, size_t size, size_t &written) {
-    kiv_hal::TRegisters registers;
+kiv_os::NOS_Error Keyboard_File::write(char *buffer, size_t size, size_t &written) {
+    kiv_hal::TRegisters registers{};
 
     size_t pos = 0;
     while (pos < size) {
         char to_write = buffer[pos];
-        registers.rax.x = static_cast<decltype(registers.rax.l)>(to_write);
-        registers.rax.h = static_cast<decltype(registers.rax.l)>(kiv_hal::NKeyboard::Write_Char);
+        registers.rax.l = static_cast<decltype(registers.rax.l)>(to_write);
+        registers.rax.h = static_cast<decltype(registers.rax.h)>(kiv_hal::NKeyboard::Write_Char);
         kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::Keyboard, registers);
         if (registers.flags.non_zero) {
             pos++;
         } else {
             // an error has occurred
-            return false;
+            return kiv_os::NOS_Error::IO_Error;
         }
     }
-   return true;
+   return kiv_os::NOS_Error::Success;
 }
 
 size_t Keyboard_File::Read_Line_From_Console(char *buffer, const size_t buffer_size) {
-    kiv_hal::TRegisters registers;
+    kiv_hal::TRegisters registers{};
 
     size_t pos = 0;
     while (pos < buffer_size) {
@@ -66,7 +66,6 @@ size_t Keyboard_File::Read_Line_From_Console(char *buffer, const size_t buffer_s
                     kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::VGA_BIOS, registers);
                 } else {
                     // EOT has been read, stop waiting for remaining characters
-                    eot_read = true;
                     return pos;
                 }
                 break;
@@ -77,11 +76,8 @@ size_t Keyboard_File::Read_Line_From_Console(char *buffer, const size_t buffer_s
 
 }
 
-bool Keyboard_File::read(size_t size, char *out_buffer, size_t &read) {
-    if (eot_read) {
-        return false;
-    }
+kiv_os::NOS_Error Keyboard_File::read(size_t size, char *out_buffer, size_t &read) {
     read = Read_Line_From_Console(reinterpret_cast<char*>(out_buffer), size);
     // TODO should we always return true?
-    return true;
+    return kiv_os::NOS_Error::Success;
 }

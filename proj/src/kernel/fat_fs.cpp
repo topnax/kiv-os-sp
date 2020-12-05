@@ -29,7 +29,7 @@ kiv_os::NOS_Error Fat_Fs::readdir(const char *name, std::vector<kiv_os::TDir_Ent
     return kiv_os::NOS_Error::IO_Error;
 }
 
-kiv_os::NOS_Error Fat_Fs::open(const char *name, uint8_t flags, uint8_t attributes, File &file) {
+kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8_t attributes, File &file) {
     // TODO implement this
     file = File {};
     file.name = const_cast<char*>(name);

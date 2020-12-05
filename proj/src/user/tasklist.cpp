@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include "rtl.h"
+#include "error_handler.h"
 
 // size of the buffer used to hold formatted PCB entry to be written to std_out
 constexpr size_t TASK_LIST_PCB_ENTRY_OUT_BUFFER_SIZE = 86;
@@ -31,15 +32,15 @@ struct PCB_Entry {
 ////////////////////////////////////////
 
 // reads procfs directory items and returns them in a vector container
-std::vector<kiv_os::TDir_Entry> read_procfs_dir_items() {
+std::vector<kiv_os::TDir_Entry> read_procfs_dir_items(kiv_os::THandle std_out) {
     kiv_os::THandle handle;
 
     std::vector<kiv_os::TDir_Entry> dir_items;
 
     // directory file contains information about the directory itself, read the whole file
     auto attributes = static_cast<uint8_t>(static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory));
-
-    if (kiv_os_rtl::Open_File("C:\\procfs", 0, attributes, handle)) {
+    kiv_os::NOS_Error error;
+    if (kiv_os_rtl::Open_File("C:\\procfs", kiv_os::NOpen_File::fmOpen_Always, attributes, handle, error)) {
         // get the size of the TDir_Entry structure
         const auto dir_entry_size = sizeof(kiv_os::TDir_Entry);
         size_t read;
@@ -56,6 +57,8 @@ std::vector<kiv_os::TDir_Entry> read_procfs_dir_items() {
         }
 
         kiv_os_rtl::Close_Handle(handle);
+    } else {
+        handle_error_message(error, std_out);
     }
     return dir_items;
 }
@@ -64,7 +67,7 @@ extern "C" size_t __stdcall tasklist(const kiv_hal::TRegisters &regs) {
     const auto std_out = static_cast<kiv_os::THandle>(regs.rbx.x);
 
     // read procfs directory items
-    auto procfs_dir_items = read_procfs_dir_items();
+    auto procfs_dir_items = read_procfs_dir_items(std_out);
 
     if (!procfs_dir_items.empty()) {
         // PCB correctly read and contains atleast one item
@@ -117,10 +120,11 @@ extern "C" size_t __stdcall tasklist(const kiv_hal::TRegisters &regs) {
         const char *separator = "====================================================================================\n";
         kiv_os_rtl::Write_File(std_out, separator, TASK_LIST_PCB_ENTRY_OUT_BUFFER_SIZE - 1, written_to_out);
 
+        kiv_os::NOS_Error error;
         for (auto dir_item: procfs_dir_items) {
             // generate the path to the currently iterated directory item representing an entry in the PCB table
             sprintf_s(pcb_item_path, 42, "C:\\procfs\\%s", dir_item.file_name);
-            if (kiv_os_rtl::Open_File(pcb_item_path, 0, 0, pcb_item_handle)) {
+            if (kiv_os_rtl::Open_File(pcb_item_path, kiv_os::NOpen_File::fmOpen_Always, 0, pcb_item_handle, error)) {
                 // file containing a table entry opened successfully
                 if (kiv_os_rtl::Read_File(pcb_item_handle, pcb_entry_buffer, pcb_entry_size, pcb_read) &&
                     pcb_read == pcb_entry_size) {
@@ -139,6 +143,8 @@ extern "C" size_t __stdcall tasklist(const kiv_hal::TRegisters &regs) {
 
                 // close the opened pcb item handle
                 kiv_os_rtl::Close_Handle(pcb_item_handle);
+            } else {
+                handle_error_message(error, std_out);
             }
         }
     } else {

@@ -119,7 +119,7 @@ set(Header_Files
     "../../src/api/hal.h"
     "../../src/user/rtl.h"
     "../../src/user/shell.h"
-)
+        ../../src/user/error_handler.h)
 source_group("Header Files" FILES ${Header_Files})
 
 set(Source_Files
@@ -133,7 +133,7 @@ set(Source_Files
         "../../src/user/echo.cpp"
         "../../src/user/find.cpp"
         "../../src/user/sort.cpp"
-        "../../src/user/freq.cpp")
+        "../../src/user/freq.cpp" ../../src/user/md.cpp ../../src/user/rd.cpp ../../src/user/error_handler.cpp)
 source_group("Source Files" FILES ${Source_Files})
 
 set(ALL_FILES

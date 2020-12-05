@@ -35,7 +35,7 @@
     <ClCompile Include="..\..\src\kernel\process\pcb.cpp" />
     <ClCompile Include="..\..\src\kernel\process\process_entry.cpp" />
     <ClCompile Include="..\..\src\kernel\proc_fs.cpp" />
-    <ClCompile Include="..\..\src\kernel\vga_file.cpp" />
+    <ClCompile Include="..\..\src\kernel\tty_file.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\api\api.h" />
@@ -56,7 +56,7 @@
     <ClInclude Include="..\..\src\kernel\process\pcb.h" />
     <ClInclude Include="..\..\src\kernel\process\process_entry.h" />
     <ClInclude Include="..\..\src\kernel\semaphore.h" />
-    <ClInclude Include="..\..\src\kernel\vga_file.h" />
+    <ClInclude Include="..\..\src\kernel\tty_file.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{B4305463-59C5-40C3-9A1A-92976A40562D}</ProjectGuid>
@@ -185,6 +185,7 @@
       <PreprocessorDefinitions>NDEBUG;_WINDOWS;_USRDLL;KERNEL_EXPORTS;KERNEL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
       <CallingConvention>VectorCall</CallingConvention>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

@@ -137,7 +137,7 @@ source_group("Source Files" FILES ${Source_Files})
 set(ALL_FILES
     ${Header_Files}
     ${Source_Files}
-        ../../src/kernel/semaphore.h ../../src/kernel/generic_file.h ../../src/kernel/pipe_file.cpp ../../src/kernel/pipe_file.h ../../src/kernel/vga_file.cpp ../../src/kernel/vga_file.h ../../src/kernel/keyboard_file.cpp ../../src/kernel/keyboard_file.h)
+        ../../src/kernel/semaphore.h ../../src/kernel/generic_file.h ../../src/kernel/pipe_file.cpp ../../src/kernel/pipe_file.h ../../src/kernel/tty_file.cpp ../../src/kernel/tty_file.h ../../src/kernel/keyboard_file.cpp ../../src/kernel/keyboard_file.h)
 
 ################################################################################
 # Target

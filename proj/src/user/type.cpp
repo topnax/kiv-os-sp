@@ -3,6 +3,7 @@
 //
 
 #include "rtl.h"
+#include "error_handler.h"
 
 extern "C" size_t __stdcall type(const kiv_hal::TRegisters &regs) {
     const auto std_in = static_cast<kiv_os::THandle>(regs.rax.x);
@@ -17,19 +18,16 @@ extern "C" size_t __stdcall type(const kiv_hal::TRegisters &regs) {
     // the handle to be used to read from
     kiv_os::THandle handle_to_read_from;
 
-    char *file_path = (char *) regs.rdi.r;
+    char *file_path = reinterpret_cast<char *>(regs.rdi.r);
     // check whether user has specified a file to read from
     if (regs.rdi.r != 0 && strlen(file_path) > 0) {
-        // get path of the file to be read
-
+        kiv_os::NOS_Error error;
         // try to open a file at the specified path
-        if (kiv_os_rtl::Open_File(file_path, 0, 0, handle_to_read_from)) {
+        if (kiv_os_rtl::Open_File(file_path, kiv_os::NOpen_File::fmOpen_Always, 0, handle_to_read_from, error)) {
             file_opened = true;
             handle_found = true;
         } else {
-            size_t written;
-            const char *message = "File not found\n";
-            kiv_os_rtl::Write_File(std_out, message, strlen(message), written);
+            handle_error_message(error, std_out);
         }
     } else {
         // a file to be read from not specified, read from std_in

@@ -79,7 +79,7 @@ void Handle_Process(kiv_hal::TRegisters &regs, HMODULE user_programs) {
 }
 
 kiv_hal::TRegisters Prepare_Process_Context(unsigned short std_in, unsigned short std_out, char *args) {
-    kiv_hal::TRegisters regs;
+    kiv_hal::TRegisters regs{};
     regs.rax.x = std_in;
     regs.rbx.x = std_out;
     regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(args);
@@ -263,7 +263,7 @@ void wait_for(kiv_hal::TRegisters &registers) {
         false
     };
 
-    int index = 0;
+    int index;
     bool anyHandleInvalid = false;
 
     // try to add the listener for each thread handle passed in the handles array
@@ -405,7 +405,7 @@ void read_exit_code(kiv_hal::TRegisters &registers) {
 
     // check whether the handle is still referencing an active thread
     if (Resolve_kiv_os_Handle(handle) != INVALID_HANDLE_VALUE) {
-        kiv_hal::TRegisters regs;
+        kiv_hal::TRegisters regs{};
 
         kiv_os::THandle handles[] = {handle};
 
@@ -427,10 +427,6 @@ void read_exit_code(kiv_hal::TRegisters &registers) {
     std::lock_guard<std::mutex> guard(Semaphores_Mutex);
     if (process != nullptr && process->status == Process_Status::Zombie) {
         exit_code = process->exit_code;
-
-        std::string statuses[] = {
-                "Ready", "Running", "Zombie"
-        };
 
         // we have read the process' exit code - remove it from the table
         (*Proc::Pcb).Remove_Process(handle);
@@ -467,7 +463,7 @@ void signal_all_processes(kiv_os::NSignal_Id signal_id) {
 void signal(kiv_os::NSignal_Id signal_id, Process *process) {
     auto resolved = process->signal_handlers.find(signal_id);
     if (resolved != process->signal_handlers.end()) {
-        kiv_hal::TRegisters regs;
+        kiv_hal::TRegisters regs{};
         regs.rcx.l = static_cast<decltype(regs.rcx.l)>(signal_id);
         // execute the handler of the given signal for the given process
         resolved->second(regs);
@@ -481,7 +477,7 @@ void shutdown() {
     signal_all_processes(kiv_os::NSignal_Id::Terminate);
 
     for (Process *process : Proc::Pcb->Get_Processes()) {
-        kiv_hal::TRegisters regs;
+        kiv_hal::TRegisters regs{};
         regs.rdx.x = static_cast<decltype(regs.rdx.x)>(process->std_in);
         Close_File(regs);
     }

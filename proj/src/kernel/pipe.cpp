@@ -26,16 +26,16 @@ void Pipe::Close_In() {
     }
 }
 
-std::vector<char> Pipe::Read(size_t nodes_to_read) {
+std::vector<char> Pipe::Read(size_t nodes_to_read, bool &nothing_left_to_read) {
     std::vector<char> read;
     read.reserve(nodes_to_read);
 
     for (size_t i = 0; i < nodes_to_read; i++) {
-        // check whether out handle has been closed
-        if (this->closed_out) {
+        // check whether out handle has been closed and there is nothing left to read
+        if (this->closed_out && read_ptr == write_ptr) {
+            nothing_left_to_read = true;
             return read;
         }
-
         this->fill_count.wait();
 
         // check whether the out handle has not been closed while we have been waiting
@@ -55,6 +55,7 @@ std::vector<char> Pipe::Read(size_t nodes_to_read) {
 
         if (read_char == static_cast<char>(kiv_hal::NControl_Codes::EOT)) {
             // EOT has been read, stop reading
+            this->closed_out = true;
             return read;
         }
     }

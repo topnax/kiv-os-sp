@@ -2,7 +2,7 @@
 #include <stack>
 #include <random>
 #include "files.h"
-#include "vga_file.h"
+#include "tty_file.h"
 #include "keyboard_file.h"
 #include "proc_fs.h"
 #include "fat_fs.h"
@@ -68,10 +68,10 @@ void Init_Filesystems() {
 
 
     // find a fat drive
-    kiv_hal::TRegisters regs;
+    kiv_hal::TRegisters regs{};
     for (regs.rdx.l = 0;; regs.rdx.l++) {
-        kiv_hal::TDrive_Parameters params;
-        regs.rax.h = static_cast<uint8_t>(kiv_hal::NDisk_IO::Drive_Parameters);;
+        kiv_hal::TDrive_Parameters params{};
+        regs.rax.h = static_cast<uint8_t>(kiv_hal::NDisk_IO::Drive_Parameters);
         regs.rdi.r = reinterpret_cast<decltype(regs.rdi.r)>(&params);
         kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::Disk_IO, regs);
         if (!regs.flags.carry) {
@@ -94,7 +94,7 @@ void Add_Filesystem(const std::string &name, VFS *vfs) {
     Files::Filesystems[name] = std::unique_ptr<VFS>(vfs);
 }
 
-VFS *Get_Filesystem(std::string file_name) {
+VFS *Get_Filesystem(const std::string& file_name) {
     auto resolved = Files::Filesystems.find(file_name);
     if (resolved != Files::Filesystems.end()) {
         return resolved->second.get();
@@ -105,27 +105,33 @@ VFS *Get_Filesystem(std::string file_name) {
 
 void Open_File(kiv_hal::TRegisters &registers) {
     char *file_name = reinterpret_cast<char * >(registers.rdx.r);
-    uint8_t flags = registers.rcx.l;
+    auto flags = static_cast<kiv_os::NOpen_File>(registers.rcx.l);
     auto attributes = static_cast<uint8_t>(registers.rdi.i);
-    registers.rax.x = Open_File(file_name, flags, attributes);
+
+    kiv_os::NOS_Error error = kiv_os::NOS_Error::Success;
+    auto handle = Open_File(file_name, flags, attributes, error);
+
+    if (handle == kiv_os::Invalid_Handle) {
+        error = kiv_os::NOS_Error::File_Not_Found;
+    }
+
+    if (error == kiv_os::NOS_Error::Success) {
+        registers.rax.x = handle;
+    } else {
+        registers.flags.carry = 1;
+        registers.rax.x = static_cast<decltype(registers.rax.x)>(error);
+    }
 }
 
-kiv_os::THandle Open_File(const char *file_name, uint8_t flags, uint8_t attributes) {
+kiv_os::THandle Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8_t attributes, kiv_os::NOS_Error &error) {
     std::lock_guard<std::mutex> guard(Files::Open_Guard);
     Generic_File *file = nullptr;
 
 
-
-/*    printf("start #######################\n");
-    std::filesystem::path resolved;
-    if (File_Exists(R"(C:\procfs\..\procfs\1)", resolved) != nullptr) {
-        printf("found %s at %s\n", file_name, resolved.string().c_str());
-    }
-    printf("end #######################\n");*/
     // TODO this could be improved in the future
-    if (strcmp(file_name, "/dev/vga") == 0) {
-        file = new Vga_File();
-    } else if (strcmp(file_name, "/dev/kb") == 0) {
+    if (strcmp(file_name, "\\sys\\tty") == 0) {
+        file = new Tty_File();
+    } else if (strcmp(file_name, "\\sys\\kb") == 0) {
         file = new Keyboard_File();
     } else {
         std::filesystem::path resolved_path_relative_to_fs;
@@ -164,6 +170,9 @@ void Close_File(kiv_hal::TRegisters &regs) {
 
         // remove it from the file table
         (*Files::Ft).Remove(handle);
+    } else {
+        regs.flags.carry = 1;
+        regs.rax.r = static_cast<decltype(regs.rax.r)>(kiv_os::NOS_Error::File_Not_Found);
     }
 }
 
@@ -179,14 +188,15 @@ void Write_File(kiv_hal::TRegisters &regs) {
     Generic_File *file = Resolve_THandle_To_File(handle);
     if (file != nullptr) {
         size_t written;
-        bool res = file->write(buff, bytes, written);
+        auto res = file->write(buff, bytes, written);
         regs.rax.r = written;
-        if (!res) {
+        if (res != kiv_os::NOS_Error::Success) {
             // some error has happened
             regs.flags.carry = 1;
+            regs.rax.r = static_cast<decltype(regs.rax.r)>(res);
         }
     } else {
-        regs.rax.r = 0;
+        regs.rax.r = static_cast<decltype(regs.rax.r)>(kiv_os::NOS_Error::File_Not_Found);
         regs.flags.carry = 1;
     }
 }
@@ -200,14 +210,16 @@ void Read_File(kiv_hal::TRegisters &regs) {
         auto buff_size = static_cast<size_t>(regs.rcx.r);
         char *buff = reinterpret_cast<char *>(regs.rdi.r);
         size_t read;
-        bool res = file->read(buff_size, buff, read);
+        auto res = file->read(buff_size, buff, read);
         regs.rax.r = read;
-        if (!res) {
+
+        if (res != kiv_os::NOS_Error::Success) {
             // some error has happened
+            regs.rax.r = static_cast<decltype(regs.rax.r)>(res);
             regs.flags.carry = 1;
         }
     } else {
-        regs.rax.r = 0;
+        regs.rax.r = static_cast<decltype(regs.rax.r)>(kiv_os::NOS_Error::File_Not_Found);
         regs.flags.carry = 1;
     }
 }
@@ -327,4 +339,97 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
     }
 
     return nullptr;
+}
+
+void Seek(kiv_hal::TRegisters &registers) {
+    kiv_os::THandle handle = registers.rdx.x;
+    auto position = static_cast<size_t>(registers.rdi.r);
+    auto pos_type = static_cast<kiv_os::NFile_Seek>(registers.rcx.l);
+    auto op = static_cast<kiv_os::NFile_Seek>(registers.rcx.h);
+
+    // check whether file exists
+    if (Files::Ft->Exists(handle)) {
+        size_t pos_from_start;
+        auto file_object = (*Files::Ft)[handle];
+        // try to perform seek
+        if (file_object->seek(position, pos_type, op, pos_from_start) == kiv_os::NOS_Error::Success) {
+            registers.rax.r = pos_from_start;
+            return;
+        }
+    }
+    // file not found or seek has failed, set error
+    registers.flags.carry = 1;
+}
+
+void Delete_File(kiv_hal::TRegisters &registers) {
+    char *file_name = reinterpret_cast<char * >(registers.rdx.r);
+    std::filesystem::path resolved_path_relative_to_fs;
+    std::filesystem::path absolute_path;
+
+    auto fs = File_Exists(file_name, resolved_path_relative_to_fs, absolute_path);
+    if (fs != nullptr) {
+        // convert the resolved path into a char*
+        auto length = resolved_path_relative_to_fs.string().length() + 1;
+        char *name = new char[length];
+        strcpy_s(name, length, resolved_path_relative_to_fs.string().c_str());
+
+        // unlink a file with the found filesystem
+        auto result = fs->unlink(name);
+        if (result == kiv_os::NOS_Error::Success) {
+            // unlink successful, do not set error
+            return;
+        }
+    }
+    // file does not exist or unlink has failed
+    registers.flags.carry = 1;
+}
+
+void Set_File_Attributes(kiv_hal::TRegisters &registers) {
+    char *file_name = reinterpret_cast<char * >(registers.rdx.r);
+    auto attributes = static_cast<uint8_t>(registers.rdi.i);
+
+    std::filesystem::path resolved_path_relative_to_fs;
+    std::filesystem::path absolute_path;
+
+    auto fs = File_Exists(file_name, resolved_path_relative_to_fs, absolute_path);
+    if (fs != nullptr) {
+        // convert the resolved path into a char*
+        auto length = resolved_path_relative_to_fs.string().length() + 1;
+        char *name = new char[length];
+        strcpy_s(name, length, resolved_path_relative_to_fs.string().c_str());
+
+        // set file attributes with the found filesystem
+        auto result = fs->set_attributes(file_name, attributes);
+        if (result == kiv_os::NOS_Error::Success) {
+            // attributes set successfully, do not set error
+            return;
+        }
+    }
+
+    registers.flags.carry = 1;
+}
+
+void Get_File_Attributes(kiv_hal::TRegisters &registers) {
+    char *file_name = reinterpret_cast<char * >(registers.rdx.r);
+
+    std::filesystem::path resolved_path_relative_to_fs;
+    std::filesystem::path absolute_path;
+
+    auto fs = File_Exists(file_name, resolved_path_relative_to_fs, absolute_path);
+    if (fs != nullptr) {
+        // convert the resolved path into a char*
+        auto length = resolved_path_relative_to_fs.string().length() + 1;
+        char *name = new char[length];
+        strcpy_s(name, length, resolved_path_relative_to_fs.string().c_str());
+
+        uint8_t attributes;
+
+        auto result = fs->get_attributes(name, attributes);
+        if (result == kiv_os::NOS_Error::Success) {
+            registers.rdi.i = attributes;
+            return;
+        }
+    }
+
+    registers.flags.carry = 1;
 }

@@ -39,7 +39,7 @@
     <ClCompile Include="..\..\src\kernel\files.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\src\kernel\vga_file.cpp">
+    <ClCompile Include="..\..\src\kernel\tty_file.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\src\kernel\keyboard_file.cpp">
@@ -104,7 +104,7 @@
     <ClInclude Include="..\..\src\kernel\keyboard_file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\kernel\vga_file.h">
+    <ClInclude Include="..\..\src\kernel\tty_file.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\kernel\generic_file.h">

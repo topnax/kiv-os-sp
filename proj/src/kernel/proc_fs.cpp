@@ -12,22 +12,22 @@
 constexpr size_t TASK_LIST_PCB_ENTRY_OUT_BUFFER_SIZE = 65;
 constexpr int32_t PROCFS_ROOT = 0;
 
+constexpr uint8_t ROOT_DIRECTORY_ATTRIBUTES = static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) |
+                                              static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only) |
+                                              static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory);
+
+constexpr uint8_t PCB_ENTRY_ATTRIBUTES = static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) |
+                                         static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only);
+
+
 std::vector<char> Proc_Fs::generate_readproc_vector(Process p) {
     std::vector<char> out;
 
     // create a PCB entry from a process and insert it into a vector
     auto pcb_entry = p.Get_Pcb_Entry();
-    auto const ptr = reinterpret_cast<char*>(&pcb_entry);
+    auto const ptr = reinterpret_cast<char *>(&pcb_entry);
     // append to the char vector
     out.insert(out.end(), ptr, ptr + sizeof pcb_entry);
-
-    return out;
-}
-
-std::vector<char> Proc_Fs::generate_test_vector() {
-    std::string testStr = "abc test\n123 TEST\nAhoj\nahoj\nzmrzlina mnam\n556haha\nABCDEF\n";
-
-    std::vector<char> out(testStr.begin(), testStr.end());
 
     return out;
 }
@@ -52,7 +52,6 @@ kiv_os::NOS_Error Proc_Fs::read(File file, size_t size, size_t offset, std::vect
         auto p = Get_Pcb()->operator[](file.handle);
         if (p != nullptr) {
             generated = generate_readproc_vector(*p);
-            //generated = generate_test_vector(); // TODO uncomment this line to get a multiline output on type /procfs/{valid_id}
         } else {
             return kiv_os::NOS_Error::File_Not_Found;
         }
@@ -74,9 +73,7 @@ kiv_os::NOS_Error Proc_Fs::readdir(const char *name, std::vector<kiv_os::TDir_En
     auto pcb = Get_Pcb();
     for (Process *process : pcb->Get_Processes()) {
         auto entry = kiv_os::TDir_Entry{
-                static_cast<uint16_t>(kiv_os::NFile_Attributes::System_File) |
-                static_cast<uint16_t>(kiv_os::NFile_Attributes::Directory) | // TODO PCB entry is not a directory
-                static_cast<uint16_t>(kiv_os::NFile_Attributes::Read_Only)
+                PCB_ENTRY_ATTRIBUTES
         };
         sprintf_s(entry.file_name, 12, "%d", process->handle);
 
@@ -86,7 +83,9 @@ kiv_os::NOS_Error Proc_Fs::readdir(const char *name, std::vector<kiv_os::TDir_En
     return kiv_os::NOS_Error::Success;
 }
 
-kiv_os::NOS_Error Proc_Fs::open(const char *name, uint8_t flags, uint8_t attributes, File &file) {
+kiv_os::NOS_Error Proc_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8_t attributes, File &file) {
+    // procfs ignores NOpen_File flags, because it does not allow creation of new files - the file always has to exist
+
     std::lock_guard<std::recursive_mutex> guard(*Get_Pcb()->Get_Mutex());
     auto pcb = Get_Pcb();
 
@@ -94,15 +93,14 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, uint8_t flags, uint8_t attribu
     if (strcmp(name, "\\") == 0 || strcmp(name, "\\.") == 0) {
         file = File{
                 0,
-                static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) |
-                static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only) |
-                static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory),
-                sizeof(kiv_os::TDir_Entry::file_name),
+                ROOT_DIRECTORY_ATTRIBUTES,
+                sizeof(kiv_os::TDir_Entry) * pcb->Get_Processes().size(),
                 0,
                 const_cast<char *>(name),
         };
         // check attributes
-        if ((attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) == 0) return kiv_os::NOS_Error::Permission_Denied;
+        if ((attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) == 0)
+            return kiv_os::NOS_Error::Permission_Denied;
         return kiv_os::NOS_Error::Success;
     }
 
@@ -114,20 +112,20 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, uint8_t flags, uint8_t attribu
     num = strtol(str, &end, base);
     // check whether there were no errors when parsing the file name to an integer
     if (!*end) {
-        auto process = (*pcb)[num];
+        auto process = (*pcb)[static_cast<kiv_os::THandle>(num)];
         if (process != nullptr) {
             // we found the process that the reading of was requested
             file = File{
                     process->handle,
-                    static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File) |
-                    static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only),
-                    TASK_LIST_PCB_ENTRY_OUT_BUFFER_SIZE,
+                    PCB_ENTRY_ATTRIBUTES,
+                    sizeof(PCB_Entry),
                     0,
                     const_cast<char *>(name)
             };
 
             // read file must not be a directory
-            if ((attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0) return kiv_os::NOS_Error::Permission_Denied;
+            if ((attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0)
+                return kiv_os::NOS_Error::Permission_Denied;
             return kiv_os::NOS_Error::Success;
         }
     }
@@ -177,7 +175,7 @@ bool Proc_Fs::file_exists(int32_t current_fd, const char *name, bool start_from_
         num = strtol(name, &end, base);
         // check whether there were no errors when parsing the file name to an integer
         if (!*end) {
-            auto process = (*Get_Pcb())[num];
+            auto process = (*Get_Pcb())[static_cast<kiv_os::THandle>(num)];
             if (process != nullptr) {
                 found_fd = process->handle;
                 return true;
@@ -185,4 +183,36 @@ bool Proc_Fs::file_exists(int32_t current_fd, const char *name, bool start_from_
         }
     }
     return false;
+}
+
+kiv_os::NOS_Error Proc_Fs::get_attributes(const char *name, uint8_t &out_attributes) {
+    if (strcmp(name, "\\") == 0 || strcmp(name, "\\.") == 0) {
+        // root folder attributes
+        out_attributes = ROOT_DIRECTORY_ATTRIBUTES;
+
+        return kiv_os::NOS_Error::Success;
+    }
+
+    auto pcb = Get_Pcb();
+
+    // parse PID from the path
+    int base = 10;
+    char *str = const_cast<char *>(name + strlen("\\"));
+    char *end;
+    long int num;
+    num = strtol(str, &end, base);
+    // check whether there were no errors when parsing the file name to an integer
+    if (!*end) {
+        auto process = (*pcb)[static_cast<kiv_os::THandle>(num)];
+        if (process != nullptr) {
+            out_attributes = PCB_ENTRY_ATTRIBUTES;
+            return kiv_os::NOS_Error::Success;
+        }
+    }
+
+    return kiv_os::NOS_Error::File_Not_Found;
+}
+
+kiv_os::NOS_Error Proc_Fs::set_attributes(const char *name, uint8_t attributes) {
+    return kiv_os::NOS_Error::Permission_Denied;
 }

@@ -2,6 +2,7 @@
 #include "rtl.h"
 #include "argparser.h"
 #include <vector>
+#include "error_handler.h"
 
 constexpr auto PROMPT_BUFFER_SIZE = 5000;
 
@@ -37,13 +38,18 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             kiv_os::THandle first_handle;
 
             if (programs[i].input.type == ProgramHandleType::File) {
-                if (kiv_os_rtl::Open_File(programs[i].input.name, 0, 0, file_handle_first_in)) { ;;
+                kiv_os::NOS_Error error;
+                if (kiv_os_rtl::Open_File(programs[i].input.name, kiv_os::NOpen_File::fmOpen_Always, 0, file_handle_first_in, error)) { ;;
                 } else {
-                    // file not found
-                    char buff[200];
-                    memset(buff, 0, 200);
-                    size_t n = sprintf_s(buff, "File %s not found.", programs[i].input.name);
-                    kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
+                    if (error == kiv_os::NOS_Error::File_Not_Found) {
+                        // file not found
+                        char buff[200];
+                        memset(buff, 0, 200);
+                        size_t n = sprintf_s(buff, "File %s not found.\n", programs[i].input.name);
+                        kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
+                    } else {
+                        handle_error_message(error, std_out);
+                    }
                     return;
                 }
             } else if (programs[i].input.type == ProgramHandleType::Standard) {
@@ -65,13 +71,18 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             kiv_os::THandle last_handle;
 
             if (programs[i].output.type == ProgramHandleType::File) {
-                if (kiv_os_rtl::Open_File(programs[i].output.name, 0, 0, file_handle_last_out)) { ;;
+                kiv_os::NOS_Error error;
+                if (kiv_os_rtl::Open_File(programs[i].output.name, static_cast<kiv_os::NOpen_File>(0), 0, file_handle_last_out, error)) { ;;
                 } else {
-                    // file not found
-                    char buff[200];
-                    memset(buff, 0, 200);
-                    size_t n = sprintf_s(buff, "File %s not found.", programs[i].output.name);
-                    kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
+                    if (error == kiv_os::NOS_Error::File_Not_Found) {
+                        // file not found
+                        char buff[200];
+                        memset(buff, 0, 200);
+                        size_t n = sprintf_s(buff, "File %s not found.\n", programs[i].output.name);
+                        kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
+                    } else {
+                        handle_error_message(error, std_out);
+                    }
                     return;
                 }
             } else if (programs[i].output.type == ProgramHandleType::Standard) {
@@ -279,7 +290,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
     fill_prompt_buffer(working_directory, prompt, PROMPT_BUFFER_SIZE);
 
-
+    bool eot_read = false;
     do {
         if (echoOn)
             kiv_os_rtl::Write_File(std_out, prompt, strlen(prompt), counter);
@@ -287,11 +298,6 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         if (kiv_os_rtl::Read_File(std_in, buffer, buffer_size, counter)) {
             if ((counter > 0) && (counter == buffer_size)) counter--;
             buffer[counter] = 0;    //udelame z precteneho vstup null-terminated retezec
-
-            const char *new_line = "\n";
-            kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
-            //kiv_os_rtl::Write_File(std_out, buffer, strlen(buffer), counter);    //a vypiseme ho
-            kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
         } else
             break;    //EOF
 
@@ -301,6 +307,25 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         // removing leading and tailing white spaces:
         strtrim(buffer);
         int input_len = strlen(buffer);
+
+        for (int i = 0; i < input_len; i++) {
+            if (buffer[i] == static_cast<char>(kiv_hal::NControl_Codes::EOT)) {
+                eot_read = true;
+                buffer[i] = '\0';
+                break;
+            }
+            if (buffer[i] == '\n') {
+                // "read a line" => this allows "echo tasklist | shell" to work
+                buffer[i] = '\0';
+                break;
+            }
+        }
+        const char *new_line = "\n";
+        kiv_os_rtl::Write_File(std_out, "\r", 1, counter);
+        if (echoOn)
+            kiv_os_rtl::Write_File(std_out, prompt, strlen(prompt), counter);
+        kiv_os_rtl::Write_File(std_out, buffer, strlen(buffer), counter);    //a vypiseme ho
+        kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), counter);
 
         for (int i = 0; i < input_len; i++) {
             if (buffer[i] == '|' ||
@@ -404,7 +429,9 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                             fill_prompt_buffer(working_directory, prompt, PROMPT_BUFFER_SIZE);
                         }
                     } else {
-                        // TODO print
+                        size_t written = 0;
+                        const char* error = "Directory not found\n";
+                        kiv_os_rtl::Write_File(std_out, error, strlen(error), written);
                     }
                 }
             } else if (command == "shell") {
@@ -436,7 +463,10 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 kiv_os_rtl::Shutdown();
             }
         }
-    } while (strcmp(buffer, "exit") != 0);
+    } while (strcmp(buffer, "exit") != 0 && !eot_read);
 
+    const char* bye_message = "\nShell exiting...\n";
+    size_t written;
+    kiv_os_rtl::Write_File(std_out, bye_message, strlen(bye_message), written);
     return 0;
 }
