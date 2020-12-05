@@ -243,7 +243,6 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
         data_to_write.push_back(buffer.at(i));
     }
 
-    std::cout << "to write is: " << data_to_write.size();
     std::string content_clust;
 
     for (int i = 0; i < data_to_write.size(); i++) {
@@ -271,28 +270,27 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
             std::cout << "other cluster size is: " << clust_data_write.size();
         }
 
-        
         if (sector_num - 1 + i < file_clust_nums.size()) { //ok, vejdeme se do alokovanych clusteru
             write_data_to_fat_fs(file_clust_nums.at(sector_num - 1 + i), clust_data_write); //zapis dat do fs, postupne posun po alokovanych clusterech
-
+            std::cout << "Writing to: " << file_clust_nums.at(file_clust_nums.size() - 1);
+        }
+        else { //musime se pokusit alokovat novy cluster pro soubor
             int free_clust_index = retrieve_free_cluster_index(fat_table1_dec);
+            if (free_clust_index == -1) {
+                save_fat_tables(fat_table1_hex); //zapis fat pred opustenim
+
+                return kiv_os::NOS_Error::Not_Enough_Disk_Space; //nebyl nalezen zadny volny cluster, koncime, cely buffer nemuze byt zapsan..
+            }
+
             std::cout << "got free clust: " << free_clust_index;
 
             //ok, mame novy cluster, prirazeni v dec tabulce
-            //fat_table1_dec.at(file_clust_nums.at(file_clust_nums.size() - 1)) = free_clust_index;
-            //fat_table1_dec.at(free_clust_index) = 4095;
-
-            for (int i = 0; i < fat_table1_dec.size(); i++) {
-               // printf("Fat on index %d got %d\n", i, fat_table1_dec.at(i));
-            }
-            std::cout << "Writing to: " << file_clust_nums.at(file_clust_nums.size() - 1);
-
-            int index_to_edit = file_clust_nums.at(file_clust_nums.size() - 1);
-            index_to_edit = 8;
-            free_clust_index = 4095;
+            fat_table1_dec.at(file_clust_nums.at(file_clust_nums.size() - 1)) = free_clust_index; //posledni cluster dostane odkaz na volny
+            fat_table1_dec.at(free_clust_index) = 4095; //dosud volny cluster oznacen jako konecny
 
             //v hex tabulkach upravit cislo posledniho clusteru puvodne prideleno souboru - START
-            int first_index_hex_tab = index_to_edit * 1.5; //index volneho clusteru v hex(na dvou bajtech)
+            int index_to_edit = file_clust_nums.at(file_clust_nums.size() - 1); //posledni cluster dostane prideleny odkaz na nove alokovany cluster - pocitano v dec
+            int first_index_hex_tab = index_to_edit * 1.5; //index volneho clusteru v hex tabulce (na dvou bajtech)
 
             char free_cluster_index_first = fat_table1_hex.at(first_index_hex_tab);
             char free_cluster_index_sec = fat_table1_hex.at(first_index_hex_tab + 1);
@@ -302,54 +300,31 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
             fat_table1_hex.at((index_to_edit * 1.5) + 1) = modified_bytes.at(1);
             //v hex tabulkach upravit cislo posledniho clusteru puvodne prideleno souboru - KONEC
 
-            std::vector<char> fat_table_to_save;
-            for (int i = 0; i < fat_table1_hex.size(); i++) {
-                fat_table_to_save.push_back(fat_table1_hex.at(i));
-            }
-
-            write_data_to_fat_fs(1 - 31, fat_table_to_save); //prvni fat
-            write_data_to_fat_fs(10 - 31, fat_table_to_save); //druha fat
-
-            free_clust_index = 7;
             //v hex tabulkach na indexu nove prideleneho clusteru udelit 4095 (konec souboru) - START
             first_index_hex_tab = free_clust_index * 1.5; //index zabraneho clusteru
 
             free_cluster_index_first = fat_table1_hex.at(first_index_hex_tab);
             free_cluster_index_sec = fat_table1_hex.at(first_index_hex_tab + 1);
 
-            //modified_bytes = convert_num_to_bytes_fat(free_clust_index, fat_table1_hex, 4095);
-            //fat_table1_hex.at(free_clust_index * 1.5) = modified_bytes.at(0);
-            //fat_table1_hex.at((free_clust_index * 1.5) + 1) = modified_bytes.at(1);
+            modified_bytes = convert_num_to_bytes_fat(free_clust_index, fat_table1_hex, 4095);
+            fat_table1_hex.at(free_clust_index * 1.5) = modified_bytes.at(0);
+            fat_table1_hex.at((free_clust_index * 1.5) + 1) = modified_bytes.at(1);
             //v hex tabulkach na indexu nove prideleneho clusteru udelit 4095 (konec souboru) - KONEC
 
-            //std::vector<unsigned char> first_table_hex = load_first_fat_table_bytes();
-            //std::vector<int> fat_tab_dec = convert_fat_table_to_dec(fat_table_to_save);
-
-            for (int i = 0; i < 100; i++) {
-                //printf("Modif index: %d got %d ; original %d\n", i, fat_tab_dec.at(i), fat_table1_dec.at(i));
-            }
-        }
-        else { //musime se pokusit alokovat novy cluster pro soubor
-            int free_clust_index = retrieve_free_cluster_index(fat_table1_dec);
-            std::cout << "got free clust: " << free_clust_index;
-            if (free_clust_index == -1) {
-                return kiv_os::NOS_Error::Not_Enough_Disk_Space; //nebyl nalezen zadny volny cluster, koncime, cely buffer nemuze byt zapsan..
-            }
-            //ok, mame novy cluster, priradit souboru a zapis upravene FAT
-            fat_table1_dec.at(file_clust_nums.at(file_clust_nums.size() - 1)) = free_clust_index;
-            fat_table1_dec.at(free_clust_index) = 4095;
-            for (int i = 0; i < fat_table1_dec.size(); i++) {
-                //printf("Fat on index %d got %d\n", i, fat_table1_dec.at(i));
-            }
+            write_data_to_fat_fs(free_clust_index, clust_data_write); //zapis dat na nove alokovany cluster
+            retrieve_sectors_nums_fs(fat_table1_dec, file.handle); //ziskani seznamu clusteru, na kterych se soubor nachazi
         }
 
         clust_data_write.clear();
     }
 
+    //po dokonceni zapisu zapsat prvni a druhou fat tabulku
+    save_fat_tables(fat_table1_hex);
+
     std::cout << "content is: " << content_clust;
     //write_data_to_fat_fs(sector_num_vect, buffer);
 
-    return kiv_os::NOS_Error::IO_Error;
+    return kiv_os::NOS_Error::Success;
 }
 
 kiv_os::NOS_Error Fat_Fs::unlink(const char *name) {

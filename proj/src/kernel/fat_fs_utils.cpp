@@ -728,3 +728,17 @@ std::vector<unsigned char> convert_num_to_bytes_fat(int target_index, std::vecto
 
     return converted_bytes;
 }
+
+/*
+* Ulozi predanou fat tabulku.
+* fat_table - fat tabulka - hex
+/**/
+void save_fat_tables(std::vector<unsigned char> fat_table) {
+    std::vector<char> fat_table_to_save;
+    for (int i = 0; i < fat_table.size(); i++) {
+        fat_table_to_save.push_back(fat_table.at(i));
+    }
+
+    write_data_to_fat_fs(1 - 31, fat_table_to_save); //prvni fat
+    write_data_to_fat_fs(10 - 31, fat_table_to_save); //druha fat
+}

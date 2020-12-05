@@ -78,8 +78,14 @@ void Init_Filesystems() {
             //pokus o precteni \FDSETUP\BIN\ATTRIB.COM
             File test_file;
             std::vector<char> test_out_buffer; //buffer pro prectene informace
-            fs -> open("\\AUTOEXEC.BAT", 0, 0, test_file); //name, flags, attributes, file
-            //fs -> read(test_file, 4, 1, test_out_buffer); //file, size, offset, out buffer
+            fs -> open("\\FDCONFIG.SYS", 0, 0, test_file); //name, flags, attributes, file
+            fs -> read(test_file, 512, 0, test_out_buffer); //file, size, offset, out buffer
+
+            printf("Printing FDCONFIG.SYS - START\n");
+            for (int i = 0; i < test_out_buffer.size(); i++) {
+                printf("%c", test_out_buffer.at(i));
+            }
+            printf("Printing FDCONFIG.SYS - END\n");
 
             //printf("Got bytes %i !!!!!!!!!!!!\n", test_out_buffer.size());
            
@@ -92,7 +98,7 @@ void Init_Filesystems() {
             //fs->readdir("\\FDSETUP\\SETUP\\TR", folders_in_path);
             //fs->mkdir("\\FDSETUP\\SETUP\\TR");
 
-            std::string text = "igotbitches";
+            std::string text = "igotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitchesigotbitches";
             std::vector<char> string_to_pass;
 
             for (int i = 0; i < text.size(); i++) {
@@ -100,7 +106,16 @@ void Init_Filesystems() {
             }
 
             size_t written;
-            fs->write(test_file, string_to_pass, 0, 550, written);
+            fs->write(test_file, string_to_pass, 0, test_file.size, written);
+
+            test_out_buffer.clear();
+            fs->read(test_file, 512, 0, test_out_buffer); //file, size, offset, out buffer
+
+            printf("Printing FDCONFIG.SYS - START\n");
+            for (int i = 0; i < test_out_buffer.size(); i++) {
+                printf("%c", test_out_buffer.at(i));
+            }
+            printf("Printing FDCONFIG.SYS - END\n");
 
             break;
         }
