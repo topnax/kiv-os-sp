@@ -206,13 +206,14 @@ kiv_os::NOS_Error Fat_Fs::rmdir(const char *name) {
 }
 
 kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size, size_t offset, size_t &written) {
+    std::cout << "size to write is: " << buffer.size();
+
     std::vector<unsigned char> fat_table1_hex = load_first_fat_table_bytes();
     std::vector<int> fat_table1_dec = convert_fat_table_to_dec(fat_table1_hex);
     std::vector<int> file_clust_nums = retrieve_sectors_nums_fs(fat_table1_dec, file.handle); //seznam clusteru, na kterych se soubor nachazi
 
     int cluster_fully_occ_bef = (offset) / SECTOR_SIZE_B; //pocet plne obsazenych clusteru pred offsetem
-    int bytes_to_save = (offset) - (cluster_fully_occ_bef * SECTOR_SIZE_B);
-        
+
     int sector_num; //poradi sektoru, na ktery ma byt zapsano ; zaokrouhleno nahoru
     
     if (offset == 0) {
@@ -245,7 +246,7 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
         content_clust.push_back(data_to_write.at(i));
     }
 
-    int written_bytes = 0;
+    int written_bytes = 0 - bytes_to_save_clust;
 
     //v bufferu je ulozen obsah vsech clusteru, ktere maji byt prepsany - zaciname od clusteru sector_num_vect, pripadne pak posun na dalsi, pokud buffer > 512 - teoreticky zapis na vice clusteru
     int clusters_count = data_to_write.size() / SECTOR_SIZE_B + (data_to_write.size() % SECTOR_SIZE_B != 0); //pocet clusteru, pres ktere bude buffer ulozen
@@ -274,6 +275,8 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
             written_bytes += clust_data_write.size();
         }
         else { //musime se pokusit alokovat novy cluster pro soubor
+            std::cout << "would allocate";
+
             int free_clust_index = retrieve_free_cluster_index(fat_table1_dec);
             if (free_clust_index == -1) {
                 save_fat_tables(fat_table1_hex); //zapis fat pred opustenim
@@ -282,12 +285,12 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
                 int newly_written_bytes = (offset + written_bytes) - file.size; //na jake misto jsem se dostal - puvodni velikost souboru = pocet pridanych bajtu
                 if (newly_written_bytes > 0) { //soubor byl zvetsen, update velikosti ve slozce...
                     update_size_file_in_folder(file.name, offset, file.size, newly_written_bytes, fat_table1_dec);
+                    file.size = file.size + newly_written_bytes;
+                    written = written_bytes;
                 }
 
                 return kiv_os::NOS_Error::Not_Enough_Disk_Space; //nebyl nalezen zadny volny cluster, koncime, cely buffer nemuze byt zapsan..
             }
-
-            std::cout << "got free clust: " << free_clust_index;
 
             //ok, mame novy cluster, prirazeni v dec tabulce
             fat_table1_dec.at(file_clust_nums.at(file_clust_nums.size() - 1)) = free_clust_index; //posledni cluster dostane odkaz na volny
@@ -330,9 +333,10 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
 
     //updatovat velikost souboru v nadrazene slozce
     int newly_written_bytes = (offset + written_bytes) - file.size; //na jake misto jsem se dostal - puvodni velikost souboru = pocet pridanych bajtu
-    newly_written_bytes = 1;
     if (newly_written_bytes > 0) { //soubor byl zvetsen, update velikosti ve slozce...
         update_size_file_in_folder(file.name, offset, file.size, newly_written_bytes, fat_table1_dec);
+        file.size = file.size + newly_written_bytes;
+        written = written_bytes;
     }
 
     std::cout << "content is: " << content_clust;

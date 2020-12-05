@@ -336,7 +336,7 @@ std::vector<directory_item> retrieve_folders_cur_folder(std::vector<int> fat_tab
         std::cout << "Returned root dir size: " << directory_content.size();
         std::cout << "Root print - start\n";
         for (int i = 0; i < directory_content.size(); i++) {
-            std::cout << "Content is:" << directory_content.at(i).filename << ", clust: " << directory_content.at(i).first_cluster << "\n";
+            std::cout << "Content is:" << directory_content.at(i).filename << ", clust: " << directory_content.at(i).first_cluster << ", size: " << directory_content.at(i).filezise << "\n";
         }
         std::cout << "Root print - end\n";
 
@@ -792,9 +792,6 @@ void update_size_file_in_folder(char *filename_path, int offset, int original_si
     }
 
     std::vector<directory_item> items_folder = retrieve_folders_cur_folder(fat_table_dec, start_sector);  //ziskani obsahu nadrazene slozky
-    for (int i = 0; i < items_folder.size(); i++) {
-        std::cout << "Content is:" << items_folder.at(i).filename << ", clust: " << items_folder.at(i).first_cluster << "size is: " << items_folder.at(i).filezise << "\n";
-    }
 
     int target_index = -1; //poradi slozky
 
@@ -810,7 +807,6 @@ void update_size_file_in_folder(char *filename_path, int offset, int original_si
         }
 
         if (item_to_check.compare(filename) == 0) { //shoduje se nazev vcetne pripony
-            std::cout << "Target is:" << items_folder.at(i).filename << ", clust: " << items_folder.at(i).first_cluster << "size is: " << items_folder.at(i).filezise << "\n";
             target_index = i;
             break; //nalezen index soubru, koncime
         }
