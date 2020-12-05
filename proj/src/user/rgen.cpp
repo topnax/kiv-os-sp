@@ -79,7 +79,10 @@ extern "C" size_t __stdcall rgen(const kiv_hal::TRegisters &regs) {
 
     // spawn a thread that checks whether EOT has been written to stdin
     kiv_os::THandle guard_handle;
-    kiv_os_rtl::Clone_Thread(stdin_guard, reinterpret_cast<char *>(&parameters), guard_handle);
+    if (!kiv_os_rtl::Clone_Thread(stdin_guard, reinterpret_cast<char *>(&parameters), guard_handle)) {
+        kiv_os_rtl::Exit(kiv_os::NOS_Error::Out_Of_Memory);
+        return 0;
+    }
 
     // TODO random_device causes a memory leak, move it to a static namespace?
     std::random_device rd; // obtain a random number from hardware

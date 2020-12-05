@@ -182,15 +182,20 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
             // create a semaphore that will be notified once we have gathered necessary information about the spawned thread
             auto s = new Semaphore(0);
 
+            kiv_hal::TRegisters regs{};
+
+            // copy thread arguments
+            regs.rdi.r = registers.rdi.r;
+
             // run the TThreadProc in a new thread
-            run_in_a_thread(((kiv_os::TThread_Proc) registers.rdx.r), registers, false, s);
+            run_in_a_thread(((kiv_os::TThread_Proc) registers.rdx.r), regs, false, s);
 
             // get the kiv_os::THandle
             // resolve the handle of the current thread
             auto resolved = Handle_To_THandle.find(std::this_thread::get_id());
 
             // get the handle of the spawned thread
-            kiv_os::THandle thread_handle = registers.rax.x;
+            kiv_os::THandle thread_handle = regs.rax.x;
 
             // check whether we resolved the process handle of the current thread
             if (resolved != Handle_To_THandle.end()) {
@@ -200,8 +205,13 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
                     (*Proc::Tcb).Parent_Processes[thread_handle] = resolved_process->handle;
                 }
             }
+
+            registers.rax.x = thread_handle;
+            registers.flags.carry =0;
+
             s->notify();
         }
+        break;
 
         case kiv_os::NClone::Create_Process: {
             // load program name from arguments
