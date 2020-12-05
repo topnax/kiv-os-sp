@@ -6,7 +6,7 @@
 
 Filesystem_File::Filesystem_File(VFS *vfs, File file) : vfs(vfs), file(file) {}
 
-bool Filesystem_File::read(size_t to_read, char *out_buffer, size_t &read) {
+kiv_os::NOS_Error Filesystem_File::read(size_t to_read, char *out_buffer, size_t &read) {
     std::vector<char> out;
 
     // read from fs
@@ -63,7 +63,7 @@ kiv_os::NOS_Error Filesystem_File::seek(size_t value, kiv_os::NFile_Seek seek_po
 }
 
 
-bool Filesystem_File::write(char *buffer, size_t buf_size, size_t &written) {
+kiv_os::NOS_Error Filesystem_File::write(char *buffer, size_t buf_size, size_t &written) {
     // copy buffer into a vector
     std::vector<char> buf(buffer, buffer + buf_size);
 
