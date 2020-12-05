@@ -11,6 +11,7 @@
 //#include <iostream>
 #include <algorithm>
 #include <locale>
+#include "error_handler.h"
 
 extern "C" size_t __stdcall find(const kiv_hal::TRegisters & regs) {
     size_t counter;
@@ -62,14 +63,13 @@ extern "C" size_t __stdcall find(const kiv_hal::TRegisters & regs) {
     if (args.c_str() && strlen(args.c_str()) > 0) {
         // we will be reading from a file
 
+        kiv_os::NOS_Error error = kiv_os::NOS_Error::Success;
         //auto attributes = static_cast<uint8_t>(static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only));
-        if (kiv_os_rtl::Open_File(args.c_str(), kiv_os::NOpen_File::fmOpen_Always, 0, file_handle)) {
+        if (kiv_os_rtl::Open_File(args.c_str(), kiv_os::NOpen_File::fmOpen_Always, 0, file_handle, error)) {
             ;;
         }
         else {
-            size_t written;
-            char* message = "File not found (find)\n";
-            kiv_os_rtl::Write_File(std_out, message, strlen(message), written);
+            handle_error_message(error, std_out);
             return 0; // 0?
         }
     }

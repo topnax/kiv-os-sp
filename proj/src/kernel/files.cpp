@@ -107,10 +107,23 @@ void Open_File(kiv_hal::TRegisters &registers) {
     char *file_name = reinterpret_cast<char * >(registers.rdx.r);
     auto flags = static_cast<kiv_os::NOpen_File>(registers.rcx.l);
     auto attributes = static_cast<uint8_t>(registers.rdi.i);
-    registers.rax.x = Open_File(file_name, flags, attributes);
+
+    kiv_os::NOS_Error error = kiv_os::NOS_Error::Success;
+    auto handle = Open_File(file_name, flags, attributes, error);
+
+    if (handle == kiv_os::Invalid_Handle) {
+        error = kiv_os::NOS_Error::File_Not_Found;
+    }
+
+    if (error == kiv_os::NOS_Error::Success) {
+        registers.rax.x = handle;
+    } else {
+        registers.flags.carry = 1;
+        registers.rax.x = static_cast<decltype(registers.rax.x)>(error);
+    }
 }
 
-kiv_os::THandle Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8_t attributes) {
+kiv_os::THandle Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8_t attributes, kiv_os::NOS_Error &error) {
     std::lock_guard<std::mutex> guard(Files::Open_Guard);
     Generic_File *file = nullptr;
 
@@ -157,6 +170,9 @@ void Close_File(kiv_hal::TRegisters &regs) {
 
         // remove it from the file table
         (*Files::Ft).Remove(handle);
+    } else {
+        regs.flags.carry = 1;
+        regs.rax.r = static_cast<decltype(regs.rax.r)>(kiv_os::NOS_Error::File_Not_Found);
     }
 }
 

@@ -5,6 +5,7 @@
 #include "../api/hal.h"
 #include "../api/api.h"
 #include "rtl.h"
+#include "error_handler.h"
 
 extern "C" size_t __stdcall md(const kiv_hal::TRegisters &regs) {
 
@@ -21,13 +22,12 @@ extern "C" size_t __stdcall md(const kiv_hal::TRegisters &regs) {
     auto attributes = static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory);
 
     kiv_os::THandle handle;
-    if (kiv_os_rtl::Open_File(directory_name, flags, attributes, handle) && handle != kiv_os::Invalid_Handle) {
+    kiv_os::NOS_Error error;
+    if (kiv_os_rtl::Open_File(directory_name, flags, attributes, handle, error)) {
         // directory created, close the handle
         kiv_os_rtl::Close_Handle(handle);
     } else {
-        const char *error = "File already exists, directory not created.\n";
-        size_t written;
-        kiv_os_rtl::Write_File(std_out, error, strlen(error), written);
+       handle_error_message(error, std_out);
     }
 
     return 0;

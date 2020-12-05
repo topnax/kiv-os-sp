@@ -5,6 +5,7 @@
 #include "rtl.h"
 #include <stack>
 #include <string>
+#include "error_handler.h"
 
 extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
     const auto std_out = static_cast<kiv_os::THandle>(regs.rbx.x);
@@ -83,7 +84,8 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
         auto path_to_open = path_stack.top();
         auto path_to_open_char_ptr = path_to_open.c_str();
         path_stack.pop();
-        if (kiv_os_rtl::Open_File(path_to_open_char_ptr, kiv_os::NOpen_File::fmOpen_Always, attributes, handle)) {
+        kiv_os::NOS_Error error = kiv_os::NOS_Error::Success;
+        if ( kiv_os_rtl::Open_File(path_to_open_char_ptr, kiv_os::NOpen_File::fmOpen_Always, attributes, handle, error)) {
             // get the size of the TDir_Entry structure
             const auto dir_entry_size = sizeof(kiv_os::TDir_Entry);
             size_t read;
@@ -128,9 +130,16 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
 
             kiv_os_rtl::Close_Handle(handle);
         } else {
-            size_t written;
-            const char *message = "Directory not found.\n";
-            kiv_os_rtl::Write_File(std_out, message, strlen(message), written);
+            if (error == kiv_os::NOS_Error::File_Not_Found) {
+                const auto mess_buff_size = 350;
+                char mess_buff[mess_buff_size];
+                sprintf_s(mess_buff, mess_buff_size, "Directory \"%s\" not found\n", path_to_open_char_ptr);
+
+                size_t written;
+                kiv_os_rtl::Write_File(std_out, mess_buff, strlen(mess_buff), written);
+            } else {
+                handle_error_message(error, std_out);
+            }
         }
     }
 

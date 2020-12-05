@@ -158,7 +158,7 @@ bool kiv_os_rtl::Shutdown() {
     return result;
 }
 
-bool kiv_os_rtl::Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8_t attributes, kiv_os::THandle &handle) {
+bool kiv_os_rtl::Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8_t attributes, kiv_os::THandle &handle, kiv_os::NOS_Error &error) {
     kiv_hal::TRegisters regs = Prepare_SysCall_Context(kiv_os::NOS_Service_Major::File_System, static_cast<uint8_t>(kiv_os::NOS_File_System::Open_File));
     regs.rdx.r = reinterpret_cast<decltype(regs.rdx.r)>(file_name);
     regs.rcx.l = static_cast<decltype(regs.rcx.l)>(flags);
@@ -166,9 +166,13 @@ bool kiv_os_rtl::Open_File(const char *file_name, kiv_os::NOpen_File flags, uint
 
     const bool result = kiv_os::Sys_Call( regs);
 
-    handle = regs.rax.x;
+    if (result) {
+        handle = regs.rax.x;
+    } else {
+        error = static_cast<kiv_os::NOS_Error>(regs.rax.x);
+    }
 
-    return handle != kiv_os::Invalid_Handle ;
+    return result;
 }
 
 bool kiv_os_rtl::Set_Working_Dir(const char *path) {

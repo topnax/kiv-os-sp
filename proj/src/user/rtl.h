@@ -30,7 +30,7 @@ namespace kiv_os_rtl {
 
     bool Create_Pipe(const kiv_os::THandle *handles);
 
-    bool Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8_t attributes, kiv_os::THandle &handle);
+    bool Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8_t attributes, kiv_os::THandle &handle, kiv_os::NOS_Error &error);
 
     bool Close_Handle(const kiv_os::THandle handle);
 

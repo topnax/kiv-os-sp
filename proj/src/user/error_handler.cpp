@@ -8,7 +8,7 @@
 void handle_error_message(kiv_os::NOS_Error error, kiv_os::THandle std_out) {
     switch (error) {
         case kiv_os::NOS_Error::File_Not_Found: {
-            const char *error_message = "Directory not found.\n";
+            const char *error_message = "File not found.\n";
             size_t written;
             kiv_os_rtl::Write_File(std_out, error_message, strlen(error_message), written);
             break;
@@ -21,7 +21,8 @@ void handle_error_message(kiv_os::NOS_Error error, kiv_os::THandle std_out) {
         }
 
         default: {
-            const char *error_message = "Unknown error.\n";
+            char error_message[42];
+            sprintf_s(error_message, 42, "Unknown error %d.\n", error);
             size_t written;
             kiv_os_rtl::Write_File(std_out, error_message, strlen(error_message), written);
             break;

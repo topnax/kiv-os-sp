@@ -2,6 +2,7 @@
 #include "rtl.h"
 #include "argparser.h"
 #include <vector>
+#include "error_handler.h"
 
 constexpr auto PROMPT_BUFFER_SIZE = 5000;
 
@@ -37,13 +38,18 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             kiv_os::THandle first_handle;
 
             if (programs[i].input.type == ProgramHandleType::File) {
-                if (kiv_os_rtl::Open_File(programs[i].input.name, kiv_os::NOpen_File::fmOpen_Always, 0, file_handle_first_in)) { ;;
+                kiv_os::NOS_Error error;
+                if (kiv_os_rtl::Open_File(programs[i].input.name, kiv_os::NOpen_File::fmOpen_Always, 0, file_handle_first_in, error)) { ;;
                 } else {
-                    // file not found
-                    char buff[200];
-                    memset(buff, 0, 200);
-                    size_t n = sprintf_s(buff, "File %s not found.", programs[i].input.name);
-                    kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
+                    if (error == kiv_os::NOS_Error::File_Not_Found) {
+                        // file not found
+                        char buff[200];
+                        memset(buff, 0, 200);
+                        size_t n = sprintf_s(buff, "File %s not found.\n", programs[i].input.name);
+                        kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
+                    } else {
+                        handle_error_message(error, std_out);
+                    }
                     return;
                 }
             } else if (programs[i].input.type == ProgramHandleType::Standard) {
@@ -65,13 +71,18 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             kiv_os::THandle last_handle;
 
             if (programs[i].output.type == ProgramHandleType::File) {
-                if (kiv_os_rtl::Open_File(programs[i].output.name, static_cast<kiv_os::NOpen_File>(0), 0, file_handle_last_out)) { ;;
+                kiv_os::NOS_Error error;
+                if (kiv_os_rtl::Open_File(programs[i].output.name, static_cast<kiv_os::NOpen_File>(0), 0, file_handle_last_out, error)) { ;;
                 } else {
-                    // file not found
-                    char buff[200];
-                    memset(buff, 0, 200);
-                    size_t n = sprintf_s(buff, "File %s not found.", programs[i].output.name);
-                    kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
+                    if (error == kiv_os::NOS_Error::File_Not_Found) {
+                        // file not found
+                        char buff[200];
+                        memset(buff, 0, 200);
+                        size_t n = sprintf_s(buff, "File %s not found.\n", programs[i].output.name);
+                        kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
+                    } else {
+                        handle_error_message(error, std_out);
+                    }
                     return;
                 }
             } else if (programs[i].output.type == ProgramHandleType::Standard) {
