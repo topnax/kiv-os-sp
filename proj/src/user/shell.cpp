@@ -307,19 +307,6 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 buffer[i] == '<') {
                 // possibility of io chain in the correct format
                 io_chain = true;
-
-                //if ((buffer[i] == '|' || buffer[i] == '>' || buffer[i] == '<') &&
-                //    (i == input_len - 1 || i == 0)) {
-                //    // the pipe symbol was at the beginning with nothing before it
-                //    // or it was at the end with nothing behind it
-                //    //
-                //    // in such case do not set the io_chain flag to true - the later implementation of piped 
-                //    // program calling is not prepared for this situation
-                //    io_chain = false;
-                //    break; // this break might be unnecessary
-                //} else {
-                //    io_chain = true;
-                //}
             }
         }
 
@@ -385,7 +372,10 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             supported_commands.find(command) != supported_commands.end()) {
 
             // args will be the rest after the command:
-            std::string args = command_and_args[1];
+            std::string args;
+            if (command_and_args.size() > 1) // just to be safe
+                args = command_and_args[1];
+            else args = "";
 
             // before executing anything else check for echo on/off...
             if (command == "echo") {
@@ -421,71 +411,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             char* command_c = const_cast<char*>(command.c_str());
             // call the program:
             call_program(command_c, regs, args.c_str());
-            //continue;
 
-
-            //if (command == "echo") {
-            //    if (args.size() > 0) {
-
-            //        if (args == "on") {
-            //            echoOn = true;
-            //            continue;
-            //        } else if (args == "off") {
-            //            echoOn = false;
-            //            continue;
-            //        }
-
-            //        // todo echo on/off only hides the prompt?
-            //        //if (echoOn) {
-            //        // i think we can afford this, bc piped programs are handled elswhere, so this
-            //        // only prevents the echo from printing to std
-            //        call_program("echo", regs, args.c_str());
-            //        //}
-
-
-
-            //    }
-            //} else if (command == "cd") {
-            //    if (!args.empty()) {
-            //        if (kiv_os_rtl::Set_Working_Dir(args.c_str())) {
-            //            kiv_os_rtl::Get_Working_Dir(working_directory, PROMPT_BUFFER_SIZE, get_wd_read_count);
-            //            if (get_wd_read_count > 0) {
-            //                fill_prompt_buffer(working_directory, prompt, PROMPT_BUFFER_SIZE);
-            //            }
-            //        } else {
-            //            // TODO print
-            //        }
-            //    }
-            //} else if (command == "shell") {
-            //    call_program("shell", regs, args.c_str());
-            //} else if (command == "rgen") {
-            //    call_program("rgen", regs, args.c_str());
-            //} else if (command == "pipetest") {
-            //    pipe_test(std_in, std_out);
-            //} else if (command == "freq") {
-            //    call_program("freq", regs, args.c_str());
-            //} else if (command == "charcnt") {
-            //    call_program("charcnt", regs, args.c_str());
-            //} else if (command == "tasklist") {
-            //    call_program("tasklist", regs, args.c_str());
-            //} else if (command == "sort") {
-            //    args = trim(args, " ");
-            //    call_program("sort", regs, args.c_str());
-            //} else if (command == "find") {
-            //    call_program("find", regs, args.c_str());
-            //} else if (command == "dir") {
-            //    // TODO improve arg parsing
-            //    if (args.size() > 0) {
-            //        call_program("dir", regs, args.c_str());
-            //    }
-            //} else if (command == "type") {
-            //    call_program("type", regs, args.c_str());
-
-            //}
-            //    // TODO this command might not be present in the release
-            //else if (command == "shutdown") {
-            //    kiv_os_rtl::Shutdown();
-            //}
         }
     } while (strcmp(buffer, "exit") != 0);
 

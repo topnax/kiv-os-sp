@@ -139,38 +139,6 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
             char* data;
             //std::string saved = curr_prog_name;
             char* actual_name = strtok_s(curr_prog_name, " ", &data); // actual_name is the name of the program
-
-            
-            // special case for echo, bc it can have any characters in double quotes - ignore these characters, only send them to args:
-            // todo think of prettier way to do this?
-            //if (strcmp(actual_name, "echo") == 0 /*&& data && data[0] == '\"' && !echoQuotes*/) {
-
-            //    // they want to echo something in quotes
-            //    echoQuotes = true;
-
-            //    // get the whole data:
-            //    int k = i;
-            //    for (k = i; k < len && input[k] != '\"'; k++) {
-            //        saved += input[k];
-            //    }
-            //    if(k < len)
-            //        saved += input[k];
-
-            //    //printf("data is now %s\n", saved.c_str());
-
-            //    memset(curr_prog_name, 0, NAME_LEN); 
-            //    // copy it back to the variable we use for everything else:
-            //    strncpy_s(curr_prog_name, saved.c_str(), NAME_LEN);
-            //    i = k; // set the positions properly
-            //    j = saved.size();
-
-            //    if(i < len - 1)
-            //        continue; // if we're not at the end yet, keep reading
-            //    else {
-            //        // if we are at the end, parse it again and move on
-            //        actual_name = strtok_s(curr_prog_name, " ", &data); 
-            //    }
-            //}
             
 
             // trim the name and the data
@@ -208,20 +176,18 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
         // check if we got echo and if so, take care of it:
         std::string trimmed = curr_prog_name;
         trimmed = trim(trimmed, " ");
-        if (trimmed == "echo"/*strcmp(curr_prog_name, "echo ") == 0*/) {
-            //printf("echoocococo\n");
+        if (trimmed == "echo") {
 
             // there is echo. Check the following input and look for double quotes
             std::string echoArg;
-            std::vector<int> quotesIndexes;
             bool quotesOpen = true;
             bool initOpen = true;
 
             // read until we encounter a pipe/fwd symbol, which is not closed in double quotes:
             for (int k = i + 1; k < len; k++) {
                 if (input[k] == '\"') {
-                    if (!initOpen) {
-                        quotesOpen = !quotesOpen;
+                    if (!initOpen) { // the quotes are open by default
+                        quotesOpen = !quotesOpen; // switch
                     }
                     else {
                         initOpen = false;
@@ -235,7 +201,7 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
                     echoArg = "echo " + echoArg;
                     strcpy_s(curr_prog_name, echoArg.c_str());
                     i = k - 1;
-                    j = echoArg.size();
+                    j = echoArg.size(); // to j index setting is probably unnecessary
                     break;
 
                 }
