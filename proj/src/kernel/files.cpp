@@ -172,14 +172,15 @@ void Write_File(kiv_hal::TRegisters &regs) {
     Generic_File *file = Resolve_THandle_To_File(handle);
     if (file != nullptr) {
         size_t written;
-        bool res = file->write(buff, bytes, written);
+        auto res = file->write(buff, bytes, written);
         regs.rax.r = written;
-        if (!res) {
+        if (res != kiv_os::NOS_Error::Success) {
             // some error has happened
             regs.flags.carry = 1;
+            regs.rax.r = static_cast<decltype(regs.rax.r)>(res);
         }
     } else {
-        regs.rax.r = 0;
+        regs.rax.r = static_cast<decltype(regs.rax.r)>(kiv_os::NOS_Error::File_Not_Found);
         regs.flags.carry = 1;
     }
 }
@@ -193,14 +194,20 @@ void Read_File(kiv_hal::TRegisters &regs) {
         auto buff_size = static_cast<size_t>(regs.rcx.r);
         char *buff = reinterpret_cast<char *>(regs.rdi.r);
         size_t read;
-        bool res = file->read(buff_size, buff, read);
+        auto res = file->read(buff_size, buff, read);
         regs.rax.r = read;
-        if (!res || read == 0) {
+
+        if (read == 0) {
+            res = kiv_os::NOS_Error::IO_Error;
+        }
+
+        if (res != kiv_os::NOS_Error::Success) {
             // some error has happened
+            regs.rax.r = static_cast<decltype(regs.rax.r)>(res);
             regs.flags.carry = 1;
         }
     } else {
-        regs.rax.r = 0;
+        regs.rax.r = static_cast<decltype(regs.rax.r)>(kiv_os::NOS_Error::File_Not_Found);
         regs.flags.carry = 1;
     }
 }

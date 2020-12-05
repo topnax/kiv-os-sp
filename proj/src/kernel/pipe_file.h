@@ -19,7 +19,7 @@ public:
     kiv_os::NOS_Error write(char *buffer, size_t size, size_t &written) override;
 
     kiv_os::NOS_Error read(size_t size, char *out_buffer, size_t &read) override {
-        return false;
+        return kiv_os::NOS_Error::IO_Error;
     };
 
     kiv_os::NOS_Error seek(size_t value, kiv_os::NFile_Seek position, kiv_os::NFile_Seek op, size_t &res) override;
@@ -38,7 +38,7 @@ public:
     explicit Pipe_Out_File(std::shared_ptr<Pipe>);
 
     kiv_os::NOS_Error write(char *buffer, size_t size, size_t &written) override {
-        return false;
+        return kiv_os::NOS_Error::IO_Error;
     };
 
     kiv_os::NOS_Error read(size_t size, char *out_buffer, size_t &read) override;
