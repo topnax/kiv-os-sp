@@ -824,10 +824,6 @@ void update_size_file_in_folder(char *filename_path, int offset, int original_si
     }
 
     std::vector<unsigned char> new_file_size_hex = convert_dec_num_to_hex(original_size + newly_written_bytes); //nova velikost = aktualni + kolik zapsano
-    new_file_size_hex = convert_dec_num_to_hex(original_size); //nova velikost = aktualni + kolik zapsano
-    printf("got: %.2X %.2X %.2X %.2X\n", new_file_size_hex.at(0), new_file_size_hex.at(1), new_file_size_hex.at(2), new_file_size_hex.at(3));
-
-    printf("Index is %d\n!!", target_index);
 
     //zjisteni clusteru, na kterem polozka lezi
     int cluster_num = (target_index) / 16; //poradi slozky / 16 (jeden cluster mi pojme 16 polozek)
@@ -836,13 +832,7 @@ void update_size_file_in_folder(char *filename_path, int offset, int original_si
     std::vector<unsigned char> data_clust_fol; //obsahuje data daneho clusteru se slozkou
     if (folders_in_path.size() == 0) { //jsme v root slozce
         data_clust_fol = read_data_from_fat_fs(sectors_nums_data.at(cluster_num) - 31, 1); //-31; fce cte z dat sektoru
-        printf("Printing SECTOR - START\n");
-        for (int i = 0; i < data_clust_fol.size(); i++) {
-            //printf("%c", data_clust_fol.at(i));
-        }
-        printf("Printing SECTOR - END\n");
 
-        printf("Relative item clust is %d\n", item_num_clust_rel);
         data_clust_fol.at(item_num_clust_rel * 32 + 28) = new_file_size_hex.at(0);
         data_clust_fol.at(item_num_clust_rel * 32 + 29) = new_file_size_hex.at(1);
         data_clust_fol.at(item_num_clust_rel * 32 + 30) = new_file_size_hex.at(2);
@@ -857,7 +847,17 @@ void update_size_file_in_folder(char *filename_path, int offset, int original_si
     }
     else {
         data_clust_fol = read_data_from_fat_fs(sectors_nums_data.at(cluster_num), 1); //fce cte z dat sektoru
+
+        data_clust_fol.at(item_num_clust_rel * 32 + 28) = new_file_size_hex.at(0);
+        data_clust_fol.at(item_num_clust_rel * 32 + 29) = new_file_size_hex.at(1);
+        data_clust_fol.at(item_num_clust_rel * 32 + 30) = new_file_size_hex.at(2);
+        data_clust_fol.at(item_num_clust_rel * 32 + 31) = new_file_size_hex.at(3);
+
+        std::vector<char> data_to_save;
+        for (int i = 0; i < data_clust_fol.size(); i++) {
+            data_to_save.push_back(data_clust_fol.at(i));
+        }
+
+        write_data_to_fat_fs(sectors_nums_data.at(cluster_num), data_to_save);
     }
-
-
 }
