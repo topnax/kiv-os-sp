@@ -185,24 +185,24 @@ void call_program(char *program, const kiv_hal::TRegisters &registers, const cha
     // RTL is used we do not have to set register values here
 
 
-        // the handle of the created thread/process
-        kiv_os::THandle handle;
+    // the handle of the created thread/process
+    kiv_os::THandle handle;
 
-        // clone syscall to call a program (TThread_Proc)
-        if (kiv_os_rtl::Clone_Process(program, data, registers.rax.x, registers.rbx.x, handle)) {
+    // clone syscall to call a program (TThread_Proc)
+    if (kiv_os_rtl::Clone_Process(program, data, registers.rax.x, registers.rbx.x, handle)) {
 
-            // wait for the program to finish by attempting to read it's exit code
-            kiv_os::NOS_Error exit_code;
-            kiv_os_rtl::Read_Exit_Code(handle, exit_code);
+        // wait for the program to finish by attempting to read it's exit code
+        kiv_os::NOS_Error exit_code;
+        kiv_os_rtl::Read_Exit_Code(handle, exit_code);
 
-            if (exit_code != kiv_os::NOS_Error::Success) {
-                size_t written;
-                char message_buffer[100];
-                sprintf_s(message_buffer, 100, "\nProgram resulted in %d exit code.\n", exit_code);
-                kiv_os_rtl::Write_File(std_out, message_buffer, strlen(message_buffer), written);
-            }
+        if (exit_code != kiv_os::NOS_Error::Success) {
+            size_t written;
+            char message_buffer[100];
+            sprintf_s(message_buffer, 100, "\nProgram resulted in %d exit code.\n", exit_code);
+            kiv_os_rtl::Write_File(std_out, message_buffer, strlen(message_buffer), written);
         }
-        // TODO checking registers.rax.x will be done after merging into master
+    }
+    // TODO checking registers.rax.x will be implemented after merging into master
 }
 
 void fill_supported_commands_set(std::set<std::string> &set) {
@@ -305,7 +305,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             }
 
             // todo improve this condition?:
-            if (names_ok && programs.size() == 1 && strcmp(programs[0].name, "echo") == 0 && 
+            if (names_ok && programs.size() == 1 && strcmp(programs[0].name, "echo") == 0 &&
                 (programs[0].input.type == ProgramHandleType::File || programs[0].output.type == ProgramHandleType::File)) {
                 call_piped_programs(programs, regs);
                 continue;
@@ -324,7 +324,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
         // TODO improve parsing of shell commands
         char *token1;
-        
+
         std::vector<std::string> command_and_args;
         char *p = strtok_s(buffer, " ", &token1); // make it into two tokens only
         if (p)
