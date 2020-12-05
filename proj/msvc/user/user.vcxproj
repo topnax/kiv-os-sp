@@ -31,6 +31,7 @@
     <ClCompile Include="..\..\src\user\dir.cpp" />
     <ClCompile Include="..\..\src\user\echo.cpp" />
     <ClCompile Include="..\..\src\user\find.cpp" />
+    <ClCompile Include="..\..\src\user\md.cpp" />
     <ClCompile Include="..\..\src\user\rgen.cpp" />
     <ClCompile Include="..\..\src\user\freq.cpp" />
     <ClCompile Include="..\..\src\user\rtl.cpp" />

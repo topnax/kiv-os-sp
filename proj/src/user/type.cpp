@@ -17,7 +17,7 @@ extern "C" size_t __stdcall type(const kiv_hal::TRegisters &regs) {
     // the handle to be used to read from
     kiv_os::THandle handle_to_read_from;
 
-    char *file_path = (char *) regs.rdi.r;
+    char *file_path = reinterpret_cast<char *>(regs.rdi.r);
     // check whether user has specified a file to read from
     if (regs.rdi.r != 0 && strlen(file_path) > 0) {
         // get path of the file to be read
