@@ -343,7 +343,7 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
 
 void Seek(kiv_hal::TRegisters &registers) {
     kiv_os::THandle handle = registers.rdx.x;
-    size_t position = registers.rdi.r;
+    size_t position = static_cast<size_t>(registers.rdi.r);
     auto pos_type = static_cast<kiv_os::NFile_Seek>(registers.rcx.l);
     auto op = static_cast<kiv_os::NFile_Seek>(registers.rcx.h);
 
