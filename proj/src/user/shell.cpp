@@ -306,24 +306,30 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 buffer[i] == '>' ||
                 buffer[i] == '<') {
                 // possibility of io chain in the correct format
+                io_chain = true;
 
-                if ((buffer[i] == '|' || buffer[i] == '>' || buffer[i] == '<') &&
-                    (i == input_len - 1 || i == 0)) {
-                    // the pipe symbol was at the beginning with nothing before it
-                    // or it was at the end with nothing behind it
-                    //
-                    // in such case do not set the io_chain flag to true - the later implementation of piped 
-                    // program calling is not prepared for this situation
-                    io_chain = false;
-                    break; // this break might be unnecessary
-                } else {
-                    io_chain = true;
-                }
+                //if ((buffer[i] == '|' || buffer[i] == '>' || buffer[i] == '<') &&
+                //    (i == input_len - 1 || i == 0)) {
+                //    // the pipe symbol was at the beginning with nothing before it
+                //    // or it was at the end with nothing behind it
+                //    //
+                //    // in such case do not set the io_chain flag to true - the later implementation of piped 
+                //    // program calling is not prepared for this situation
+                //    io_chain = false;
+                //    break; // this break might be unnecessary
+                //} else {
+                //    io_chain = true;
+                //}
             }
         }
 
         if (io_chain) {
-            std::vector<program> programs = parse_programs(buffer);
+            std::string errorMessage;
+            std::vector<program> programs = parse_programs(buffer, errorMessage);
+            if (!errorMessage.empty()) {
+                kiv_os_rtl::Write_File(std_out, errorMessage.c_str(), errorMessage.size(), counter);
+                continue;
+            }
 
             // checking if all the program names are valid:
             bool names_ok = false;
@@ -338,14 +344,21 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 }
             }
 
+            // todo improve this condition?:
+            if (names_ok && programs.size() == 1 && strcmp(programs[0].name, "echo") == 0 && 
+                (programs[0].input.type == ProgramHandleType::File || programs[0].output.type == ProgramHandleType::File)) {
+                call_piped_programs(programs, regs);
+                continue;
+            }
             if (names_ok && !(programs.size() == 1 && strcmp(programs[0].name, "echo") == 0)) {
                 // call piped programs if it's not just echo to execute
                 call_piped_programs(programs, regs);
+                continue;
             }
 
             // if the case WASN'T that we only had the echo program, go back to the reading loop
-            if (!(programs.size() == 1 && strcmp(programs[0].name, "echo") == 0))
-                continue;
+           /* if (!(programs.size() == 1 && strcmp(programs[0].name, "echo") == 0))
+                continue;*/
         }
 
 
@@ -353,7 +366,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         char *token1;
         
         std::vector<std::string> command_and_args;
-        char *p = strtok_s(buffer, " ", &token1); // make it into two tokns only
+        char *p = strtok_s(buffer, " ", &token1); // make it into two tokens only
         if (p)
             command_and_args.push_back(p);
         if (token1)

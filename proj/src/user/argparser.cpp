@@ -10,6 +10,11 @@
 #include <string>
 
 void strtrim(char *str) {
+    /*if (str == NULL) {
+        str = (char*) malloc(1 * sizeof(char));
+        str[0] = '\0';
+    }*/
+
     int start = 0; // number of leading spaces
     char *buffer = str;
     while (*str && *str++ == ' ') ++start;
@@ -76,7 +81,7 @@ void parse_programs_unused(char *input, program *programs, int *length) {
 }
 
 
-std::vector<program> parse_programs(char* input) {
+std::vector<program> parse_programs(char* input, std::string& errorMessage) {
 
     std::vector<program> programs_vec;
     const char in_symb = '<';
@@ -97,6 +102,15 @@ std::vector<program> parse_programs(char* input) {
     // this cycle goes through the user input and saves names and data of programs and names of files
     for (int i = 0; i < len; ++i) {
 
+        if ((i == 0 || i == len - 1) &&
+            (input[i] == pipe_symb || 
+             input[i] == in_symb ||
+             input[i] == out_symb)) {
+            errorMessage = "Unexpected character ";
+            errorMessage.push_back(input[i]);
+            errorMessage.push_back('\n');
+            return{};
+        }
         
         // if there is a delimiter or the end of input:
         if (input[i] == pipe_symb || 
@@ -123,7 +137,7 @@ std::vector<program> parse_programs(char* input) {
             // check if there're any arguments:
             //std::string savedStr = curr_prog_name;
             char* data;
-            std::string saved = curr_prog_name;
+            //std::string saved = curr_prog_name;
             char* actual_name = strtok_s(curr_prog_name, " ", &data); // actual_name is the name of the program
 
             
@@ -183,7 +197,7 @@ std::vector<program> parse_programs(char* input) {
             j = 0; // reset the pointer to curr_name
             i++; // skip this char, bc it's the delimiter
             memset(curr_prog_name, 0, NAME_LEN); // null the name
-            echoQuotes = false; // reset the quotes flag
+            //echoQuotes = false; // reset the quotes flag
         }
 
         curr_prog_name[j] = input[i];
@@ -192,18 +206,27 @@ std::vector<program> parse_programs(char* input) {
 
 
         // check if we got echo and if so, take care of it:
-        if (strcmp(curr_prog_name, "echo ") == 0) {
-            printf("echoocococo\n");
+        std::string trimmed = curr_prog_name;
+        trimmed = trim(trimmed, " ");
+        if (trimmed == "echo"/*strcmp(curr_prog_name, "echo ") == 0*/) {
+            //printf("echoocococo\n");
 
             // there is echo. Check the following input and look for double quotes
             std::string echoArg;
             std::vector<int> quotesIndexes;
-            bool quotesOpen = false;
+            bool quotesOpen = true;
+            bool initOpen = true;
 
             // read until we encounter a pipe/fwd symbol, which is not closed in double quotes:
             for (int k = i + 1; k < len; k++) {
                 if (input[k] == '\"') {
-                    quotesOpen = !quotesOpen;
+                    if (!initOpen) {
+                        quotesOpen = !quotesOpen;
+                    }
+                    else {
+                        initOpen = false;
+                    }
+                        
                 }
                 if ((input[k] == pipe_symb || input[k] == in_symb || input[k] == out_symb) &&
                     !quotesOpen) {
@@ -217,7 +240,7 @@ std::vector<program> parse_programs(char* input) {
 
                 }
 
-                echoArg += input[k];
+                
 
                 if (k == len - 1) {
                     echoArg = "echo " + echoArg;
@@ -226,6 +249,8 @@ std::vector<program> parse_programs(char* input) {
                     j = echoArg.size();
                     break;
                 }
+
+                echoArg += input[k];
             }
 
         }
