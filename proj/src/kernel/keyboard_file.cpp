@@ -12,8 +12,8 @@ kiv_os::NOS_Error Keyboard_File::write(char *buffer, size_t size, size_t &writte
     size_t pos = 0;
     while (pos < size) {
         char to_write = buffer[pos];
-        registers.rax.x = static_cast<decltype(registers.rax.l)>(to_write);
-        registers.rax.h = static_cast<decltype(registers.rax.l)>(kiv_hal::NKeyboard::Write_Char);
+        registers.rax.l = static_cast<decltype(registers.rax.l)>(to_write);
+        registers.rax.h = static_cast<decltype(registers.rax.h)>(kiv_hal::NKeyboard::Write_Char);
         kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::Keyboard, registers);
         if (registers.flags.non_zero) {
             pos++;
