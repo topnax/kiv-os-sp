@@ -146,7 +146,10 @@ Na začátku obsluhy je k daným vláknům přiřazen nově vytvořený semafor,
 \subsubsection{Vytváření procesů}
 Vytváření procesů je principiálně stejné jako vytváření vláken a používá se stejných funkcí jako při vytváření nového vlákna. Hlavním rozdílem je to, že až v jádře se převádí název programu na vstupní bod programu, který se předává funkci \texttt{run\_in\_a\_thread}. Před zahájením vykonávání kódu programu je po vytvoření nového vlákna dle jeho identifikátoru přidán nový záznam do tabulky všech procesů. Dále taky nový proces dědí pracovní adresář od procesu, kterým byl vytvořen.
 
-    % TODO implementační část
+\subsubsection{Nastavení návratové hodnoty procesu}
+Všem procesům je při jejich vytvoření nastaven výchozí návratový kód \texttt{kiv\_os::NOS\_Error::Success}. V případě, že nějaký program chce tento kód nastavit ručně, tak má možnost použít systémové volání \texttt{Exit}, a v registrech nastavit požadovaný návratový kód.
+
+% TODO implementační část
 
     % ukázka kódu
     \subsection{Modul 1}
