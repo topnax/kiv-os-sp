@@ -43,7 +43,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
     const auto std_out = static_cast<kiv_os::THandle>(registers.rbx.x);
     const auto std_in = static_cast<kiv_os::THandle>(registers.rax.x);
 
-    int pipes_num = programs.size() - 1; // we will need -1 number of pipes
+    int pipes_num = static_cast<int>(programs.size()) - 1; // we will need -1 number of pipes
     // preparing lists for the pipe handles (ins and outs) and the program handles:
     std::vector<kiv_os::THandle> pipe_handles;
     std::vector<kiv_os::THandle> handles;
@@ -64,7 +64,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
     bool successCloning;
     int running_progs_num = 0;
     //for (int i = 0; i < programs.size(); i++) {
-    for (int i = programs.size() - 1; i >= 0; i--) {
+    for (int i = static_cast<int>(programs.size()) - 1; i >= 0; i--) {
         if (i == 0) {
             // first program gets std in or a file as input and first pipe's in as output
             kiv_os::THandle first_handle;
@@ -189,7 +189,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
     uint8_t handleThatSignalledIndex = 0;
 
     // how many programs are still running: 
-    running_progs_num = programs.size();
+    running_progs_num = static_cast<int>(programs.size());
 
     // copy the handles before we start ereasing them so that we know which ones to close:
     std::vector<kiv_os::THandle> orig_handles = handles;
@@ -198,14 +198,14 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
     // while there are still some programs running:
     while (running_progs_num > 0) {
         // wait for one of them to end and when it does, read it's exit code:
-        kiv_os_rtl::Wait_For(handles.data(), handles.size(), handleThatSignalledIndex);
+        kiv_os_rtl::Wait_For(handles.data(), static_cast<int>(handles.size()), handleThatSignalledIndex);
         kiv_os::NOS_Error exit_code;
         kiv_os_rtl::Read_Exit_Code(handles[handleThatSignalledIndex], exit_code);
         //printf("Exit code for handle %d = %d\n", handles[handleThatSignalledIndex], exit_code);
 
         // find the index of this element in the original list of handles:
         auto it = std::find(orig_handles.begin(), orig_handles.end(), handles[handleThatSignalledIndex]);
-        int ind = it - orig_handles.begin(); // index to original handles coresponding to the returned index
+        int ind = static_cast<int>(it - orig_handles.begin()); // index to original handles coresponding to the returned index
 
         if (ind == 0) {
             //printf("closing handle %d (ind %d)\n", pipe_handles[0], 0);
@@ -345,7 +345,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
         // removing leading and tailing white spaces:
         strtrim(buffer);
-        int input_len = strlen(buffer);
+        int input_len = static_cast<int>(strlen(buffer));
 
         for (int i = 0; i < input_len; i++) {
             if (buffer[i] == static_cast<char>(kiv_hal::NControl_Codes::EOT)) {
