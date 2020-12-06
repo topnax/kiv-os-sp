@@ -296,7 +296,7 @@ V této semestrální práci se na adrese \texttt{C:\textbackslash procfs} se na
 Jelikož v souboru \texttt{api.h} není definována struktura položky tabulky procesů, tak by uživatelský prostor nevěděl, jak obsah souborů v adresáří \texttt{procfs} interpretovat. Z tohoto důvodu byla po dohodě s vyučujícím do kernelu i uživatelského prostoru přidána struktura \texttt{PCB\_Entry}, kterou kernel vrací při čtení z adresáře \texttt{procfs}, a tak uživatelský prostor ví, jak obsah souborů interpretovat.
 
 \subsubsection{Alternativní řešení}
-Sdílení struktury mezi uživatelským prostorem a kernelem lze předejít tak, že by položky v adresáří \texttt{procfs} představovaly adresáře, které by se jmenovaly dle identifikátorů běžících procesů. V těchto adresářích by se dále nacházely soubory obsahující atributy běžících procesů.
+Sdílení struktury mezi uživatelským prostorem a kernelem lze předejít tak, že by položky v adresáří \texttt{procfs} představovaly adresáře, které by se jmenovaly dle identifikátorů běžících procesů. V těchto adresářích by se dále nacházely soubory, kdy každý soubor by obsahoval jeden atribut daného procesů.
 
 
 \section{Závěr}	
