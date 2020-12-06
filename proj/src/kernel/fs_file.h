@@ -32,4 +32,13 @@ private:
      * Reference to the VFS this file exists in
      */
     VFS *vfs;
+
+    bool has_attribute(kiv_os::NFile_Attributes attribute) const;
+
+    bool is_read_only();
+    bool is_system_file();
+    bool is_directory();
+    bool is_hidden();
+    bool is_volume_id();
+    bool is_archive();
 };
