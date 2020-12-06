@@ -58,7 +58,7 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
             memset(buffer, 0, buffer_size);
 
             // format it in the way that was requested:
-            n = sprintf_s(buffer, "0x%hhx : %d", i - 128, frequencies[i]);
+            n = sprintf_s(buffer, "0x%hhx : %u", i - 128, frequencies[i]);
 
             kiv_os_rtl::Write_File(std_out, buffer, strlen(buffer), n);
             // stop the loop if we failed to write
@@ -73,7 +73,7 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
             memset(buffer, 0, buffer_size);
 
              // format it in the way that was requested:
-            n = sprintf_s(buffer, "0x%hhx : %d", i + 128, frequencies[i]);
+            n = sprintf_s(buffer, "0x%hhx : %u", i + 128, frequencies[i]);
 
             kiv_os_rtl::Write_File(std_out, buffer, strlen(buffer), n);
             // stop the loop if we failed to write
