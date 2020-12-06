@@ -144,10 +144,21 @@ Na začátku obsluhy je k daným vláknům přiřazen nově vytvořený semafor,
 \end{figure}
 
 \subsubsection{Vytváření procesů}
-Vytváření procesů je principiálně stejné jako vytváření vláken a používá se stejných funkcí jako při vytváření nového vlákna. Hlavním rozdílem je to, že až v jádře se převádí název programu na vstupní bod programu, který se předává funkci \texttt{run\_in\_a\_thread}. Před zahájením vykonávání kódu programu je po vytvoření nového vlákna dle jeho identifikátoru přidán nový záznam do tabulky všech procesů. Dále taky nový proces dědí pracovní adresář od procesu, kterým byl vytvořen.
+Vytváření procesů je principiálně stejné jako vytváření vláken, a používá se stejných funkcí jako při vytváření nového vlákna. Hlavním rozdílem je to, že až v jádře se převádí název programu na vstupní bod programu, který se předává funkci \texttt{run\_in\_a\_thread}. Před zahájením vykonávání kódu programu je po vytvoření nového vlákna dle jeho identifikátoru přidán nový záznam do tabulky všech procesů. Dále také nový proces dědí pracovní adresář od procesu, kterým byl vytvořen.
+
+Tabulka procesů, která je v kódu implementována třídou \texttt{Process\_Control\_Block}, obsahuje následující sloupce:
+\begin{itemize}
+    \item \texttt{kiv\_os::THandle handle} - představuje identifikátor (\textbf{PID}\footnote{process identifier}) procesu
+    \item \texttt{kiv\_os::THandle std\_in} - představuje identifikátor standardního vstupu procesu
+    \item \texttt{kiv\_os::THandle std\_out} - představuje identifikátor standardního výstupu procesu
+    \item \texttt{char *program\_name} - představuje název programu, který proces vykonává
+    \item \texttt{std::filesystem::path working\_directory} - představuje název programu, který proces vykonává
+\end{itemize}
 
 \subsubsection{Nastavení návratové hodnoty procesu}
 Všem procesům je při jejich vytvoření nastaven výchozí návratový kód \texttt{kiv\_os::NOS\_Error::Success}. V případě, že nějaký program chce tento kód nastavit ručně, tak má možnost použít systémové volání \texttt{Exit}, a v registrech nastavit požadovaný návratový kód.
+
+\subsubsection{}
 
 % TODO implementační část
 
