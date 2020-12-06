@@ -44,7 +44,6 @@ extern "C" size_t __stdcall type(const kiv_hal::TRegisters &regs) {
         size_t read;
         size_t written;
 
-        // TODO eof checking might be in kernel?
         // read till EOF
         bool eot_found = false;
         while (!eot_found && kiv_os_rtl::Read_File(handle_to_read_from, buff, buffer_size, read)) {
@@ -59,8 +58,6 @@ extern "C" size_t __stdcall type(const kiv_hal::TRegisters &regs) {
             kiv_os_rtl::Write_File(std_out, buff, read, written);
         }
 
-        // TODO should we write \n?
-        kiv_os_rtl::Write_File(std_out, "\n", 1, written);
         // close only if opening a file
         if (file_opened) {
             kiv_os_rtl::Close_Handle(handle_to_read_from);

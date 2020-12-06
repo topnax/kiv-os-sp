@@ -297,10 +297,13 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
     fill_prompt_buffer(working_directory, prompt, PROMPT_BUFFER_SIZE);
 
+    const char *new_line = "\n";
     bool eot_read = false;
     do {
-        if (echoOn)
+        if (echoOn) {
+            kiv_os_rtl::Write_File(std_out, new_line, 1, counter);
             kiv_os_rtl::Write_File(std_out, prompt, strlen(prompt), counter);
+        }
 
         if (kiv_os_rtl::Read_File(std_in, buffer, buffer_size, counter)) {
             if ((counter > 0) && (counter == buffer_size)) counter--;
@@ -327,7 +330,6 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 break;
             }
         }
-        const char *new_line = "\n";
         kiv_os_rtl::Write_File(std_out, "\r", 1, counter);
         if (echoOn)
             kiv_os_rtl::Write_File(std_out, prompt, strlen(prompt), counter);
@@ -441,7 +443,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
             }
 
             // actual command execution:
-            // cast from const to non const - todo?
+            // cast from const to non const
             char* command_c = const_cast<char*>(command.c_str());
             // call the program:
             call_program(command_c, regs, args.c_str(), std_out);
