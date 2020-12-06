@@ -285,9 +285,12 @@ Z uživatelského prostoru může přijít požadavek na otevření souboru, jeh
 
 Při změně aktuálně používaného souborového systému se do ADT struktury zásobník přidá na vrchol dosud používaný souborový systém. V každém souborovém systému se počítá počet zanoření. Zpracování komponenty \texttt{..} snižuje počet zanoření v stromové struktuře složek. Pokud počet zanoření dosáhne nulové hodnoty, tak se ze zásobníku vyjme poslední používaný souborový systém. Využití zásobníku snižuje počet vyhledávání kořenů souborových systémů. 
 
-\subsection{Pracovní adresář}
+\subsection{Pracovní adresář} \label{wd}
+Pomocí systémových volání \texttt{Set\_Working\_Dir} a \texttt{Get\_Working\_Dir} se mění a získává pracovní adresář aktuálního procesu (tj. toho, který inicializoval systémové volání). Při změně adresáře se pomocí algoritmu ukázaném v podkapitole \ref{wd} kontroluje existence adresáře nacházajícího se na zadané cestě. Dále se také kontroluje, zdali cesta opravdu ukazuje na složku, a ne například na obyčejný soubor.
 
 \subsection{Souborový systém \texttt{procfs}}
+
+
 
 - jak se z něj čte
 - kde je mountnutý
