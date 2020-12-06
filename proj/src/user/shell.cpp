@@ -257,7 +257,7 @@ void call_program(char *program, const kiv_hal::TRegisters &registers, const cha
         if (exit_code != kiv_os::NOS_Error::Success) {
             size_t written;
             char message_buffer[100];
-            sprintf_s(message_buffer, 100, "\nProgram resulted in %d exit code.\n", exit_code);
+            sprintf_s(message_buffer, 100, "\nProgram resulted in %u exit code.\n", exit_code);
             kiv_os_rtl::Write_File(std_out, message_buffer, strlen(message_buffer), written);
         }
     }
@@ -382,7 +382,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
 
 
         std::vector<std::string> command_and_args;
-        char* token1;
+        char* token1 = nullptr;
         char *p = strtok_s(buffer, " ", &token1); // make it into two tokens only
         if (p)
             command_and_args.push_back(p);
