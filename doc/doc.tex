@@ -289,13 +289,14 @@ Při změně aktuálně používaného souborového systému se do ADT struktury
 Pomocí systémových volání \texttt{Set\_Working\_Dir} a \texttt{Get\_Working\_Dir} se mění a získává pracovní adresář aktuálního procesu (tj. toho, který inicializoval systémové volání). Při změně adresáře se pomocí algoritmu ukázaném v podkapitole \ref{wd} kontroluje existence adresáře nacházajícího se na zadané cestě. Dále se také kontroluje, zdali cesta opravdu ukazuje na složku, a ne například na obyčejný soubor.
 
 \subsection{Souborový systém \texttt{procfs}}
+Aby bylo možné si z uživatelského prostoru nechat vypsat obsah tabulky procesů, a zobrazit si tak seznam aktuálně běžících procesů, je třeba, aby byl v kernelu implementován vlastní souborový systém, který bude číst z této tabulky, a pomocí kombinace virtuálních souborů a složky tak zpřístupňovat seznam procesů.
 
+V této semestrální práci se na adrese \texttt{C:\textbackslash procfs} se nachází složka, jejíž položky představují položky tabulky procesů a jsou pojmenovány identifikátory procesů. Při čtení položek z této složky jsou položky tabulky procesů převedeny na strukturu \texttt{PCB\_Entry} a uloženy v paměťovém bufferu. Dle parametrů předaných při čtení je volajícímu vrácen kus paměťového bufferu.
 
+Jelikož v souboru \texttt{api.h} není definována struktura položky tabulky procesů, tak by uživatelský prostor nevěděl, jak obsah souborů v adresáří \texttt{procfs} interpretovat. Z tohoto důvodu byla po dohodě s vyučujícím do kernelu i uživatelského prostoru přidána struktura \texttt{PCB\_Entry}, kterou kernel vrací při čtení z adresáře \texttt{procfs}, a tak uživatelský prostor ví, jak obsah souborů interpretovat.
 
-- jak se z něj čte
-- kde je mountnutý
-- sdílená struktura
-
+\subsubsection{Alternativní řešení}
+Sdílení struktury mezi uživatelským prostorem a kernelem lze předejít tak, že by položky v adresáří \texttt{procfs} představovaly adresáře, které by se jmenovaly dle identifikátorů běžících procesů. V těchto adresářích by se dále nacházely soubory obsahující atributy běžících procesů.
 
 
 \section{Závěr}	
