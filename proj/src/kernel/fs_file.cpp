@@ -93,7 +93,7 @@ kiv_os::NOS_Error Filesystem_File::write(char *buffer, size_t buf_size, size_t &
 }
 
 void Filesystem_File::close() {
-    // TODO close?
+    // TODO might call vfs' close, if any
 }
 
 Filesystem_File::~Filesystem_File() {

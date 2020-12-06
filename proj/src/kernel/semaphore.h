@@ -6,8 +6,6 @@
 #include <condition_variable>
 #include <Windows.h>
 
-// TODO move parts of the class to a semaphore.cpp
-
 class Semaphore {
 public:
     explicit Semaphore(size_t count_) {

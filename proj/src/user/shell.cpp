@@ -123,7 +123,6 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
                 kiv_os::NOS_Error error;
                 if (kiv_os_rtl::Open_File(programs[i].output.name, static_cast<kiv_os::NOpen_File>(0), 0, file_handle_last_out, error)) { ;;
                 } else {
-                    // todo test canceling here too!
                     cancel_all_programs(programs, pipe_handles, handles, file_handle_first_in, file_handle_last_out, running_progs_num, std_in);
                     if (error == kiv_os::NOS_Error::File_Not_Found) {
                         // file not found
@@ -438,7 +437,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 }
                 continue;
             }
-            else if (command == "exit") { // todo if we dont check here we will try to execute exit
+            else if (command == "exit") {
                 break;
             }
 

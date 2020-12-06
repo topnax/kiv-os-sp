@@ -22,9 +22,6 @@ namespace Proc {
     std::uniform_int_distribution<> dis(1, 6);
 }
 
-// TODO move to Process namespace
-
-// std::mutex Semaphores_Mutex;
 std::mutex Semaphores_Mutex;
 std::map<std::thread::id, kiv_os::THandle> Handle_To_THandle;
 
