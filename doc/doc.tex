@@ -200,33 +200,41 @@ Implementace rour představuje rozšíření řešení problému \textit{produce
 
 \end{itemize}
 
-% TODO implementační část
 
-    % ukázka kódu
-    \subsection{Modul 1}
-    	    \begin{lstlisting}[language=C, caption={Lorem ipsum dolor sit amet},captionpos=b]<F2>
-#include <iostream>
-using namespace std;
+\subsection{Tabulka souborů}
+K uložení informací o aktuálně otevřených souborech slouží tzv. tabulka souborů. Taková tabulka v sobě obsahuje seznam všech aktuálně otevřených souborů, kdy každý záznam v tabulce představuje jedno otevření souboru a může obsahovat informaci o způsobu, jakým byl otevřen (např. atributy \texttt{kiv\_os::NFile\_Attribtues}). Tento záznam také obsahuje odkaz na instanci implementace abstraktní třídy \texttt{Generic\_File}, která definuje, jak se z daného souboru čte. V této semestrální práci jsou implementovány následující typy souborů:
 
-int main()
-{    
-    int divisor, dividend, quotient, remainder;
+\begin{itemize}
 
-    cout << "Enter dividend: ";
-    cin >> dividend;
+    \item soubor souborového systému -- implementován ve třídě \texttt{Filesystem\_File} a v konstruktoru přebírá odkaz na rozhraní souborového systému, kterým může být souborový systém FAT nebo \texttt{procfs}, který slouží ke čtení z tabulky procesů.
 
-    cout << "Enter divisor: ";
-    cin >> divisor;
+    \item soubor vstupu roury -- implementován ve třídě \texttt{Pipe\_In\_File} a v konstruktoru přebírá odkaz na instanci roury. Tento soubor podporuje pouze zápis, a zapisuje do roury.
 
-    quotient = dividend / divisor;
-    remainder = dividend % divisor;
+    \item soubor výstupu roury -- implementován ve třídě \texttt{Pipe\_Out\_File} a v konstruktoru přebírá odkaz na instanci roury. Tento soubor podporuje pouze čtení, a čte z roury.
 
-    cout << "Quotient = " << quotient << endl;
-    cout << "Remainder = " << remainder;
+    \item soubor klávesnice -- implementován ve třídě \texttt{Keyboard\_File} a umožňuje číst z klávesnice, potažmo z konzole. Umožňuje i zápis, který zapisuje do virtuálního bufferu klávesnice.
 
-    return 0;
-}\end{lstlisting}
+    \item soubor textového výstupu -- implementován ve třídě \texttt{Tty\_File} a umožňuje zapisovat do konzole.
 
+\end{itemize}
+
+Tato tabulka je implementovaná jako třída obalující \texttt{std::map<kiv\_os::THandle, std::unique\_ptr<Generic\_File>>}. Otevřením nového souboru vznikne v této tabulce nový záznam, a při zavření je z tabulky odebrán.
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+\textbf{Identifikátor} & \textbf{Obecný souborový objekt} \\ \hline
+1                      & \texttt{Keyboard\_File}}                   \\ \hline
+2                      & \texttt{Tty\_File}                        \\ \hline
+3                      & \texttt{Pipe\_In\_File}                   \\ \hline
+4                      & \texttt{Pipe\_Out\_File}                  \\ \hline
+5                      & \texttt{Fs\_File}                         \\ \hline
+\end{tabular}
+\caption{Ukázka tabulky obecných souborových objektů}
+\end{table}
+
+Díky této implementaci je tedy zápis a čtení do souborů jednoduchý, protože logika implementace je volajícímu schovaná -- stačí pouze znát identifikátor požadovaného souboru.
 
 \section{Závěr}	
 % TODO závěr
