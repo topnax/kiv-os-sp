@@ -75,32 +75,8 @@ void Init_Filesystems() {
             fs->init();
             Add_Filesystem("fatfs", fs);
             
-            File test_file;
-            std::vector<char> test_out_buffer; //buffer pro prectene informace
-            fs -> open("\\AUTOEXEC.BAT", 0, 0, test_file); //name, flags, attributes, file
-
-            std::string text = "ijustwannakissyourlipstheonesbetweenyourhipsijustwannakissyourlipstheonesbetweenyourhipsijustwannakissyourlipstheonesbetweenyourhipsijustwannakissyourlipstheonesbetweenyourhipsijustwannakissyourlipstheonesbetweenyourhipsijustwannakissyourlipstheonesbetweenyourhipsijustwannakissyourliijustwannakissyourlipstheonesbetweenyourhipsijustwannakissyourliijustwannakissyourlipstheonesbetweenyourhipsijustwannakissyourli"; //41
-            std::vector<char> string_to_pass;
-
-            for (int i = 0; i < text.size(); i++) {
-                string_to_pass.push_back(text.at(i));
-            }
-
-            size_t written = 3;
-            fs->write(test_file, string_to_pass, 0, 0, written);
-            printf("\n\nGot written: %zu\n\n", written);
-
-            //fs -> read(test_file, test_file.size, 0, test_out_buffer); //file, size, offset, out buffer
-
-            printf("Printing AUTOEXEC.BAT - START\n");
-            for (int i = 0; i < test_out_buffer.size(); i++) {
-                //printf("%c", test_out_buffer.at(i));
-            }
-            printf("Printing AUTOEXEC.BAT - END\n");
-
-            //std::vector<kiv_os::TDir_Entry> folders_in_path;
-            //fs->readdir("\\FDSETUP\\SETUP\\TR", folders_in_path);
-            //fs->mkdir("\\FDSETUP\\SETUP\\TR");
+           
+            fs->mkdir("\\FDSETUP\\");
 
             break;
         }

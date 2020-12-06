@@ -276,17 +276,16 @@ directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table
                 item_to_check = dir_item.filename;
             }
 
-            std::cout << "Checking for: " << item_to_check;
             if (i == (path.size() - 1) && !is_folder) { //prochazi se posledni polozka v ceste a hleda se cluster souboru
                 if (path.at(i).compare(item_to_check) == 0 && dir_item.filezise != 0) { //pokud sedi nazev a JEDNA se o soubor => nalezen cilovy soubor v ceste
                     dir_item_number = j;
-                    std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise;
+                    std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise << "\n";
                 }
             }
             else { //hledame cluster slozky
                 if (path.at(i).compare(item_to_check) == 0 && dir_item.extension.length() == 0 && dir_item.filezise == 0) { //pokud sedi nazev a nejedna se o soubor => nalezena odpovidajici slozka v ceste
                     dir_item_number = j;
-                    std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise;
+                    std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise << "\n";
                 }
             }
 
@@ -856,4 +855,123 @@ void update_size_file_in_folder(char *filename_path, int offset, int original_si
 
         write_data_to_fat_fs(sectors_nums_data.at(cluster_num), data_to_save);
     }
+}
+/*
+* Vytvori ve fs novou slozku
+* vrati 0, pokud vse ok; -1 pokud uz neni misto
+/**/
+int create_folder(const char* folder_path, std::vector<int> fat_table_dec) {
+    std::vector<std::string> folders_in_path = path_to_indiv_items(folder_path);
+    std::string new_fol_name = folders_in_path.at(folders_in_path.size() - 1); //nazev nove slozky
+
+    folders_in_path.pop_back(); //posledni polozka v seznamu je nazev nove polozky
+
+    int start_sector = -1;
+    std::vector<int> sectors_nums_data; //sektory nadrazene slozky
+    if (folders_in_path.size() == 0) { //jsme v rootu
+        start_sector = 19;
+
+        for (int i = 19; i < 33; i++) {
+            sectors_nums_data.push_back(i);
+        }
+    }
+    else { //klasicka slozka, ne root
+        directory_item target_folder = retrieve_item_clust(19, fat_table_dec, true, folders_in_path);
+        sectors_nums_data = retrieve_sectors_nums_fs(fat_table_dec, target_folder.first_cluster);
+
+        start_sector = sectors_nums_data.at(0);
+    }
+
+    std::vector<directory_item> items_folder = retrieve_folders_cur_folder(fat_table_dec, start_sector);  //ziskani obsahu nadrazene slozky
+
+
+    //priprava bufferu s datovym obsahem jedne slozky - START
+    std::vector<unsigned char> to_write_subfolder;
+    std::vector<char> to_save;
+
+    int i = 0;
+    for (; i < new_fol_name.length(); i++) {
+        to_write_subfolder.push_back(new_fol_name.at(i));
+    }
+
+    for (; i < 8; i++) { //doplnit na 8 bytu, ve fat nazev vzdy 8 byt
+        to_write_subfolder.push_back(32);
+    }
+
+    for (int i = 0; i < 3; i++) { //doplnit na 3 byty, pripona neexistuje
+        to_write_subfolder.push_back(32);
+    }
+
+    //doplnit atribut - subdirectory 0x10
+    to_write_subfolder.push_back(16);
+
+    for (int i = 0; i < 14; i++) { //14 bajtu nepotrebnych - datum vytvoreni, cas modifikace...
+        to_write_subfolder.push_back(32);
+    }
+
+    //na dva bajty prvni cluster
+    for (int i = 0; i < 2; i++) {
+        to_write_subfolder.push_back(68);
+    }
+
+    //na 4 bajty 0 (velikost souboru, u slozky nulova)
+    for (int i = 0; i < 4; i++) { //14 bajtu nepotrebnych - datum vytvoreni, cas modifikace...
+        to_write_subfolder.push_back(0);
+    }
+    //priprava bufferu s datovym obsahem jedne slozky - KONEC
+
+
+    if (folders_in_path.size() == 0) { //pokud chceme vytvorit slozku v rootu - tam se jich vejde 224
+        if ((items_folder.size() + 1 + 1) <= (sectors_nums_data.size() * 16)) { //+1 pro odkaz na aktualni slozku +1 pro novou ; vejdeme se do clusteru
+            //zjisteni clusteru, na kterem bude polozka lezet
+            int cluster_num = (items_folder.size() + 1) / 16; //poradi clusteru / 16 (jeden cluster mi pojme 16 polozek)
+            int item_num_clust_rel = (items_folder.size() + 1) % 16; //poradi polozky v ramci jednoho clusteru
+
+            std::cout << "Total items: " << items_folder.size() << "Got cluster num: " << cluster_num << "got clust_rel: " << item_num_clust_rel;
+
+            
+            std::vector<unsigned char> data_clust = read_data_from_fat_fs(sectors_nums_data.at(cluster_num) - 31, 1); //-31; fce cte z dat sektoru
+            for (int i = 0; i < data_clust.size(); i++) {
+                printf("%c", data_clust.at(i));
+            }
+
+            for (int i = 0; i < to_write_subfolder.size(); i++) {
+                data_clust.at((item_num_clust_rel * 32) + i) = to_write_subfolder.at(i);
+            }
+
+            for (int i = 0; i < data_clust.size(); i++) {
+                to_save.push_back(data_clust.at(i));
+            }
+
+            write_data_to_fat_fs(sectors_nums_data.at(cluster_num) - 31, to_save);
+        }
+        else { //err, slozka uz se nevejde
+            return -1;
+        }
+    }
+    else { //slozka mimo root, na jeden sektor se vejde 16 polozek
+        if ((items_folder.size() + 1 + 2) <= (sectors_nums_data.size() * 16)) {
+            int cluster_num = (items_folder.size() + 2) / 16; //poradi slozky / 16 (jeden cluster mi pojme 16 polozek)
+            int item_num_clust_rel = (items_folder.size() + 2) % 16; //poradi polozky v ramci jednoho clusteru
+
+            std::vector<unsigned char> data_clust = read_data_from_fat_fs(sectors_nums_data.at(cluster_num), 1);
+            for (int i = 0; i < data_clust.size(); i++) {
+                printf("%c", data_clust.at(i));
+            }
+
+            for (int i = 0; i < to_write_subfolder.size(); i++) {
+                data_clust.at((item_num_clust_rel * 32) + i) = to_write_subfolder.at(i);
+            }
+
+            for (int i = 0; i < data_clust.size(); i++) {
+                to_save.push_back(data_clust.at(i));
+            }
+
+            write_data_to_fat_fs(sectors_nums_data.at(cluster_num), to_save);
+        }
+        else { //err, slozka uz se nevejde
+            return -1;
+        }
+    }
+
 }
