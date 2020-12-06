@@ -19,7 +19,7 @@ void strtrim(char *str) {
     char *buffer = str;
     while (*str && *str++ == ' ') ++start;
     while (*str++); // move to end of string
-    int end = str - buffer - 1;
+    int end = static_cast<int>(str - buffer) - 1;
     while (end > 0 && buffer[end - 1] == ' ') --end; // backup over trailing spaces
     buffer[end] = 0; // remove trailing spaces
     if (end <= start || start == 0) return; // exit if no leading spaces or string is now empty
@@ -48,7 +48,7 @@ void parse_programs_unused(char *input, program *programs, int *length) {
     size_t program_count = 0;
 
     size_t p_len = 0;
-    int len = strlen(input);
+    int len = static_cast<int>(strlen(input));
     for (int i = 0; i < len; ++i) {
         if (input[i] == '|' || input[i] == '>' || i == len - 1) {
             if (p_len > 1) {
@@ -76,7 +76,7 @@ void parse_programs_unused(char *input, program *programs, int *length) {
 
     }
 
-    *length = program_count;
+    *length = static_cast<int>(program_count);
 
 }
 
@@ -89,7 +89,7 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
     const char pipe_symb = '|';
     std::vector<char> delims;
 
-    int len = strlen(input);
+    int len = static_cast<int>(strlen(input));
 
     char curr_prog_name[NAME_LEN];
     memset(curr_prog_name, 0, NAME_LEN);
@@ -201,7 +201,7 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
                     echoArg = "echo " + echoArg;
                     strcpy_s(curr_prog_name, echoArg.c_str());
                     i = k - 1;
-                    j = echoArg.size(); // to j index setting is probably unnecessary
+                    j = static_cast<int>(echoArg.size()); // to j index setting is probably unnecessary
                     break;
 
                 }
@@ -212,7 +212,7 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
                     echoArg = "echo " + echoArg;
                     strcpy_s(curr_prog_name, echoArg.c_str());
                     i = k - 1;
-                    j = echoArg.size();
+                    j = static_cast<int>(echoArg.size());
                     break;
                 }
 
