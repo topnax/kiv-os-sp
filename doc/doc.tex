@@ -120,7 +120,7 @@ Pro použití služeb této části kernelu z uživatelského prostoru slouží 
     \item \texttt{Wait\_For},
     \item \texttt{Read\_Exit\_Code},
     \item \texttt{Exit},
-    \item \texttt{Register\_Signal\_Handler},
+    \item \texttt{Register\_Signal\_Handler}
 \end{itemize}
 
 \subsubsection{Vytvoření nového vlákna}
@@ -148,15 +148,28 @@ Vytváření procesů je principiálně stejné jako vytváření vláken, a pou
 
 Tabulka procesů, která je v kódu implementována třídou \texttt{Process\_Control\_Block}, obsahuje následující sloupce:
 \begin{itemize}
-    \item \texttt{kiv\_os::THandle handle} - představuje identifikátor (\textbf{PID}\footnote{process identifier}) procesu
-    \item \texttt{kiv\_os::THandle std\_in} - představuje identifikátor standardního vstupu procesu
-    \item \texttt{kiv\_os::THandle std\_out} - představuje identifikátor standardního výstupu procesu
-    \item \texttt{char *program\_name} - představuje název programu, který proces vykonává
-    \item \texttt{std::filesystem::path working\_directory} - představuje název programu, který proces vykonává
+    \item \texttt{kiv\_os::THandle handle} - identifikátor (\textbf{PID}\footnote{process identifier}) procesu,
+    \item \texttt{kiv\_os::THandle std\_in} - identifikátor standardního vstupu procesu,
+    \item \texttt{kiv\_os::THandle std\_out} - identifikátor standardního výstupu procesu,
+    \item \texttt{char *program\_name} - název programu, který proces vykonává,
+    \item \texttt{std::filesystem::path working\_directory} - aktuální pracovní adresář procesu,
+    \item \texttt{kiv\_os::NOS\_Error exit\_code} - návratová hodnota procesu programu, který proces vykonává,
+    \item \texttt{Process\_Status status} - stav procesu, který může nabývat hodnot \texttt{Ready}, \texttt{Running}, \texttt{Zombie}
 \end{itemize}
 
+Předtím, než proces začne vykonávat kód programu, tak setrvává ve stavu \texttt{Process\_Status::Ready}. Během vykonávání programu setrvává ve stavu \texttt{Process\_Status::Running}. Pokud proces již dokončil vykonávání kódu programu, tak setrvává ve stavu \texttt{Process\_Status::Zombie}, dokud si jiný proces nepřečte jeho návratovou hodnotu. 
+
 \subsubsection{Nastavení návratové hodnoty procesu}
-Všem procesům je při jejich vytvoření nastaven výchozí návratový kód \texttt{kiv\_os::NOS\_Error::Success}. V případě, že nějaký program chce tento kód nastavit ručně, tak má možnost použít systémové volání \texttt{Exit}, a v registrech nastavit požadovaný návratový kód.
+Všem procesům je při jejich vytvoření nastaven výchozí návratovou hodnotu \texttt{kiv\_os\\::NOS\_Error::Success}. V případě, že nějaký program chce tuto hodnotu nastavit ručně, tak má možnost použít systémové volání \texttt{Exit}, a v registrech nastavit požadovanou návratovou hodnotu.
+
+\subsubsection{Přečtení návratové hodnoty procesu}
+Přečtení návratové hodnoty procesu z uživatelského prostoru je možné pomocí systémového volání \texttt{Read\_Exit\_Code}, kdy je před voláním nutné nastavit do registrů identifikátoru procesu, jehož návratovou hodnotu chceme přečíst.
+
+Toto volání je implementováno tak, že se nejdřív zkontroluje, zdali daný proces již skončil a setrvává ve stavu \texttt{Process\_Status::Zombie}. Pokud ano, tak se jednoduše získá z tabulky jeho návratová hodnota. V případě, že proces ještě neskončil, tak v tomto stavu nesetrvává, a tudíž nelze v tuto chvíli přečíst jeho návratovou hodnotu, protože by se ještě mohla změnit. Obsluha systémového volání \texttt{Read\_Exit\_Code} tedy zavolá funkci \texttt{wait\_for} a počká, dokud daný proces neskončí. Poté přečte a vrátí jeho návratovou hodnotu.
+
+ Na konci tohoto volání po úspěšném přečtení návrtové hodnoty je z tabulky procesů daný proces, jehož návratovou hodnotu jsme přečetli, odebrán.
+
+
 
 \subsubsection{}
 
