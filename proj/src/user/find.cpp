@@ -46,7 +46,7 @@ extern "C" size_t __stdcall find(const kiv_hal::TRegisters & regs) {
     std::string form = "/v /c \"\"";
     int pos = 0;
     std::string args = data;
-    int index = args.find(form, pos);
+    int index = static_cast<int>(args.find(form, pos));
     if (index == 0) {
         // the format is ok, now separate the file path:
         args = args.substr(form.size(), args.size() - 1);

@@ -483,7 +483,6 @@ void signal(kiv_os::NSignal_Id signal_id, Process *process) {
 }
 
 void shutdown() {
-    std::lock_guard<std::mutex> guard(Semaphores_Mutex);
     // iterate over all processes and write EOT to their STD_IN
 
     signal_all_processes(kiv_os::NSignal_Id::Terminate);
