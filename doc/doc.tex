@@ -183,6 +183,23 @@ Kontrakt definovaný v \texttt{/api/api.h} umožňuje nastavit použít jednu ob
 
 Při rozeslání signálu jádrem se dle tabulky obsluh každého procesu dohledává, která obsluha se má zavolat. Pokud některý z procesů nemá nastavenou vlastní obsluhu daného signálu, tak se zavolá výchozí obsluha signálu definovaná kernelem.
 
+\subsection{Implementace rour}
+Aby bylo možné přesměrovávat výstup jednoho procesu do vstupu jiného, je třeba, aby jádro umožňovalo vytvářet roury, které mají vstup, výstup a paměťový buffer.
+
+Implementace rour představuje rozšíření řešení problému \textit{producent a konzument}. Třída, jejíž instance představují samotné roury, je definována v souborech \texttt{kernel/pipe.h} a \texttt{kernel/pipe.cpp}. V konstruktoru přijímá velikost bufferu, podle které dále inicializuje dva semafory. Volajícímu poskytuje následující metody:
+
+\begin{itemize}
+
+    \item \texttt{std::vector<char> Pipe::Read(size\_t read, bool \&empty)} - tato metoda, která představuje konzumenta a slouží ke čtení požadovaného množství dat z bufferu, přijímá v druhém parametru referenci na booleanskou hodnotu, kterou nastaví na \texttt{true}, pokud byl přečten celý dostupný obsah bufferu a vstup roury byl zavřen. V takový moment již není co číst a nelze očekávat, že do bufferu bude cokoliv zapsáno, protože vstup byl již zavřen.
+
+    \item \texttt{size\_t Pipe::Write(std::vector<char> data)} - tato metoda představující producenta slouží k zapisování předaných dat do bufferu a vrací počet zapsaných bytů. Pokud v průběhu zápisu byl zavřen výstup nebo vstup roury, je zapisování přerušeno.
+
+    \item \texttt{void Pipe::Close\_Out()} - slouží k zavření výstupu, kdy po zavření notifikuje semafory pro zápis i čtení, aby bylo možné oznámit vláknům čekajícím na zápis nebo čtení událost zavření výstupu.
+
+    \item \texttt{void Pipe::Close\_In()} - slouží k zavření vstupu, kdy nejdřív zapíše znak \texttt{EOT} a až poté vstup zavře. 
+
+\end{itemize}
+
 % TODO implementační část
 
     % ukázka kódu
