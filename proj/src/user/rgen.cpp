@@ -32,10 +32,9 @@ extern "C" size_t __stdcall stdin_guard(const kiv_hal::TRegisters &regs) {
     do {
         bool res = kiv_os_rtl::Read_File(std_in, buffer, buffer_size, counter);
         if (res) {
-            for (int i = 0; i < counter; i++) {
+            for (size_t i = 0; i < counter; i++) {
                 switch (uint8_t(buffer[i])) {
                     // TODO remove for release - CLion terminal is quirky and sending EOT does not work correctly there
-                    case uint8_t('E'):
                     case uint8_t(kiv_hal::NControl_Codes::EOT):
                     case uint8_t(kiv_hal::NControl_Codes::ETX):
                         terminate = true;
@@ -95,7 +94,7 @@ extern "C" size_t __stdcall rgen(const kiv_hal::TRegisters &regs) {
     char small_buff[sizeof(float)];
     while (*generate) {
         // std::this_thread::sleep_for(std::chrono::milliseconds(200));
-        float random_number = distr(gen); // generate a random number
+        auto random_number = static_cast<float>(distr(gen)); // generate a random number
         //char random_char = (char) random_number; // convert it to a char
         const char* bytes = reinterpret_cast<const char*>(&random_number);
         for (size_t i = 0; i != sizeof(float); ++i)
