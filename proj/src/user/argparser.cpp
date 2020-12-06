@@ -48,7 +48,7 @@ void parse_programs_unused(char *input, program *programs, int *length) {
     size_t program_count = 0;
 
     size_t p_len = 0;
-    size_t len = strlen(input);
+    int len = strlen(input);
     for (int i = 0; i < len; ++i) {
         if (input[i] == '|' || input[i] == '>' || i == len - 1) {
             if (p_len > 1) {
@@ -89,7 +89,7 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
     const char pipe_symb = '|';
     std::vector<char> delims;
 
-    size_t len = strlen(input);
+    int len = strlen(input);
 
     char curr_prog_name[NAME_LEN];
     memset(curr_prog_name, 0, NAME_LEN);
