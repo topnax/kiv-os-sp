@@ -113,7 +113,7 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
                         path_stack.push(path);
                     }
 
-                    sprintf_s(out_buffer, out_buffer_size, "%-12s %d%d%d%d%d%d\n", entry->file_name,
+                    sprintf_s(out_buffer, out_buffer_size, "%-12s %u%u%u%u%u%u\n", entry->file_name,
                               (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only)) != 0,
                               (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Hidden)) != 0,
                               (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File)) != 0,
