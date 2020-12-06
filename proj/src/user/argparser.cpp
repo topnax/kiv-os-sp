@@ -136,10 +136,13 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
             
             // check if there're any arguments:
             //std::string savedStr = curr_prog_name;
-            char* data;
+            char* data = nullptr;
             //std::string saved = curr_prog_name;
             char* actual_name = strtok_s(curr_prog_name, " ", &data); // actual_name is the name of the program
-            
+
+            if (data == nullptr) {
+                return programs_vec;
+            }
 
             // trim the name and the data
             strtrim(actual_name);
