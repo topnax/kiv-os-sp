@@ -200,6 +200,8 @@ Implementace rour představuje rozšíření řešení problému \textit{produce
 
 \end{itemize}
 
+Pro vytvoření rour z uživatelského prostředí slouží systémové volání \texttt{Create\_Pipe}, které vytvoří nový objekt roury, dvakrát jej vloží do tabulky souborů (jedno pro zápis a jednou pro čtení) a vygenerované identifikátory (indexy do souoborové tabulky) zapíše do registrů.
+
 
 \subsection{Tabulka souborů}
 K uložení informací o aktuálně otevřených souborech slouží tzv. tabulka souborů. Taková tabulka v sobě obsahuje seznam všech aktuálně otevřených souborů, kdy každý záznam v tabulce představuje jedno otevření souboru a může obsahovat informaci o způsobu, jakým byl otevřen (např. atributy \texttt{kiv\_os::NFile\_Attribtues}). Tento záznam také obsahuje odkaz na instanci implementace abstraktní třídy \texttt{Generic\_File}, která definuje, jak se z daného souboru čte. V této semestrální práci jsou implementovány následující typy souborů:
@@ -235,6 +237,21 @@ Tato tabulka je implementovaná jako třída obalující \texttt{std::map<kiv\_o
 \end{table}
 
 Díky této implementaci je tedy zápis a čtení do souborů jednoduchý, protože logika implementace je volajícímu schovaná -- stačí pouze znát identifikátor požadovaného souboru.
+
+\subsubsection{Operace nad soubory}
+Nad soubory lze provádět různé operace pomocí následujících systémových volání:
+
+\begin{itemize}
+    \item \texttt{Read\_File} -- vyhledá v tabulce souborů daný soubor a provede čtení,
+    \item \texttt{Write\_File} -- vyhledá v tabulce souborů daný soubor a provede zápis,
+    \item \texttt{Close\_File} -- vyhledá v tabulce souborů daný soubor, zavře ho a odstraní ho ze souborové tabulky,
+    \item \texttt{Seek} -- vyhledá v tabulce souborů daný soubor, a dle zadaných parametrů provede jeho zvětšení nebo změnu aktuální pozice kurzoru,
+    \item \texttt{Get\_File\_Attribute} -- vyhledá v tabulce souborů daný soubor, a vrátí jeho atributy,
+    \item \texttt{Seek\_File\_Attribute} -- vyhledá v tabulce souborů daný soubor, a změní jeho atributy, 
+    \item \texttt{Delete\_File} -- vyhledá dle specifikované cesty v připojených souborvých systémech soubor, a pokud existuje, tak se ho pokusí smazat.
+\end{itemize}
+
+\begin{itemize}
 
 \section{Závěr}	
 % TODO závěr
