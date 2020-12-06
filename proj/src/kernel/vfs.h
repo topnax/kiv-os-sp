@@ -98,8 +98,6 @@ public:
      */
     virtual kiv_os::NOS_Error close(File file) = 0;
 
-    virtual void print_name() = 0;
-
     /**
      * Prints the directory entries into a vector of characters
      */
