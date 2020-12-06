@@ -110,7 +110,6 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
                     if (recursive &&
                         (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0) {
                         auto path = std::string(path_to_open_char_ptr) + "/" + std::string (entry->file_name);
-                        printf("added %s to stack\n", path.c_str());
                         path_stack.push(path);
                     }
 

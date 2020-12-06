@@ -341,8 +341,6 @@ void wait_for(kiv_hal::TRegisters &registers) {
         uint8_t handleThatSignalledIndex = -1; // initialize the variable otherwise problems upon calling exit?
 
         if (!current_listener.notified) {
-            // TODO remove for release
-            printf("semaphore not notified!!!\n");
             handleThatSignalledIndex = handleCount;
         } else {
             // we are modifying the listener vectors - guard following code using mutex

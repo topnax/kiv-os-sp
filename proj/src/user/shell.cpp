@@ -201,14 +201,12 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
         kiv_os_rtl::Wait_For(handles.data(), static_cast<int>(handles.size()), handleThatSignalledIndex);
         kiv_os::NOS_Error exit_code;
         kiv_os_rtl::Read_Exit_Code(handles[handleThatSignalledIndex], exit_code);
-        //printf("Exit code for handle %d = %d\n", handles[handleThatSignalledIndex], exit_code);
 
         // find the index of this element in the original list of handles:
         auto it = std::find(orig_handles.begin(), orig_handles.end(), handles[handleThatSignalledIndex]);
         int ind = static_cast<int>(it - orig_handles.begin()); // index to original handles coresponding to the returned index
 
         if (ind == 0) {
-            //printf("closing handle %d (ind %d)\n", pipe_handles[0], 0);
 
             // if it was the first program that ended, close only the input of the first pipe (at pipe_handles[0])
             if (pipe_handles.size() > 0)
@@ -218,7 +216,6 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
 
             num_of_handles_closed++;
         } else if (ind == orig_handles.size() - 1) {
-            //printf("closing handle %d (ind %d)\n", pipe_handles[pipe_handles.size() - 1], pipe_handles.size() - 1);
 
             // if it was the last program that ended, close only the output of the last pipe (at pipe_handles[size - 1])
             if (pipe_handles.size() > 0)
@@ -228,9 +225,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
 
             num_of_handles_closed++;
         } else {
-            //printf("closing handles %d (ind %d) and %d (ind %d)\n", pipe_handles[2 * ind], 2 * ind, pipe_handles[2 * ind - 1], 2 * ind - 1);
-
-            // else close the input or output of the pipes surounding the process
+            // else close the input or output of the pipes surrounding the process
             kiv_os_rtl::Close_Handle(pipe_handles[2 * ind]);
             kiv_os_rtl::Close_Handle(pipe_handles[2 * ind - 1]);
             num_of_handles_closed++;
@@ -243,32 +238,6 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
         // decrement the number of processes running:
         running_progs_num--;
     }
-}
-
-int pipe_test(kiv_os::THandle std_in, kiv_os::THandle std_out) {
-    printf("pipe test :)\n");
-
-    kiv_os::THandle pipe[2];
-    kiv_os_rtl::Create_Pipe(pipe);
-
-    kiv_os::THandle rgen_handle;
-    kiv_os_rtl::Clone_Process("rgen", "", std_in, pipe[0], rgen_handle);
-
-    kiv_os::THandle freq_handle;
-    kiv_os_rtl::Clone_Process("freq", "", pipe[1], std_out, freq_handle);
-
-
-    kiv_os::NOS_Error exit_code;
-    kiv_os_rtl::Read_Exit_Code(rgen_handle, exit_code);
-    printf("rgen stopped\n");
-
-    kiv_os_rtl::Close_Handle(pipe[0]);
-
-    kiv_os_rtl::Read_Exit_Code(freq_handle, exit_code);
-    printf("freq stopped\n");
-
-    kiv_os_rtl::Close_Handle(pipe[1]);
-    return 0;
 }
 
 void call_program(char *program, const kiv_hal::TRegisters &registers, const char *data, kiv_os::THandle std_out) {
