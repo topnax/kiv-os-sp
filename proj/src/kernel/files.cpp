@@ -76,7 +76,7 @@ void Init_Filesystems() {
             Add_Filesystem("fatfs", fs);
             
            
-            fs->mkdir("\\FDSETUP\\");
+            fs->mkdir("\\TESTF");
 
             break;
         }

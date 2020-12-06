@@ -860,12 +860,17 @@ void update_size_file_in_folder(char *filename_path, int offset, int original_si
 * Vytvori ve fs novou slozku
 * vrati 0, pokud vse ok; -1 pokud uz neni misto
 /**/
-int create_folder(const char* folder_path, std::vector<int> fat_table_dec) {
+int create_folder(const char* folder_path) {
+    //FAT tabulka nacteni
+    std::vector<unsigned char> fat_table1_hex = load_first_fat_table_bytes();
+    std::vector<int> fat_table1_dec = convert_fat_table_to_dec(fat_table1_hex);
+
     std::vector<std::string> folders_in_path = path_to_indiv_items(folder_path);
     std::string new_fol_name = folders_in_path.at(folders_in_path.size() - 1); //nazev nove slozky
 
     folders_in_path.pop_back(); //posledni polozka v seznamu je nazev nove polozky
-
+    
+    //ziskani clusteru, obsahu nadrazene slozky - START
     int start_sector = -1;
     std::vector<int> sectors_nums_data; //sektory nadrazene slozky
     if (folders_in_path.size() == 0) { //jsme v rootu
@@ -876,14 +881,27 @@ int create_folder(const char* folder_path, std::vector<int> fat_table_dec) {
         }
     }
     else { //klasicka slozka, ne root
-        directory_item target_folder = retrieve_item_clust(19, fat_table_dec, true, folders_in_path);
-        sectors_nums_data = retrieve_sectors_nums_fs(fat_table_dec, target_folder.first_cluster);
+        directory_item target_folder = retrieve_item_clust(19, fat_table1_dec, true, folders_in_path);
+        sectors_nums_data = retrieve_sectors_nums_fs(fat_table1_dec, target_folder.first_cluster);
 
         start_sector = sectors_nums_data.at(0);
     }
+    std::vector<directory_item> items_folder = retrieve_folders_cur_folder(fat_table1_dec, start_sector);  //ziskani obsahu nadrazene slozky
+    //ziskani clusteru, obsahu nadrazene slozky - KONEC
 
-    std::vector<directory_item> items_folder = retrieve_folders_cur_folder(fat_table_dec, start_sector);  //ziskani obsahu nadrazene slozky
+    //nalezeni volnych clusteru pro novou slozku - potrebuji 1
+    int free_index = retrieve_free_cluster_index(fat_table1_dec);
+    if (free_index == -1) { //volny index uz nelze najit
+        return -1; //nebyl nalezen zadny volny cluster, koncime
+    }
+    else { //uprava fat tabulek a oznaceni clusteru jako zabraneho
+        std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, fat_table1_hex, 4095);
+        fat_table1_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+        fat_table1_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+        fat_table1_dec.at(free_index) = 4095; //oznacit cluster jako konecny v dec tabulce
 
+        save_fat_tables(fat_table1_hex);
+    }
 
     //priprava bufferu s datovym obsahem jedne slozky - START
     std::vector<unsigned char> to_write_subfolder;
@@ -910,8 +928,9 @@ int create_folder(const char* folder_path, std::vector<int> fat_table_dec) {
     }
 
     //na dva bajty prvni cluster
+    std::vector<unsigned char> first_assigned_clust = convert_dec_to_hex_start_clus(free_index);
     for (int i = 0; i < 2; i++) {
-        to_write_subfolder.push_back(68);
+        to_write_subfolder.push_back(first_assigned_clust.at(i));
     }
 
     //na 4 bajty 0 (velikost souboru, u slozky nulova)
@@ -919,7 +938,6 @@ int create_folder(const char* folder_path, std::vector<int> fat_table_dec) {
         to_write_subfolder.push_back(0);
     }
     //priprava bufferu s datovym obsahem jedne slozky - KONEC
-
 
     if (folders_in_path.size() == 0) { //pokud chceme vytvorit slozku v rootu - tam se jich vejde 224
         if ((items_folder.size() + 1 + 1) <= (sectors_nums_data.size() * 16)) { //+1 pro odkaz na aktualni slozku +1 pro novou ; vejdeme se do clusteru
@@ -974,4 +992,35 @@ int create_folder(const char* folder_path, std::vector<int> fat_table_dec) {
         }
     }
 
+}
+
+/*
+* Prevede cislo reprezentujici pocatecni cluster na dva bajty (pro ulozeni).
+/**/
+std::vector<unsigned char> convert_dec_to_hex_start_clus(int start_clust) {
+    std::vector<unsigned char> converted;
+
+    char convert_buffer[5]; //buffer pro prevod hex na dec
+    snprintf(convert_buffer, sizeof(convert_buffer), "%04X", start_clust); //obsahuje 16 bitu
+
+    char byte_to_save_first[3];
+    char byte_to_save_second[3];
+    unsigned char first_byte;
+    unsigned char second_byte;
+
+    byte_to_save_first[0] = convert_buffer[0];
+    byte_to_save_first[1] = convert_buffer[1];
+    byte_to_save_first[2] = '\0';
+
+    byte_to_save_second[0] = convert_buffer[2];
+    byte_to_save_second[1] = convert_buffer[3];
+    byte_to_save_second[2] = '\0';
+
+    first_byte = conv_char_arr_to_hex(byte_to_save_first);
+    second_byte = conv_char_arr_to_hex(byte_to_save_second);
+
+    converted.push_back(second_byte); //pri ukladani bajty prohodit
+    converted.push_back(first_byte);
+
+    return converted;
 }

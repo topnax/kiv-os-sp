@@ -138,7 +138,7 @@ kiv_os::NOS_Error Fat_Fs::mkdir(const char *name) {
     //FAT tabulka nutna pro vyhledani ciloveho clusteru
     std::vector<unsigned char> fat_table1_hex = load_first_fat_table_bytes();
     std::vector<int> fat_table1_dec = convert_fat_table_to_dec(fat_table1_hex);
-    create_folder(name, fat_table1_dec);
+    create_folder(name);
     return kiv_os::NOS_Error::IO_Error;
 
     directory_item target_folder = retrieve_item_clust(19, fat_table1_dec, true, folders_in_path); //nalezeni ciloveho clusteru (slozka n-1)

@@ -44,4 +44,5 @@ std::vector<unsigned char> convert_num_to_bytes_fat(int target_index, std::vecto
 void save_fat_tables(std::vector<unsigned char> fat_table);
 std::vector<unsigned char> convert_dec_num_to_hex(long num_dec);
 void update_size_file_in_folder(char* filename_path, int offset, int original_size, int newly_written_bytes, std::vector<int> fat_table_dec);
-int create_folder(const char* folder_path, std::vector<int> fat_table_dec);
+int create_folder(const char* folder_path);
+std::vector<unsigned char> convert_dec_to_hex_start_clus(int start_clust);
