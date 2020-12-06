@@ -165,7 +165,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             }
 
             handles.push_back(last_handle);
-        } else { // TODO this should be fine
+        } else {
             // else connect it correctly
             kiv_os::THandle handle;
             successCloning = kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[2 * i - 1], pipe_handles[2 * i],
@@ -193,7 +193,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
 
     // copy the handles before we start ereasing them so that we know which ones to close:
     std::vector<kiv_os::THandle> orig_handles = handles;
-    int num_of_handles_closed = 0; // debug variable - TODO remove in release
+    int num_of_handles_closed = 0;
 
     // while there are still some programs running:
     while (running_progs_num > 0) {
@@ -269,7 +269,6 @@ void call_program(char *program, const kiv_hal::TRegisters &registers, const cha
         kiv_os_rtl::Write_File(std_out, message_buffer, strlen(message_buffer), written);
         return; // unnecessary but more readable
     }
-    // TODO checking registers.rax.x will be implemented after merging into master
 }
 
 void fill_prompt_buffer(char *path, char *prompt_buffer, size_t prompt_buffer_size) {
@@ -309,7 +308,7 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
         } else
             break;    //EOF
 
-        // checking for program piping - TODO make this more elegant
+        // checking for program piping
         bool io_chain = false;
 
         // removing leading and tailing white spaces:
@@ -352,7 +351,6 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                 continue;
             }
 
-            // todo improve this condition?:
             if (programs.size() == 1 && strcmp(programs[0].name, "echo") == 0 &&
                 (programs[0].input.type == ProgramHandleType::File || programs[0].output.type == ProgramHandleType::File)) {
                 call_piped_programs(programs, regs, wrongStr);

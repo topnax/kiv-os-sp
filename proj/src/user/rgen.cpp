@@ -34,7 +34,6 @@ extern "C" size_t __stdcall stdin_guard(const kiv_hal::TRegisters &regs) {
         if (res) {
             for (size_t i = 0; i < counter; i++) {
                 switch (uint8_t(buffer[i])) {
-                    // TODO remove for release - CLion terminal is quirky and sending EOT does not work correctly there
                     case uint8_t(kiv_hal::NControl_Codes::EOT):
                     case uint8_t(kiv_hal::NControl_Codes::ETX):
                         terminate = true;
@@ -50,8 +49,6 @@ extern "C" size_t __stdcall stdin_guard(const kiv_hal::TRegisters &regs) {
     // rgen might have ended (failed to write to std_out) and the pointer to run could be invalid
     if (*parameters->is_generating) {
         // rgen should stop generating
-        // TODO remove following line, for test purposes only
-        // kiv_os_rtl::Shutdown();
         *generate = false; // comment out this if testing shutdown
     }
     return 0;
