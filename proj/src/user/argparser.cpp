@@ -14,11 +14,14 @@ void strtrim(char *str) {
         str = (char*) malloc(1 * sizeof(char));
         str[0] = '\0';
     }*/
-
+    if (str == nullptr) {
+        return;
+    }
     int start = 0; // number of leading spaces
     char *buffer = str;
     while (*str && *str++ == ' ') ++start;
     while (*str++); // move to end of string
+    
     int end = static_cast<int>(str - buffer) - 1;
     while (end > 0 && buffer[end - 1] == ' ') --end; // backup over trailing spaces
     buffer[end] = 0; // remove trailing spaces
