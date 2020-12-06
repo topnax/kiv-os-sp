@@ -18,8 +18,6 @@ kiv_os::NOS_Error Tty_File::write(char *buffer, size_t size, size_t &written) {
 
     auto error = registers.rax.r == 1;
 
-    // TODO error?
-
     written = size; //VGA BIOS nevraci pocet zapsanych znaku, tak predpokladame, ze zapsal vsechny
 
     return !error ? kiv_os::NOS_Error::Success : kiv_os::NOS_Error:: IO_Error;

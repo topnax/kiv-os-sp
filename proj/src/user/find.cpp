@@ -81,24 +81,11 @@ extern "C" size_t __stdcall find(const kiv_hal::TRegisters & regs) {
     bool doContinue = true; // flag to tell if we should break out of the reading cycle
     do {
         if (kiv_os_rtl::Read_File(file_handle, buffer, buffer_size, counter)) {
-            // TODO uncomment this for newline addition in user's input of text:
-            //if (counter < buffer_size) {
-            //    // this happens on Enter?
-            //    size_t written = 0;
-            //    kiv_os_rtl::Write_File(std_out, new_line, strlen(new_line), written); // write the new line
-            //    buffer[counter] = '\n'; // add the char to the buffer
-            //    counter++; // increase the counter, bc we added one char (\n)
-            //}
-
-
             for (int i = 0; i < counter; i++) {
 
                 // check for EOT:
                 if (static_cast<kiv_hal::NControl_Codes>(buffer[i]) == kiv_hal::NControl_Codes::EOT) {
                     doContinue = false;
-                    //if (last_char != '\n') {
-                    //    lines_count++; // todo this might be wrong, e.g for completely empty file we get 1 line
-                    //}
                     break; // EOT
                 }
 
@@ -111,9 +98,6 @@ extern "C" size_t __stdcall find(const kiv_hal::TRegisters & regs) {
         }
         else {
             doContinue = false;
-            //if (last_char != '\n') {
-            //    lines_count++; // todo this might be wrong, e.g for completely empty file we get 1 line
-            //}
             break; // EOF
         }
 

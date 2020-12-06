@@ -125,8 +125,6 @@ kiv_os::THandle Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8
     std::lock_guard<std::mutex> guard(Files::Open_Guard);
     Generic_File *file = nullptr;
 
-
-    // TODO this could be improved in the future
     if (strcmp(file_name, "\\sys\\tty") == 0) {
         file = new Tty_File();
     } else if (strcmp(file_name, "\\sys\\kb") == 0) {

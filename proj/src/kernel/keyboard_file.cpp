@@ -78,6 +78,5 @@ size_t Keyboard_File::Read_Line_From_Console(char *buffer, const size_t buffer_s
 
 kiv_os::NOS_Error Keyboard_File::read(size_t size, char *out_buffer, size_t &read) {
     read = Read_Line_From_Console(reinterpret_cast<char*>(out_buffer), size);
-    // TODO should we always return true?
     return kiv_os::NOS_Error::Success;
 }

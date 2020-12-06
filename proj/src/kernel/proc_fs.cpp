@@ -150,8 +150,7 @@ kiv_os::NOS_Error Proc_Fs::unlink(const char *name) {
 }
 
 kiv_os::NOS_Error Proc_Fs::close(File file) {
-    // TODO what should close do?
-    return kiv_os::NOS_Error::Success;
+    return kiv_os::NOS_Error::IO_Error;
 }
 
 bool Proc_Fs::file_exists(int32_t current_fd, const char *name, bool start_from_root, int32_t &found_fd) {

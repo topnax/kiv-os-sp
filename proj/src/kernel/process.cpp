@@ -151,7 +151,6 @@ void thread_post_execute(bool is_process){
 
 void run_in_a_thread(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &registers, bool is_process, Semaphore *s) {
     // we are adding to the thread handle to Handle_To_THandle, better guard this block
-    // TODO this might not be necessary
     std::lock_guard<std::mutex> guard(Semaphores_Mutex);
 
     // spawn a new thread, in which a program at address inside rdx is run
@@ -162,8 +161,6 @@ void run_in_a_thread(kiv_os::TThread_Proc t_threadproc, kiv_hal::TRegisters &reg
 
     // generate a kiv_os::THandle based on the native handle
     kiv_os::THandle t_handle = Convert_Native_Handle(native_handle);
-
-    // TODO is it really necessary to map the thread ID to the THandle?
 
     // map the ID of the spawned thread to the native handle
     Handle_To_THandle[t1.get_id()] = t_handle;
@@ -301,7 +298,6 @@ void wait_for(kiv_hal::TRegisters &registers) {
     // an invalid handle was found, remove all listeners (rollback)
     if (anyHandleInvalid) {
         // iterate to the last index we have added the listener to
-        // TODO might be <= index???
         for (int i = 0; i < index; i++) {
             // load a handle
             auto t_handle = t_handles[i];
@@ -406,8 +402,6 @@ void exit(kiv_hal::TRegisters &registers) {
         // exit with the given exit code
         exit(resolved->second, exit_code);
     }
-
-    // TODO somehow terminate the thread? std::thread cannot be terminated however
 }
 
 void read_exit_code(kiv_hal::TRegisters &registers) {

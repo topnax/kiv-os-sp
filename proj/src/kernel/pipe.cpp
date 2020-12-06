@@ -72,7 +72,6 @@ bool Pipe::write_char(char c) {
         return false;
     }
 
-    // TODO might check whether IN has closed
     // receiving close signal while waiting for empty_count should result in writing EOT only
     // current implementation allows writer to write one more byte before pipe is closed
 

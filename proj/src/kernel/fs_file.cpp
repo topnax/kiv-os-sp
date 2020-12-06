@@ -71,7 +71,6 @@ kiv_os::NOS_Error Filesystem_File::seek(size_t value, kiv_os::NFile_Seek seek_po
             break;
     }
 
-    // TODO should this be always success?
     return kiv_os::NOS_Error::Success;
 }
 

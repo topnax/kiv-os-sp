@@ -260,7 +260,7 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
             programs_vec[i].output.type = ProgramHandleType::File;
             strncpy_s(programs_vec[i].output.name, programs_vec[i + 1].name, NAME_LEN);
 
-            //new_prog_count--; // todo destory the structs already created even for the files?
+            //new_prog_count--;
         }
         else if (delims[i] == in_symb) {
             // if there is < symbol between current program and the next one:

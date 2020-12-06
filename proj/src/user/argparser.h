@@ -26,7 +26,7 @@ struct io
 
 struct program {
     char name[NAME_LEN];
-    char data[DATA_LEN]; // todo maybe data should be allocated dynamically, bc it can be long?
+    char data[DATA_LEN];
     //ProgramHandleType input;
     //ProgramHandleType output;
     io input;
