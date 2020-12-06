@@ -169,9 +169,19 @@ Toto volání je implementováno tak, že se nejdřív zkontroluje, zdali daný 
 
  Na konci tohoto volání po úspěšném přečtení návrtové hodnoty je z tabulky procesů daný proces, jehož návratovou hodnotu jsme přečetli, odebrán.
 
+\subsubsection{Nastavení obsluhy systémového signálu aktuálního procesu}
+Aby každý proces mohl nastavit vlastní obsluhu libovolného systémového signálu, tak jádro poskytuje možnost volat systémové volání \texttt{Register\_Signal\_Handler}.
 
+Kontrakt definovaný v \texttt{/api/api.h} umožňuje nastavit použít jednu obsluhu víckrát a nastavit ji pro více signálů. Implementace tohoto kontraktu je realizována tak, že každý proces má vlastní tabulku, kde klíčem je signál a hodnotou je adresa obsluhy daného signálu.
 
-\subsubsection{}
+\begin{figure}[!ht]
+\centering
+{\includegraphics[width=11.5cm]{pdf/register_signal_handler.pdf}}
+\caption{Vizualizace tabulky obsluh systémových signálů jednoho procesu}
+\label{fig:screen-transition-diagram}
+\end{figure}
+
+Při rozeslání signálu jádrem se dle tabulky obsluh každého procesu dohledává, která obsluha se má zavolat. Pokud některý z procesů nemá nastavenou vlastní obsluhu daného signálu, tak se zavolá výchozí obsluha signálu definovaná kernelem.
 
 % TODO implementační část
 
