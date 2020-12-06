@@ -11,6 +11,8 @@
 \usepackage{listings}
 \usepackage{tikz}
 \usepackage{xcolor}
+\usepackage{tabularx}
+\usepackage{underscore}
 \usepackage[final]{pdfpages}
 
 \definecolor{mauve}{rgb}{0.58,0,0.82}
@@ -33,7 +35,7 @@
   numbers=none,
   numberstyle=\tiny\color{gray},
   keywordstyle=\color{blue},
-  commentstyle=\color{dkgreen},
+  commentstyle=\color{gray},
   stringstyle=\color{mauve},
   breaklines=true,
   breakatwhitespace=true,
@@ -96,40 +98,176 @@
     \tableofcontents
     \pagebreak
 
+	\section{Zadání}
+	Zadáním semestrální práce byla simulace operačního systému. Úkolem bylo navrhnout a s využitím připravené kostry simulátoru v jazyce C++ implementovat aplikaci, která bude simulovat chování operačního systému.
+	
+	Pro simulaci bylo potřeba navrhnout a implementovat správu procesů, souborový systém a konkrétní uživatelské příkazy a programy. %... todo co jeste
+	
+		\subsection{Požadované programy}
+		Seznam a stručný popis požadovaných uživatelských programů je uveden zde (pro podrobnější popis jednotlivých příkazů viz podsekci \ref{subDetail}):
+
+
+\begin{table}[!ht]
+\centering
+\begin{tabularx}{\textwidth}{r|p{11cm}}
+\textbf{Příkaz} & \textbf{Význam}                                                                                                                 
+\\
+\hline
+\texttt{echo}            & Vypíše řetězec zadaný v argumentu                                                                                                \\
+\texttt{cd}              & Změní pracovní adresář aktuálního shellu                                                                                         \\
+\texttt{dir}             & Vypíše položky, které se nachází v zadaném adresáři                                                                              \\
+\texttt{md}              & Vytvoří nový adresář                                                                                                             \\
+\texttt{rd}              & Smaže zadaný adresář
+\\
+\texttt{type}            & Vypíše obsah zadaného souboru                                                                                                    \\
+\texttt{find}            & Vypíše počet řádek zadaného souboru                                                                                              \\
+\texttt{sort}            & Seřadí jednotlivé řádky zadaného souboru                                                                                         \\
+\texttt{tasklist}        & Vypíše seznam běžících procesů                                                                                                   \\
+\texttt{shutdown}        & Ukončí všechny procesy                                                                                                           \\
+\texttt{rgen}            & Začne vypisovat náhodně vygenerovaná čísla v plovoucí čárce                                                                      \\
+\texttt{freq}            & Sestaví frekvenční tabulku bytů, kterou pak vypíše pro všechny byty s frekvencí větší než 0
+\\
+\texttt{shell}			 & Spustí nový shell
+\end{tabularx}
+\caption{Požadované příkazy shellu}
+\end{table}
+
+		
+	
     
-    \section{Analýza}
+%    \section{Analýza}
     % TODO analýza
+   
+    
+    
+    
+    
+    
+    
 
     \section{Popis hlavních modulů}
     % TODO implementační část
 
     % ukázka kódu
-    \subsection{Modul 1}
-    	    \begin{lstlisting}[language=C, caption={Lorem ipsum dolor sit amet},captionpos=b]
-#include <iostream>
-using namespace std;
+%    \subsection{Modul 1}
+%    	    \begin{lstlisting}[language=C, caption={Lorem ipsum dolor sit amet},captionpos=b]
+%#include <iostream>
+%using namespace std;
+%
+%int main()
+%{    
+%    int divisor, dividend, quotient, remainder;
+%
+%    cout << "Enter dividend: ";
+%    cin >> dividend;
+%
+%    cout << "Enter divisor: ";
+%    cin >> divisor;
+%
+%    quotient = dividend / divisor;
+%    remainder = dividend % divisor;
+%
+%    cout << "Quotient = " << quotient << endl;
+%    cout << "Remainder = " << remainder;
+%
+%    return 0;
+%}\end{lstlisting}
 
-int main()
-{    
-    int divisor, dividend, quotient, remainder;
-
-    cout << "Enter dividend: ";
-    cin >> dividend;
-
-    cout << "Enter divisor: ";
-    cin >> divisor;
-
-    quotient = dividend / divisor;
-    remainder = dividend % divisor;
-
-    cout << "Quotient = " << quotient << endl;
-    cout << "Remainder = " << remainder;
-
-    return 0;
-}\end{lstlisting}
+	\subsection{User space}
+	User space je část operačního systému, která pomocí systémových volání žádá kernel o služby pro obsluhu uživatelských programů. Tato logika je použita i v naší práci. Funkcionalita uživatelských programů (jejich kód, spouštění, apod.) je implementovaná v projektu \texttt{user}. Jejich spouštění a případná orchestrace do pipeline je řešena v \texttt{shell.cpp}.
+	
+	
+	\subsection{Podrobný popis podporovaných příkazů} \label{subDetail}
+	Zde je podrobnější popis podporovaných příkazů pro náš simulátor. Implementace funkcionality s nachází v příslušných \texttt{.cpp} zdrojových souborech (tj. \texttt{nazev_prikazu.cpp}).    
+    
+    \subsubsection*{\texttt{echo}}
+    \texttt{echo} jako argument očekává řetězec, který má vypsat na standardní výstup. Pokud se v řetězci nachází 'speciální' znaky (tj. znak | nebo < nebo >), je potřeba řetězec uzavřít do uvozovek ("{}), pokud výstup programu echo chceme přesměrovat na vstup jiného programu nebo do souboru.
+    Příklad:
+    \begin{lstlisting}[language=C, caption={Ukázka chování programu echo},captionpos=b]
+    > echo "hello" | freq
+      0xa : 1
+	   0x65 : 1
+      0x68 : 1
+      0x6c : 2
+      0x6f : 1 /* vystup programu freq */
+    > echo hello | freq
+      hello | freq /* vystup programu echo */
+    \end{lstlisting}
+    
+    \subsubsection*{\texttt{cd}}
+    \texttt{cd} změní pracovní adresář aktuálního shellu. Jako argument očekává cestu (relativní nebo absolutní) k novému adresáři, který má shellu nastavit jako pracovní. Pokud argument není zadaný, pracovní adresář se nemění.
+    
+    \subsubsection*{\texttt{dir}}
+    \texttt{dir} na standardní výstup vypíše položky uložené v adresáři. Cesta k požadovanému adresáři se zadává jako argument příkazu. Pokud argument není zadaný, vypíše se obsah pracovního adresáře.
+    
+    \subsubsection*{\texttt{md}}
+    \texttt{md} vytvoří nový adresář. Cesta k novému adresáři se zadává jako argument příkazu. TODO
+    
+    \subsubsection*{\texttt{rd}}
+    \texttt{rd} smaže adresář zadaný v argumentu. TODO
+    
+    \subsubsection*{\texttt{type}}
+    \texttt{type} na standardní výstup vypíše obsah zadaného souboru. Cesta k požadovanému souboru se zadává jako argument příkazu. Pokud argument není zadaný, \texttt{type} začne číst ze standardního vstupu, dokud nepřečte znak \texttt{EOT}.
+    
+    \subsubsection*{\texttt{find}}
+    \texttt{find} na standardní výstup vypíše počet řádek zadaného souboru. Tento příkaz se zadává ve formátu \texttt{find /v /c "{}"{} file.txt}, kde \texttt{file.txt} je cesta k požadovanému souboru. Pokud cesta k souboru není zadaná, \texttt{type} začne číst ze standardního vstupu, dokud nepřečte znak \texttt{EOT}.
+    
+    \subsubsection*{\texttt{sort}}
+    \texttt{sort} na standardní výstup vypíše abecedně seřazené řádky zadaného souboru. Pokud cesta k souboru není zadaná, \texttt{sort} začne číst ze standardního vstupu, dokud nepřečte znak \texttt{EOT}.
+    
+    \subsubsection*{\texttt{tasklist}}
+    \texttt{tasklist} na standardní výstup vypíše tabulku procesů s informacemi o procesech, které mají v PCB záznam.
+    
+    \subsubsection*{\texttt{shutdown}}
+    \texttt{shutdown} ukončí všechny běžící procesy, tj. vč. všech spuštěných shellů.
+    
+    \subsubsection*{\texttt{rgen}}
+    \texttt{rgen} začne na standardní výstup vypisovat náhodné byty. Ne však byty s hodnotou 0x04, tj. znak \texttt{EOT}.
+    
+    \subsubsection*{\texttt{freq}}
+    \texttt{freq} začne číst ze standardního vstupu, dokud nepřečte znak \texttt{EOT}. Poté na standardní výstup vypíše frekvenční tabulku bytů pro všechny byty s frekvencí větší než 0.
+    
+    \subsubsection*{\texttt{shell}}
+    Příkaz \texttt{shell} spustí nový shell.
+	
+	
+	\subsubsection{Spouštění uživatelských programů}
+	Po zadání příkazu se pokusíme příslušný program spustit pomocí systémového volání \texttt{kiv_os_rtl::Clone_Process}. Jméno programu se nekontroluje, kontroluje se pouze návratová hodnota systémového volání. Pokud vše proběhlo v pořádku, v novém vlákně je spuštěn daný proces.
+	
+	\subsubsection{Orchestrace pipeline} 
+	Pokud je potřeba přesměrovat výstup procesu na vstup jiného pomocí rour, je potřeba spustit několik procesů po sobě. Procesy jsou spouštěny od posledního k prvnímu, tj. pokud vstup vypadá např. takto:
+	
+	
+	\texttt{> p1 | p2 | p3},\\
+	potom prvním spuštěným procesem bude \texttt{p3} a posledním \texttt{p1}.
+	
+	Procesy jsou spouštěny tímto způsobem z toho důvodu, že pokud uživatel zadá neplatný příkaz, potom je potřeba všechny (již spuštěné) procesy ukončit. Pokud by první proces v pipeline byl spuštěn a potom bylo nutné jej předčasně ukončit, jedinou možností by bylo poslat na jeho vstup znak \texttt{EOT}, protože standardní vstup shellu nechceme zavírat. Ale to s sebou nese komplikace. V případě spouštění od posledního k prvnímu taková situace nemůže nastat (pokud by první zadaný příkaz byl neplatný, nebude vůbec spuštěn).
+	
+	Při předčasném ukončování procesů jsou zavřeny \texttt{Handles} vstupů a výstupů všech rour a otevřených souborů a nakonec jsou přečteny \texttt{ExitCodes} procesů.
+	\\
+	\\
+	Pokud jsou všechny zadané příkazy platné, jsou také všechny příslušné procesy spuštěny. Poté se začne čekat na skončení jednoho z procesů pomocí systémového volání \texttt{kiv_os_rtl::Wait_For}. Jakmile jeden z procesů skončí, přečte se jeho \texttt{ExitCode} a zavře se jeho vstup a výstup (pokud se jedná o roury, nebo soubory). Toto probíhá, dokud neskončí všechny takto spuštěné procesy.
 
 
 \section{Závěr}	
-% TODO závěr
+
+Zadáním semestrální práce byla simulace operačního systému. Zadání bylo z velké části splněno.
+
+\subsection{Rozdělení práce}
+
+Rozdělení práce mezi členy týmu vypadalo zhruba následovně (rozdělení není striktní, práce členů se v mnoha případech překrývala):
+
+\begin{itemize}
+	\item Stanislav Král \\
+		- implementace systémových volání, rour, PCB, VFS, práce v kernelu
+	\item Eliška Mourycová \\
+		- práce na programech v uživatelském prostoru (parsování, implementace), orchestrace pipelines
+	\item Ondřej Drtina \\
+		- práce na FS FAT s využitím přiloženého obrazu diskety, implementace VFS rozhraní
+\end{itemize}
+
+\subsection{Zhodnocení dosažených výsledků}
+Přes veškerou snahu jsme bohužel nebyli schopni včas implementovat souborový systém FAT. Část jeho nutné funkcionality je implementovaná a funkční, ale nelze ho zatím integrovat do celého projektu. Přesto máme důvěru v robustnost a správnost implementace zbytku částí projektu.
+
 
 \end{document}    
