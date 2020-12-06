@@ -206,7 +206,7 @@ void clone(kiv_hal::TRegisters &registers, HMODULE user_programs) {
             }
 
             registers.rax.x = thread_handle;
-            registers.flags.carry =0;
+            registers.flags.carry = 0;
 
             s->notify();
         }

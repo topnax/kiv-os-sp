@@ -19,6 +19,12 @@ void handle_error_message(kiv_os::NOS_Error error, kiv_os::THandle std_out) {
             kiv_os_rtl::Write_File(std_out, error_message, strlen(error_message), written);
             break;
         }
+        case kiv_os::NOS_Error::IO_Error: {
+            const char *error_message = "IO error has happened.\n";
+            size_t written;
+            kiv_os_rtl::Write_File(std_out, error_message, strlen(error_message), written);
+            break;
+        }
 
         default: {
             char error_message[42];

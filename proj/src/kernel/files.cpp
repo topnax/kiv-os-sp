@@ -90,7 +90,6 @@ void Init_Filesystems() {
 }
 
 void Add_Filesystem(const std::string &name, VFS *vfs) {
-    printf("added %s to fs table\n", name.c_str());
     Files::Filesystems[name] = std::unique_ptr<VFS>(vfs);
 }
 
@@ -107,7 +106,6 @@ void Open_File(kiv_hal::TRegisters &registers) {
     char *file_name = reinterpret_cast<char * >(registers.rdx.r);
     auto flags = static_cast<kiv_os::NOpen_File>(registers.rcx.l);
     auto attributes = static_cast<uint8_t>(registers.rdi.i);
-
     kiv_os::NOS_Error error = kiv_os::NOS_Error::Success;
     auto handle = Open_File(file_name, flags, attributes, error);
 
@@ -316,8 +314,6 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
                     current_fs_path = "\\";
                     components_in_current_fs = 1;
 
-                    // printf("changed to fs ");
-                    // current_fs->print_name();
                 } else {
                     current_fs_path /= component.string();
                     if (!current_fs->file_exists(current_fd, component.string().c_str(), first, current_fd)) {
@@ -352,10 +348,15 @@ void Seek(kiv_hal::TRegisters &registers) {
         size_t pos_from_start;
         auto file_object = (*Files::Ft)[handle];
         // try to perform seek
-        if (file_object->seek(position, pos_type, op, pos_from_start) == kiv_os::NOS_Error::Success) {
+        auto result = file_object->seek(position, pos_type, op, pos_from_start);
+        if (result == kiv_os::NOS_Error::Success) {
             registers.rax.r = pos_from_start;
             return;
+        } else {
+            registers.rax.r = static_cast<decltype(registers.rax.r)>(result);
         }
+    } else {
+        registers.rax.r = static_cast<decltype(registers.rax.r)>(kiv_os::NOS_Error::File_Not_Found);
     }
     // file not found or seek has failed, set error
     registers.flags.carry = 1;
@@ -378,9 +379,13 @@ void Delete_File(kiv_hal::TRegisters &registers) {
         if (result == kiv_os::NOS_Error::Success) {
             // unlink successful, do not set error
             return;
+        } else {
+            registers.rax.r = static_cast<decltype(registers.rax.r)>(result);
         }
+    } else {
+        // file does not exist
+        registers.rax.r = static_cast<decltype(registers.rax.r)>(kiv_os::NOS_Error::File_Not_Found);
     }
-    // file does not exist or unlink has failed
     registers.flags.carry = 1;
 }
 
@@ -403,7 +408,11 @@ void Set_File_Attributes(kiv_hal::TRegisters &registers) {
         if (result == kiv_os::NOS_Error::Success) {
             // attributes set successfully, do not set error
             return;
+        } else {
+            registers.rax.r = static_cast<decltype(registers.rax.r)>(result);
         }
+    } else {
+        registers.rax.r = static_cast<decltype(registers.rax.r)>(kiv_os::NOS_Error::File_Not_Found);
     }
 
     registers.flags.carry = 1;
@@ -428,7 +437,11 @@ void Get_File_Attributes(kiv_hal::TRegisters &registers) {
         if (result == kiv_os::NOS_Error::Success) {
             registers.rdi.i = attributes;
             return;
+        } else {
+            registers.rax.x = static_cast<decltype(registers.rax.x)>(result);
         }
+    } else {
+        registers.rax.x = static_cast<decltype(registers.rax.x)>(kiv_os::NOS_Error::File_Not_Found);
     }
 
     registers.flags.carry = 1;

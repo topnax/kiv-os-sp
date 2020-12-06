@@ -33,7 +33,7 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
     // TODO implement this
     file = File {};
     file.name = const_cast<char*>(name);
-    return kiv_os::NOS_Error::Success;
+    return kiv_os::NOS_Error::File_Not_Found;
 }
 
 kiv_os::NOS_Error Fat_Fs::mkdir(const char *name) {
