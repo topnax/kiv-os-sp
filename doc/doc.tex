@@ -251,6 +251,49 @@ Nad soubory lze provádět různé operace pomocí následujících systémovýc
     \item \texttt{Delete\_File} -- vyhledá dle specifikované cesty v připojených souborvých systémech soubor, a pokud existuje, tak se ho pokusí smazat.
 \end{itemize}
 
+\subsection{Obecné rozhraní souborového systému}
+Každý souborový systém, který by má být podporován jádrem, musí implementovat rozhraní virtuálního souborového systému. Toto rozhraní je definováno v abstraktní třídě \texttt{VFS}. Definuje hlavičky metod pro následující operace:
+\begin{itemize}
+    \item vytvoření nové složky
+    \item odstranění složky
+    \item přečtení obsahu složky
+    \item otevření souboru (buď již existujícího nebo nově vytvořeného)
+    \item zápis
+    \item čtení
+    \item odstranění souboru
+    \item ověření existence souboru ve specifikované složce 
+    \item nastavení a získání atributů souboru 
+\end{itemize}
+
+Tato třída implementuje metodu \texttt{generate\_dir\_vector}, která v parametrech přebírá seznam položek složky (seznam struktur \texttt{kiv\_os::TDir\_Entry}) a převede je na seznam znaků (\texttt{char}), aby bylo možné tento seznam přečíst z uživatelského prostoru.
+
+Tento způsob definice rozhraní souborového systému umožňuje flexibilní přidávání dalších podporovaných systémů, kdy stačí pouze naimplementovat dané rozhraní a nadefinovat, na jaké cestě se nachází kořen souborového systému. 
+
+\subsubsection{Ověření existence souboru}
+Z uživatelského prostoru může přijít požadavek na otevření souboru, jehož adresa může být specifikována buď jako relativní nebo absolutní. Pro jednodušší práci s adresami se používá typu \texttt{std::filesystem::path} ze standardní knihovny. Pokud byla specifikována relativně, tak se vždy na začátek této adresy ještě přidá aktuální pracovní adresář, a začne ověřování existence jednotlivých komponent cesty.
+
+\noindent Ověření existence cesty \texttt{A} používá následující algoritmus:
+
+\begin{enumerate}
+    \item načti komponentu adresy a přidej jí do \texttt{P}
+    \item zjisti, jaký souborový systém \texttt{S} se na \texttt{P} používá, 
+    \item ověř existenci souboru na cestě \texttt{P} pomocí \texttt{S}
+    \item pokud na \texttt{P} neexistuje v \texttt{S} soubor -- \textbf{cesta je neplatná}
+    \item pokud existuje a cesta obsahuje další komponentu, běž na \textbf{1.}
+    \item pokud existuje a cesta již neobsahuje další komponentu, \texttt{P} \textbf{ukazuje na platný soubor} v \texttt{S}
+\end{enumerate}
+
+Při změně aktuálně používaného souborového systému se do ADT struktury zásobník přidá na vrchol dosud používaný souborový systém. V každém souborovém systému se počítá počet zanoření. Zpracování komponenty \texttt{..} snižuje počet zanoření v stromové struktuře složek. Pokud počet zanoření dosáhne nulové hodnoty, tak se ze zásobníku vyjme poslední používaný souborový systém. Využití zásobníku snižuje počet vyhledávání kořenů souborových systémů. 
+
+\subsection{Pracovní adresář}
+
+\subsection{Souborový systém \texttt{procfs}}
+
+- jak se z něj čte
+- kde je mountnutý
+- sdílená struktura
+
+
 
 \section{Závěr}	
 % TODO závěr
