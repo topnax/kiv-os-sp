@@ -42,6 +42,9 @@ kiv_os::NOS_Error Filesystem_File::seek(size_t value, kiv_os::NFile_Seek seek_po
             res = file.position;
             break;
         case kiv_os::NFile_Seek::Set_Size:
+            if (is_read_only()) {
+                return kiv_os::NOS_Error::Permission_Denied;
+            }
             file.size = value;
             file.position = value;
             // TODO fs resize ???
@@ -74,6 +77,10 @@ kiv_os::NOS_Error Filesystem_File::seek(size_t value, kiv_os::NFile_Seek seek_po
 
 
 kiv_os::NOS_Error Filesystem_File::write(char *buffer, size_t buf_size, size_t &written) {
+    if (is_read_only() || is_directory()) {
+        return kiv_os::NOS_Error::Permission_Denied;
+    }
+
     // copy buffer into a vector
     std::vector<char> buf(buffer, buffer + buf_size);
 
@@ -92,4 +99,32 @@ void Filesystem_File::close() {
 
 Filesystem_File::~Filesystem_File() {
     delete this->file.name;
+}
+
+bool Filesystem_File::has_attribute(kiv_os::NFile_Attributes attribute) const {
+    return (static_cast<uint8_t>(this->file.attributes) & static_cast<uint8_t>(attribute)) != 0;
+}
+
+bool Filesystem_File::is_read_only() {
+    return has_attribute(kiv_os::NFile_Attributes::Read_Only);
+}
+
+bool Filesystem_File::is_directory() {
+    return has_attribute(kiv_os::NFile_Attributes::Directory);
+}
+
+bool Filesystem_File::is_hidden() {
+    return has_attribute(kiv_os::NFile_Attributes::Hidden);
+}
+
+bool Filesystem_File::is_system_file() {
+    return has_attribute(kiv_os::NFile_Attributes::System_File);
+}
+
+bool Filesystem_File::is_volume_id() {
+    return has_attribute(kiv_os::NFile_Attributes::Volume_ID);
+}
+
+bool Filesystem_File::is_archive() {
+    return has_attribute(kiv_os::NFile_Attributes::Archive);
 }
