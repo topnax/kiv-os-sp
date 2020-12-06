@@ -75,7 +75,7 @@ kiv_os::NOS_Error Proc_Fs::readdir(const char *name, std::vector<kiv_os::TDir_En
         auto entry = kiv_os::TDir_Entry{
                 PCB_ENTRY_ATTRIBUTES
         };
-        sprintf_s(entry.file_name, 12, "%d", process->handle);
+        sprintf_s(entry.file_name, 12, "%u", process->handle);
 
         entries.push_back(entry);
     }
