@@ -179,7 +179,7 @@ std::vector<kiv_os::TDir_Entry> retrieve_dir_items(int num_sectors, std::vector<
     char filesize_buff_conv[9]; //buffer pro konverzi ctyr hexu na dec (reprezentuje velikost souboru)
 
     for (int i = 0; i < SECTOR_SIZE_B * num_sectors;) {
-        if (dir_clusters[i] == 0) { /* pokud nazev zacina 0, pak neni polozka obsazena -> ani zadna dalsi, cely obsah slozky uz je vypsan */
+        if (dir_clusters[i] == 0 || dir_clusters[i] == 246) { /* pokud nazev zacina 0, pak neni polozka obsazena -> ani zadna dalsi, cely obsah slozky uz je vypsan */
             break;
         }
 
@@ -194,7 +194,6 @@ std::vector<kiv_os::TDir_Entry> retrieve_dir_items(int num_sectors, std::vector<
             }
             else {
                 dir_item.file_name[j] = dir_clusters[i++];
-                std::cout << "found: " << dir_item.file_name[j];
                 j++;
             }
         }
@@ -401,7 +400,7 @@ std::vector<directory_item> get_dir_items(int num_sectors, std::vector<unsigned 
     char filesize_buff_conv[9]; //buffer pro konverzi ctyr hexu na dec (reprezentuje velikost souboru)
 
     for (int i = 0; i < SECTOR_SIZE_B * num_sectors;) {
-        if (dir_cont[i] == 0) { /* pokud nazev zacina 0, pak neni polozka obsazena -> ani zadna dalsi, cely obsah slozky uz je vypsan */
+        if (dir_cont[i] == 0 || dir_cont[i] == 246) { /* pokud nazev zacina 0, pak neni polozka obsazena -> ani zadna dalsi, cely obsah slozky uz je vypsan */
             break;
         }
 
@@ -551,65 +550,6 @@ int retrieve_free_byte_count(int sector_num) {
     std::cout << "got free bytes: " << free_byte_count << "and occupied: " << occ_byte_count;
 
     return free_byte_count;
-}
-
-/*
-* Nacte ze souboroveho systemu spicifikovany pocet bytu, ktere zacinaji na danem sektoru.
-* newly_created_fol_clust = cislo clusteru, na kterem bude umistena nove vytvorena slozka
-* newly_created_fol_name = nazev nove vytvorene slozky
-* upper_fol_clust_first = prvni cluster nadrazene slozky, v ramci ktere bude nove vytvorena slozka jako podslozka
-* upper_fol_clust_last = posledni cluster nadrazene slozky, v ramci ktere bude nove vytvorena slozka jako podslozka
-* upper_fol_clust_last_free = pocet volnych bytu v ramci posledniho clusteru
-/**/
-int write_folder_to_fs(int newly_created_fol_clust, std::string newly_created_fol_name, int upper_fol_clust_first, int upper_fol_clust_last, int upper_fol_clust_last_free) {
-    //floppy_img_file_write.seekp((newly_created_fol_clust + 31) * SECTOR_SIZE_B, std::ios::beg);
-
-    //vytvoreni odkazu na novou slozku v nove slozce - START
-    directory_item dir_item_current;
-    dir_item_current.filename = ".";
-    dir_item_current.extension = ""; //20 v hexu znaci konec = 32 v dec
-    dir_item_current.filezise = 0; //velikost slozky je nulova ve fatce
-    dir_item_current.first_cluster = newly_created_fol_clust;
-    //vytvoreni odkazu na novou slozku v nove slozce - KONEC
-
-    //vytvoreni odkazu na nadrazenou slozku v nove slozce - START
-    directory_item dir_item_upfolder;
-    dir_item_upfolder.filename = "..";
-    dir_item_upfolder.extension = ""; //20 v hexu znaci konec = 32 v dec
-    dir_item_upfolder.filezise = 0; //velikost slozky je nulova ve fatce
-    dir_item_upfolder.first_cluster = upper_fol_clust_first;
-    //vytvoreni odkazu na nadrazenou slozku v nove slozce - KONEC
-
-    //zapsat udaje o nove vytvorene podslozce do nadrazene (jiz existujici) slozky - START
-
-    //floppy_img_file_write.seekp((upper_fol_clust_last + 31) * SECTOR_SIZE_B + (SECTOR_SIZE_B - upper_fol_clust_last_free), std::ios::beg);
-    std::vector<unsigned char> to_write_subfolder;
-
-    directory_item dir_item_to_add;
-    dir_item_to_add.filename = newly_created_fol_name; //nazev nove slozky
-    dir_item_to_add.extension = ""; //20 v hexu znaci konec = 32 v dec
-    dir_item_to_add.filezise = 0; //velikost slozky je nulova ve fatce
-    dir_item_to_add.first_cluster = newly_created_fol_clust; //prvni cluster nadrazene slozky
-
-    int i = 0;
-    for (; i < newly_created_fol_name.length() - 1; i++) {
-        to_write_subfolder.push_back(dir_item_to_add.filename[i]);
-    }
-
-    for (; i < 8; i++) { //doplnit na 8 bytu, ve fat nazev vzdy 8 byt
-        to_write_subfolder.push_back(32);
-    }
-
-    //read_data_from_fat_fs();
-
-    //floppy_img_file_write.write(reinterpret_cast<const char*>(to_write_subfolder.data()), 8);
-    //floppy_img_file_write.flush();
-    std::cout << "writed!";
-    //zapsat udaje o nove vytvorene podslozce do nadrazene (jiz existujici) slozky - KONEC
-
-    //floppy_img_file_write.close();
-
-    return 3;
 }
 
 /*
@@ -861,6 +801,8 @@ void update_size_file_in_folder(char *filename_path, int offset, int original_si
 * vrati 0, pokud vse ok; -1 pokud uz neni misto
 /**/
 int create_folder(const char* folder_path) {
+    std::cout << "wanna write!!\n";
+
     //FAT tabulka nacteni
     std::vector<unsigned char> fat_table1_hex = load_first_fat_table_bytes();
     std::vector<int> fat_table1_dec = convert_fat_table_to_dec(fat_table1_hex);
@@ -886,12 +828,16 @@ int create_folder(const char* folder_path) {
 
         start_sector = sectors_nums_data.at(0);
     }
+
+    std::cout << "Got number cluster: " << sectors_nums_data.size() << "!!!!!!!!!!!\n\n\n";
+
     std::vector<directory_item> items_folder = retrieve_folders_cur_folder(fat_table1_dec, start_sector);  //ziskani obsahu nadrazene slozky
     //ziskani clusteru, obsahu nadrazene slozky - KONEC
 
     //nalezeni volnych clusteru pro novou slozku - potrebuji 1
     int free_index = retrieve_free_cluster_index(fat_table1_dec);
     if (free_index == -1) { //volny index uz nelze najit
+        std::cout << "No clust found!!\n";
         return -1; //nebyl nalezen zadny volny cluster, koncime
     }
     else { //uprava fat tabulek a oznaceni clusteru jako zabraneho
@@ -899,6 +845,8 @@ int create_folder(const char* folder_path) {
         fat_table1_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
         fat_table1_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
         fat_table1_dec.at(free_index) = 4095; //oznacit cluster jako konecny v dec tabulce
+
+        std::cout << "wanna assign clust " << free_index << "\n";
 
         save_fat_tables(fat_table1_hex);
     }
@@ -947,7 +895,6 @@ int create_folder(const char* folder_path) {
 
             std::cout << "Total items: " << items_folder.size() << "Got cluster num: " << cluster_num << "got clust_rel: " << item_num_clust_rel;
 
-            
             std::vector<unsigned char> data_clust = read_data_from_fat_fs(sectors_nums_data.at(cluster_num) - 31, 1); //-31; fce cte z dat sektoru
             for (int i = 0; i < data_clust.size(); i++) {
                 printf("%c", data_clust.at(i));
@@ -988,10 +935,75 @@ int create_folder(const char* folder_path) {
             write_data_to_fat_fs(sectors_nums_data.at(cluster_num), to_save);
         }
         else { //err, slozka uz se nevejde
+            std::cout << "Neevejdem set!!\n";
             return -1;
         }
     }
 
+    write_folder_basics_cluster(free_index, start_sector);
+    return 0;
+}
+
+/*
+* Zapise na dany index zakladni strukturu - . a .. (aktualni a nadrazena slozka)
+/**/
+void write_folder_basics_cluster(int clust_to_write_index, int upper_fol_index) {
+    //vytvoreni . - START
+    std::vector<char> to_write_subfolder;
+
+    to_write_subfolder.push_back(46);
+    for (int i = 0; i < 10; i++) {
+        to_write_subfolder.push_back(32);
+    }
+
+    to_write_subfolder.push_back(10); //atributy
+
+    for (int i = 0; i < 14; i++) { //14 bajtu nepotrebnych - datum vytvoreni, cas modifikace...
+        to_write_subfolder.push_back(32);
+    }
+
+    //dva bajty na aktualni cluster
+    std::vector<unsigned char> first_assigned_clust = convert_dec_to_hex_start_clus(clust_to_write_index);
+    for (int i = 0; i < 2; i++) {
+        to_write_subfolder.push_back(first_assigned_clust.at(i));
+    }
+
+    //na 4 bajty 0 (velikost souboru, u slozky nulova)
+    for (int i = 0; i < 4; i++) { //14 bajtu nepotrebnych - datum vytvoreni, cas modifikace...
+        to_write_subfolder.push_back(0);
+    }
+    //vytvoreni . - KONEC
+
+    //vytvoreni .. - START
+    to_write_subfolder.push_back(46);
+    to_write_subfolder.push_back(46);
+
+    for (int i = 0; i < 9; i++) {
+        to_write_subfolder.push_back(32);
+    }
+
+    to_write_subfolder.push_back(10); //atributy
+
+    for (int i = 0; i < 14; i++) { //14 bajtu nepotrebnych - datum vytvoreni, cas modifikace...
+        to_write_subfolder.push_back(32);
+    }
+
+    //dva bajty na nadrazeny cluster
+    if (upper_fol_index == 19) { //root sektor je ve fatce zapisovan jako 0
+        upper_fol_index = 0;
+    }
+    std::vector<unsigned char> upper_clust = convert_dec_to_hex_start_clus(upper_fol_index);
+    for (int i = 0; i < 2; i++) {
+        to_write_subfolder.push_back(upper_clust.at(i));
+    }
+
+    //na 4 bajty 0 (velikost souboru, u slozky nulova)
+    for (int i = 0; i < 4; i++) { //14 bajtu nepotrebnych - datum vytvoreni, cas modifikace...
+        to_write_subfolder.push_back(0);
+    }
+    //vytvoreni .. - KONEC
+
+    write_data_to_fat_fs(clust_to_write_index, to_write_subfolder);
 }
 
 /*

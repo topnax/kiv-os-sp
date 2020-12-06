@@ -67,7 +67,7 @@ kiv_os::NOS_Error Fat_Fs::readdir(const char *name, std::vector<kiv_os::TDir_Ent
             printf("Name: %.12s", entries.at(i).file_name);
         }
         std::cout << "END with size: " << entries.size() << "\n";
-        return kiv_os::NOS_Error::IO_Error;
+        return kiv_os::NOS_Error::Success;
     }
     
     //ziskani obsahu FAT tabulky pro vyhledavani sektoru
@@ -96,7 +96,7 @@ kiv_os::NOS_Error Fat_Fs::readdir(const char *name, std::vector<kiv_os::TDir_Ent
     }
     std::cout << "END with size: " << entries.size() << "\n";
 
-    return kiv_os::NOS_Error::IO_Error;
+    return kiv_os::NOS_Error::Success;
 }
 
 kiv_os::NOS_Error Fat_Fs::open(const char *name, uint8_t flags, uint8_t attributes, File &file) {
@@ -135,72 +135,14 @@ kiv_os::NOS_Error Fat_Fs::mkdir(const char *name) {
         
     folders_in_path.pop_back(); //posledni polozka v seznamu je nazev nove slozky, tu ted nehledame
 
-    //FAT tabulka nutna pro vyhledani ciloveho clusteru
-    std::vector<unsigned char> fat_table1_hex = load_first_fat_table_bytes();
-    std::vector<int> fat_table1_dec = convert_fat_table_to_dec(fat_table1_hex);
-    create_folder(name);
-    return kiv_os::NOS_Error::IO_Error;
+    int result = create_folder(name);
 
-    directory_item target_folder = retrieve_item_clust(19, fat_table1_dec, true, folders_in_path); //nalezeni ciloveho clusteru (slozka n-1)
-    //ted by se kontrolovalo, zda uz neexistuje soubor/slozka se stejnym nazvem - ale taky to muze resit open jeste pred zavolanim
-
-    //zjisteni, zda je ve slozce volne misto pro dalsi podslozku - START
-    //sektor = 512b - muze obsahovat 16 slozek => jedna slozka 32b
-    std::vector<int> sectors_nums_data = retrieve_sectors_nums_fs(fat_table1_dec, target_folder.first_cluster); //zjistime sektory, na kterych se slozka nachazi
-    std::vector<unsigned char> retrieved_data_clust; //obsahuje data jednoho clusteru
-    std::vector<directory_item> directory_content; //slozky + soubory na jednom clusteru
-    std::vector<directory_item> all_dir_items; //obsahuje veskere podslozky i soubory ve slozce (pres vsechny clustery...)
-
-    for (int i = 0; i < sectors_nums_data.size(); i++) { //projdeme nactene clustery
-        retrieved_data_clust = read_data_from_fat_fs(sectors_nums_data[i], 1); //ziskani bajtu slozky v ramci jednoho sektoru
-        directory_content = get_dir_items(1, retrieved_data_clust); //prevod na struktury, kazda reprez. jednu slozku
-
-        for (int i = 0; i < directory_content.size(); i++) { //pridani do seznamu
-            directory_item dir_item = directory_content.at(i);
-            all_dir_items.push_back(dir_item);
-        }
+    if (result == 0) {
+        return kiv_os::NOS_Error::Success;
     }
-
-    std::cout << "Items in target folder - start";
-    for (int i = 0; i < all_dir_items.size(); i++) {
-        std::cout << all_dir_items.at(i).filename;
+    else {
+        return kiv_os::NOS_Error::Not_Enough_Disk_Space;
     }
-    std::cout << "Items in target folder - end";
-
-    //projdu posledni sektor, na kterem je slozka umistena a zjistim pocet volnych bytu => zjisteni, jestli pro vytvoreni nove slozky potreba alokovat novy cluster ci ne
-    int free_bytes = retrieve_free_byte_count(sectors_nums_data.at(sectors_nums_data.size() - 1));
-    if (free_bytes < 32) { //jedna entry zabira 32 bytu - pokud neni volne misto, pak alokace dalsiho clusteru
-        std::cout << "V danem clusteru uz neni misto";
-    }
-    std::cout << "Zbyva volneho mista: " << free_bytes << "\n";
-    //zjisteni, zda je ve slozce volne misto pro dalsi podslozku - KONEC
-
-     //nalezt volne misto ve fat tabulce pro novou slozku - START
-    int free_cluster_new_folder = -1; //index volneho clusteru - na nej ulozit 4095 - v hex FFF, znaci posledni cluster souboru / slozky
-
-    for (int i = 0; i < fat_table1_dec.size(); i++) {
-        if (fat_table1_dec[i] == 0) { //nepouzivany cluster, v hex 0
-            free_cluster_new_folder = i;
-            break;
-        }
-    }
-
-    if (free_cluster_new_folder == -1) { //cluster pro novou slozku se nepodarilo najit
-        std::cout << "Na disku jiz neni misto - slozku nelze vytvorit.";
-        return kiv_os::NOS_Error::IO_Error;
-    }
-    //nalezt volne misto ve fat tabulce pro novou slozku - KONEC
-    std::vector<char> buffer_to_write;
-    std::string text = "Duis ante orci, molestie vitae vehicula venenatis, tincidunt ac pede.Aliquam erat volutpat.Maecenas aliquet accumsan leo.Curabitur ligula sapien, pulvinar a vestibulum quis, facilisis vel sapien.Praesent vitae arcu tempor neque lacinia pretium.Lorem ipsum dolor sit amet, consectetuer adipiscing elit.Curabitur bibendum justo non orci.Lorem ipsum dolor sit amet, consectetuer adipiscing elit.Aenean vel massa quis mauris vehicula lacinia.Etiam ligula pede, sagittis quis, interdum ultricies, scelerisque eu.Duis risus.In dapibus augue non sapien.Duis ante orci, molestie vitae vehicula venenatis, tincidunt ac pede.Nullam eget nisl.Etiam ligula pede, sagittis quis, interdum ultricies, scelerisque eu.Etiam posuere lacus quis dolor.Etiam neque.Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos hymenaeos.Sed elit dui, pellentesque a, faucibus vel, interdum nec, diam.huiozhuiozizuiztuigzurghetfzevrtcxtzvrdchzdfvhtjrvtzrvtzrugtzrtzrvtzrtztrtzirtzifhgfufuzzufuzfuxcbhvxcghvsexycaj";//12212
-
-    for (int i = 0; i < text.size(); i++) {
-        buffer_to_write.push_back(text.at(i));
-    }
-
-    write_data_to_fat_fs(50, buffer_to_write); //-31
-    //write_folder_to_fs(free_cluster_new_folder, new_folder_name, sectors_nums_data.at(0), sectors_nums_data.at(sectors_nums_data.size() - 1), free_bytes);
-   
-    return kiv_os::NOS_Error::IO_Error;
 }
 
 kiv_os::NOS_Error Fat_Fs::rmdir(const char *name) {

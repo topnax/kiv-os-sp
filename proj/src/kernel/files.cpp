@@ -75,8 +75,14 @@ void Init_Filesystems() {
             fs->init();
             Add_Filesystem("fatfs", fs);
             
-           
-            fs->mkdir("\\TESTF");
+            std::vector<kiv_os::TDir_Entry> entries;
+
+            fs->mkdir("\\FDSETUP\\POKUS\\PARTY");
+            fs->readdir("\\FDSETUP\\POKUS", entries);
+
+            for (int i = 0; i < entries.size(); i++) {
+                //printf("Got: %s ", entries.at(i).file_name);
+            }
 
             break;
         }
