@@ -91,9 +91,9 @@ std::vector<unsigned char> load_root_dir_bytes() {
 }
 
 /*
-* Zkontroluje konzistenci FS - FAT tabulky by mìly mít stejný obsah.
-* first_table = první fat tabulka
-* second_table = druhá fat tabulka
+* Zkontroluje konzistenci FS - FAT tabulky by mÄ›ly mÃ­t stejnÃ½ obsah.
+* first_table = prvnÃ­ fat tabulka
+* second_table = druhÃ¡ fat tabulka
 /**/
 bool check_fat_table_consistency(std::vector<unsigned char> first_table, std::vector<unsigned char> second_table) {
     bool table_same = true;
@@ -220,7 +220,7 @@ std::vector<kiv_os::TDir_Entry> retrieve_dir_items(int num_sectors, std::vector<
 
         if (dir_item.file_name[position_filename - 1] == '.') { //pokud konci teckou, pak nebyla zadna pripona, odstranit tecku
             dir_item.file_name[position_filename - 1] = '\0';
-        }else if (position_filename != 12) { //využita plna kapacita, dostali bychom se mimo rozsah
+        }else if (position_filename != 12) { //vyuÅ¾ita plna kapacita, dostali bychom se mimo rozsah
             dir_item.file_name[position_filename] = '\0';
         }
 
@@ -268,6 +268,17 @@ directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table
         while (dir_item_number == -1 && j < cur_folder_items.size()) { //dokud nebyla nalezena slozka s odpovidajicim nazvem
             directory_item dir_item = cur_folder_items.at(j);
 
+            // TODO remove/rework this, this should take "dir ." command in root folder into consideration
+            if (start_cluster == 19 && path.at(i) == ".") {
+                auto di = directory_item{
+                    ".",
+                    "",
+                    static_cast<int>(cur_folder_items.size() * sizeof(kiv_os::TDir_Entry)),
+                    19
+                };
+                return di;
+            }
+
             if (!dir_item.extension.empty()) {
                 item_to_check = dir_item.filename + "." + dir_item.extension;
             }
@@ -275,17 +286,26 @@ directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table
                 item_to_check = dir_item.filename;
             }
 
-            if (i == (path.size() - 1) && !is_folder) { //prochazi se posledni polozka v ceste a hleda se cluster souboru
-                if (path.at(i).compare(item_to_check) == 0 && dir_item.filezise != 0) { //pokud sedi nazev a JEDNA se o soubor => nalezen cilovy soubor v ceste
-                    dir_item_number = j;
-                    std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise << "\n";
-                }
-            }
-            else { //hledame cluster slozky
-                if (path.at(i).compare(item_to_check) == 0 && dir_item.extension.length() == 0 && dir_item.filezise == 0) { //pokud sedi nazev a nejedna se o soubor => nalezena odpovidajici slozka v ceste
-                    dir_item_number = j;
-                    std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise << "\n";
-                }
+            // TODO replaced this
+            //if (i == (path.size() - 1) && !is_folder) { //prochazi se posledni polozka v ceste a hleda se cluster souboru
+            //    if (path.at(i).compare(item_to_check) == 0 && dir_item.filezise != 0) { //pokud sedi nazev a JEDNA se o soubor => nalezen cilovy soubor v ceste
+            //        dir_item_number = j;
+            //        std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise << "\n";
+            //    }
+            //}
+            //else { //hledame cluster slozky
+            //    if (path.at(i).compare(item_to_check) == 0 && dir_item.extension.length() == 0 && dir_item.filezise == 0) { //pokud sedi nazev a nejedna se o soubor => nalezena odpovidajici slozka v ceste
+            //        dir_item_number = j;
+            //        std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise << "\n";
+            //    }
+            //}
+            // TODO with this, because is_folder flag is nonexistent
+            if (path.at(i).compare(item_to_check) == 0 && dir_item.filezise != 0) { //pokud sedi nazev a JEDNA se o soubor => nalezen cilovy soubor v ceste
+                dir_item_number = j;
+                std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise << "\n";
+            } else if (path.at(i).compare(item_to_check) == 0 && dir_item.extension.length() == 0 && dir_item.filezise == 0) { //pokud sedi nazev a nejedna se o soubor => nalezena odpovidajici slozka v ceste
+                dir_item_number = j;
+                std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise << "\n";
             }
 
             j++;
@@ -454,7 +474,7 @@ std::vector<directory_item> get_dir_items(int num_sectors, std::vector<unsigned 
 * starting_sector = prvni sektor souboru
 /**/
 std::vector<int> retrieve_sectors_nums_fs(std::vector<int> fat_table_dec, int starting_sector) {
-    std::vector<int> sector_list; //seznam sektorù, na kterých se data souboru nachází
+    std::vector<int> sector_list; //seznam sektorÅ¯, na kterÃ½ch se data souboru nachÃ¡zÃ­
 
     int cluster_num = -1;
 

@@ -215,8 +215,3 @@ kiv_os::NOS_Error Proc_Fs::get_attributes(const char *name, uint8_t &out_attribu
 kiv_os::NOS_Error Proc_Fs::set_attributes(const char *name, uint8_t attributes) {
     return kiv_os::NOS_Error::Permission_Denied;
 }
-
-bool Proc_Fs::file_exists(int32_t current_fd, const char* name, bool start_from_root, bool is_folder, int32_t& found_fd)
-{
-    return false;
-}

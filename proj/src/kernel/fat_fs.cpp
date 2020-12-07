@@ -104,7 +104,6 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
     file = File {};
     file.name = const_cast<char*>(name);
     file.position = 0; //aktualni pozice, zaciname na 0
-
     //najit cil a ulozit do handle souboru
     int32_t target_cluster;
 
@@ -314,7 +313,8 @@ bool Fat_Fs::file_exists(int32_t current_fd, const char* name, bool start_from_r
 
     std::vector<std::string> folders_in_path = path_to_indiv_items(name); //rozdeleni na indiv. polozky v ceste
 
-    directory_item dir_item = retrieve_item_clust(start_cluster, fat_table1_dec, is_folder, folders_in_path);
+    // TODO remove is_folder flag
+    directory_item dir_item = retrieve_item_clust(start_cluster, fat_table1_dec, false, folders_in_path);
     found_fd = dir_item.first_cluster;
 
     if (dir_item.first_cluster == -1) { //polozka nenalezena
