@@ -41,4 +41,5 @@ public:
 private:
     static std::vector<char> generate_readproc_vector(Process process);
 
+
 };

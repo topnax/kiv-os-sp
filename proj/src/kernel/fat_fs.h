@@ -44,5 +44,4 @@ public:
 private:
     uint8_t disk_number;
     kiv_hal::TDrive_Parameters disk_parameters;
-
 };
