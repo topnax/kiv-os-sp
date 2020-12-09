@@ -30,7 +30,7 @@ Fat_Fs::Fat_Fs(uint8_t disk_number, kiv_hal::TDrive_Parameters disk_parameters):
 kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vector<char> &out) {
     std::cout << "To read is: " << size << "off: " << offset << "and filesize: " << file.size << "\n";
 
-    if (file.size != 0) { //nulova velikost, ctu slozku
+    if (file.attributes == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || file.attributes == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //nulova velikost, ctu slozku
         std::vector<kiv_os::TDir_Entry> folder_entries;
         std::vector<char> folder_entries_char;
 
@@ -147,21 +147,17 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
 
     if (flags == kiv_os::NOpen_File::fmOpen_Always) { //soubor / slozka musi existovat, aby byl otevren
         directory_item dir_item = retrieve_item_clust(19, first_fat_table_dec, folders_in_path); //pokus o otevreni existujiciho souboru)
-
-        std::cout << "Retrieved cluster num is: " << dir_item.first_cluster;
         target_cluster = dir_item.first_cluster;
 
         if (target_cluster == -1) { //soubor / slozka nenalezena
             return kiv_os::NOS_Error::File_Not_Found;
         }
         else { //soubor / slozka nalezena, pokracovat s otevrenim
-            printf("Given attribute is %d\n", dir_item.attribute);
             file.attributes = retrieve_file_attrib(dir_item.attribute);
             file.handle = target_cluster; //handler bude cislo clusteru
 
             if (dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //jedna se o slozku, pridelit velikost vzorec: pocet_polozek_slozka * sizeof(TDir_Entry)
                 std::vector<kiv_os::TDir_Entry> dir_entries_size; //pro zjisteni poctu polozek ve slozce
-
                 readdir(file.name, dir_entries_size);
 
                 dir_item.filezise = dir_entries_size.size() * sizeof(kiv_os::TDir_Entry);

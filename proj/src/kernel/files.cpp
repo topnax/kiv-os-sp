@@ -101,7 +101,7 @@ void Init_Filesystems() {
             printf("AFTER OPEN\n\n\n\!!");
 
             std::vector<char> out_buffer;
-            fs->read(test_file, 14, 0, out_buffer); //cteni souboru
+            fs->read(test_file, test_file.size, 0, out_buffer); //cteni souboru
 
             printf("got content - START\n");
             printf("size is %d and %d \n", out_buffer.size(), test_file.size);
