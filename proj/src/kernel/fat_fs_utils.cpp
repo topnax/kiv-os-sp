@@ -225,7 +225,9 @@ std::vector<kiv_os::TDir_Entry> retrieve_dir_items(int num_sectors, std::vector<
             dir_item.file_name[position_filename] = '\0';
         }
 
-        i += 15; //preskocit 15 bytu, nepotrebne info (datum vytvoreni atp.)
+        dir_item.file_attributes = dir_clusters[i++];
+
+        i += 14; //preskocit 14 bytu, nepotrebne info (datum vytvoreni atp.)
         i += 6; //prvni cluster + velikost souboru
 
         directory_content.push_back(dir_item);

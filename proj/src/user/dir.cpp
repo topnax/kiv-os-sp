@@ -124,7 +124,7 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
                         path_stack.push(path);
                     }
 
-                    sprintf_s(out_buffer, out_buffer_size, "%-12s %u%u%u%u%u%u\n", entry->file_name,
+                    sprintf_s(out_buffer, out_buffer_size, "%.12s %u%u%u%u%u%u\n", entry->file_name,
                               (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only)) != 0,
                               (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Hidden)) != 0,
                               (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File)) != 0,
@@ -132,6 +132,17 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
                               (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0,
                               (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Archive)) != 0
                     );
+                    
+                    printf("Wanted to put %.12s %u%u%u%u%u%u to size %d\n", entry->file_name,
+                        (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only)) != 0,
+                        (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Hidden)) != 0,
+                        (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File)) != 0,
+                        (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID)) != 0,
+                        (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0,
+                        (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Archive)) != 0,
+                        out_buffer_size
+                    );
+                    printf("File attrs %u\n", static_cast<uint8_t> (entry->file_attributes));
 
                     // out_buffer_size - 1 => sprintf_s concatenates with NULL but we don't want write NULL to std_out
                     kiv_os_rtl::Write_File(std_out, out_buffer, out_buffer_size - 1, written);

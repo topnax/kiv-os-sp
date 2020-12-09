@@ -30,7 +30,7 @@ Fat_Fs::Fat_Fs(uint8_t disk_number, kiv_hal::TDrive_Parameters disk_parameters):
 kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vector<char> &out) {
     std::cout << "To read is: " << size << "off: " << offset << "and filesize: " << file.size << "\n";
 
-    if (file.attributes == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || file.attributes == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //nulova velikost, ctu slozku
+    if (((file.attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID)) != 0) || ((file.attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0)) { //ctu slozku
         std::vector<kiv_os::TDir_Entry> folder_entries;
         std::vector<char> folder_entries_char;
 
@@ -153,7 +153,9 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
             return kiv_os::NOS_Error::File_Not_Found;
         }
         else { //soubor / slozka nalezena, pokracovat s otevrenim
-            file.attributes = retrieve_file_attrib(dir_item.attribute);
+            file.attributes = dir_item.attribute;
+            printf("Assigned attr %.2X\n", file.attributes);
+
             file.handle = target_cluster; //handler bude cislo clusteru
 
             if (dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //jedna se o slozku, pridelit velikost vzorec: pocet_polozek_slozka * sizeof(TDir_Entry)
