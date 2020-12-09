@@ -3,6 +3,7 @@
 #include "../api/api.h"
 
 #define SECTOR_SIZE_B 512
+
 /*
 * Nacte obsah prvni fat tabulky v podobe bytu do vectoru. Prvni fat tabulka se nachazi na sektorech 1-9.
 /**/
@@ -243,23 +244,36 @@ std::vector<kiv_os::TDir_Entry> retrieve_dir_items(int num_sectors, std::vector<
 
 /*
 * Vrati cislo clusteru, na kterem zacina pozadovana slozka ci soubor, pokud zadana cesta existuje. Pokud neexistuje, pak bude cluster == -1.
-* start_cluster = pocatecni cluster, od ktereho zacneme prohledavat
+* start_cluster = pocatecni cluster, od ktereho zacneme prohledavat (19 = root slozka)
 * fat_table_dec = fat tabulka, dle ktere dojde k ziskani informaci o lokaci souboru (v dec formatu)
-* is_folder = true, pokud je cilem slozka ; v pripade souboru false
 * path = polozky v zadane ceste
 /**/
-directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table_dec, bool is_folder, std::vector<std::string> path) {
+directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table_dec, std::vector<std::string> path) {
     std::cout << "retrieve_item_cluster with num!!!!" << start_cluster;
 
-    int traversed_sector_folder = start_cluster; //cislo sektoru, na kterem zacina aktualne prochazena slozka - zaciname v rootu
-    int dir_item_number = -1; //poradi hledane slozky v ramci prave prochazene slozky
+    int traversed_sector_folder = start_cluster; //cislo sektoru, na kterem zacina aktualne prochazena slozka / soubor - zaciname v rootu
+    int dir_item_number = -1; //poradi hledane slozky v ramci prave prochazene slozky / souboru
     std::vector<directory_item> cur_folder_items; //obsahuje polozky nachazejici se v prave prochazene slozce (slozek bude vice, pokud relativni cesta)
+
+    if (path.size() == 0) { //pokud je delka cesty 0, je cilem koren
+        directory_item dir_item;
+
+        dir_item.filename = "\\";
+        dir_item.extension = "";
+        dir_item.filezise = 0;
+        dir_item.first_cluster = 19;
+        dir_item.attribute = static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID);
+
+        return dir_item;
+    }
 
     for (int i = 0; i < path.size(); i++) { //pruchod seznamem slozek v ceste (muze jich byt vice)
         dir_item_number = -1; //poradi slozky do ktere se mam presunout; v ramci vectoru cur_folder_items
         cur_folder_items = retrieve_folders_cur_folder(fat_table_dec, traversed_sector_folder); //nactu obsah aktualni slozky
+
+        std::cout << "retrieved size is: " << cur_folder_items.size();
         for (int i = 0; i < cur_folder_items.size(); i++) {
-            //std::cout << "Got name: " << cur_folder_items.at(i).filename << "." << cur_folder_items.at(i).filename;
+            std::cout << "Got name: " << cur_folder_items.at(i).filename << "." << cur_folder_items.at(i).filename;
         }
 
         int j = 0;
@@ -286,20 +300,6 @@ directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table
                 item_to_check = dir_item.filename;
             }
 
-            // TODO replaced this
-            //if (i == (path.size() - 1) && !is_folder) { //prochazi se posledni polozka v ceste a hleda se cluster souboru
-            //    if (path.at(i).compare(item_to_check) == 0 && dir_item.filezise != 0) { //pokud sedi nazev a JEDNA se o soubor => nalezen cilovy soubor v ceste
-            //        dir_item_number = j;
-            //        std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise << "\n";
-            //    }
-            //}
-            //else { //hledame cluster slozky
-            //    if (path.at(i).compare(item_to_check) == 0 && dir_item.extension.length() == 0 && dir_item.filezise == 0) { //pokud sedi nazev a nejedna se o soubor => nalezena odpovidajici slozka v ceste
-            //        dir_item_number = j;
-            //        std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise << "\n";
-            //    }
-            //}
-            // TODO with this, because is_folder flag is nonexistent
             if (path.at(i).compare(item_to_check) == 0 && dir_item.filezise != 0) { //pokud sedi nazev a JEDNA se o soubor => nalezen cilovy soubor v ceste
                 dir_item_number = j;
                 std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise << "\n";
@@ -346,15 +346,16 @@ directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table
 * working_dir_sector - cislo sektoru, na kterem zacina prave prochazena slozka
 /**/
 std::vector<directory_item> retrieve_folders_cur_folder(std::vector<int> fat_table_dec, int working_dir_sector) {
-    if (working_dir_sector == 19) { //jsme v root slozce, fix velikost -> nehledat ve FAT tabulce, nema tam udaje!
+    if (working_dir_sector == 19) { //jsme v root slozce, fix velikost -> nehledat ve FAT tabulce, nema tam udaje!, jdem na sektory 19-32
         std::vector<unsigned char> root_dir_cont = read_data_from_fat_fs(19 - 31, 14); //ziskani bajtu slozky v po sobe jdoucich clusterech - zacina na 19 sektoru (fce pricita 31, pocita s dat. sektory, proto odecteme 31);        
         std::vector<directory_item> directory_content = get_dir_items(14, root_dir_cont); //ziskani obsahu slozky (struktury directory_item, ktere reprezentuji jednu entry ve slozce)
         
         directory_content.erase(directory_content.begin()); //odstraneni prvni polozky (reference na aktualni slozku)
+
         std::cout << "Returned root dir size: " << directory_content.size();
         std::cout << "Root print - start\n";
         for (int i = 0; i < directory_content.size(); i++) {
-            std::cout << "Content is:" << directory_content.at(i).filename << ", clust: " << directory_content.at(i).first_cluster << ", size: " << directory_content.at(i).filezise << "\n";
+            //std::cout << "Content is:" << directory_content.at(i).filename << "." << directory_content.at(i).extension << ", clust: " << directory_content.at(i).first_cluster << ", size: " << directory_content.at(i).filezise << "\n";
         }
         std::cout << "Root print - end\n";
 
@@ -386,7 +387,7 @@ std::vector<directory_item> retrieve_folders_cur_folder(std::vector<int> fat_tab
 
             for (; j < directory_content.size(); j++) { //vypis obsahu jednotlivych struktur
                 directory_item dir_item = directory_content.at(j);
-                std::cout << "Content is:" << dir_item.filename << ", clust: " << dir_item.first_cluster << "\n";
+                //std::cout << "Content is:" << dir_item.filename << ", clust: " << dir_item.first_cluster << "\n";
 
                 all_dir_items.push_back(dir_item);
             }
@@ -455,7 +456,10 @@ std::vector<directory_item> get_dir_items(int num_sectors, std::vector<unsigned 
             }
         }
 
-        i += 15; //preskocit 15 bytu, nepotrebne info (datum vytvoreni atp.)
+        dir_item.attribute = dir_cont[i++]; //precist atributy
+        printf("Reading attribute from core %d\n", (int)dir_item.attribute);
+
+        i += 14; //preskocit 14 bytu, nepotrebne info (datum vytvoreni atp.)
 
         snprintf(first_clust_buff_conv, sizeof(first_clust_buff_conv), "%.2X%.2X", dir_cont[i++], dir_cont[i++]);
         dir_item.first_cluster = (int)strtol(first_clust_buff_conv, NULL, 16);
@@ -744,7 +748,7 @@ void update_size_file_in_folder(char *filename_path, int offset, int original_si
         }
     }
     else { //klasicka slozka, ne root
-        directory_item target_folder = retrieve_item_clust(19, fat_table_dec, true, folders_in_path); //nalezeni clusteru nadrazene slozky
+        directory_item target_folder = retrieve_item_clust(19, fat_table_dec, folders_in_path); //nalezeni clusteru nadrazene slozky
         sectors_nums_data = retrieve_sectors_nums_fs(fat_table_dec, target_folder.first_cluster); //zjisteni sektoru nadrazene slozky
 
         start_sector = sectors_nums_data.at(0);
@@ -843,7 +847,7 @@ int create_folder(const char* folder_path) {
         }
     }
     else { //klasicka slozka, ne root
-        directory_item target_folder = retrieve_item_clust(19, fat_table1_dec, true, folders_in_path);
+        directory_item target_folder = retrieve_item_clust(19, fat_table1_dec, folders_in_path);
         sectors_nums_data = retrieve_sectors_nums_fs(fat_table1_dec, target_folder.first_cluster);
 
         start_sector = sectors_nums_data.at(0);
@@ -1055,4 +1059,33 @@ std::vector<unsigned char> convert_dec_to_hex_start_clus(int start_clust) {
     converted.push_back(first_byte);
 
     return converted;
+}
+
+/*
+* Prevede predany bajt reprezentujici atribut souboru na odpovidajici hodnotu kiv_os::NFile_Attributes.
+/**/
+uint8_t retrieve_file_attrib(unsigned char byte_attrib) {
+    int dec_value_attr = (int) byte_attrib;
+
+    if (dec_value_attr == 1) {
+        return static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only);
+    }
+    else if (dec_value_attr == 2) {
+        return static_cast<uint8_t>(kiv_os::NFile_Attributes::Hidden);
+    }
+    else if (dec_value_attr == 4) {
+        return static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File);
+    }
+    else if (dec_value_attr == 8) {
+        return static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID);
+    }
+    else if (dec_value_attr == 16) {
+        return static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory);
+    }
+    else if (dec_value_attr == 32) {
+        return static_cast<uint8_t>(kiv_os::NFile_Attributes::Archive);
+    }
+    else { //vratit puvodni hodnotu
+        return byte_attrib;
+    }
 }

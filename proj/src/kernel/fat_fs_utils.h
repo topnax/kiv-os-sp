@@ -21,6 +21,8 @@ struct directory_item {
 	std::string extension; //pripona souboru
 	int filezise; //velikost souboru (byt)
 	int first_cluster; //prvni cluster souboru
+
+	unsigned char attribute; //atribut souboru / slozky
 };
 
 std::vector<unsigned char> load_first_fat_table_bytes();
@@ -31,7 +33,7 @@ std::vector<int> convert_fat_table_to_dec(std::vector<unsigned char> fat_table_h
 std::vector<unsigned char> read_data_from_fat_fs(int start_sector_num, int total_sector_num);
 void write_data_to_fat_fs(int start_sector_num, std::vector<char> buffer_to_write);
 std::vector<kiv_os::TDir_Entry> retrieve_dir_items(int num_sectors, std::vector<unsigned char> dir_clusters, bool is_root);
-directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table_dec, bool is_folder, std::vector<std::string> path);
+directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table_dec, std::vector<std::string> path);
 std::vector<directory_item> retrieve_folders_cur_folder(std::vector<int> fat_table_dec, int working_dir_sector);
 std::vector<directory_item> get_dir_items(int num_sectors, std::vector<unsigned char> dir_cont);
 std::vector<int> retrieve_sectors_nums_fs(std::vector<int> fat_table_dec, int starting_sector);
@@ -46,3 +48,4 @@ void update_size_file_in_folder(char* filename_path, int offset, int original_si
 int create_folder(const char* folder_path);
 std::vector<unsigned char> convert_dec_to_hex_start_clus(int start_clust);
 void write_folder_basics_cluster(int clust_to_write_index, int upper_fol_index);
+uint8_t retrieve_file_attrib(unsigned char byte_attrib);

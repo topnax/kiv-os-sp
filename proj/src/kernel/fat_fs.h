@@ -31,7 +31,7 @@ public:
 
     kiv_os::NOS_Error mkdir(const char *name) override;
 
-    kiv_os::NOS_Error rmdir(const char *name) override;
+    kiv_os::NOS_Error rmdir(const char *name) override; //pujde pryc, unlink
 
     kiv_os::NOS_Error write(File file, std::vector<char> buffer, size_t size, size_t offset, size_t &written) override;
 

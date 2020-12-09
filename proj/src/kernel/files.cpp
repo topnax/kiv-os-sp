@@ -80,6 +80,36 @@ void Init_Filesystems() {
             auto fs = new Fat_Fs(disk_num, *disk_params);
             fs->init();
             Add_Filesystem(R"(C:\)", fs);
+   
+            File test_file;
+            kiv_os::NOpen_File flags;
+            flags = kiv_os::NOpen_File::fmOpen_Always; //soubor musi existovat, aby byl otevren
+        
+            printf("BEFORE FS open\n\n\n\!!");
+            fs->open("\\FDSETUP\\SETUP\\DE\\FDSETUP.DEF", flags, 0, test_file);
+            printf("First folder cluster is %d !!\n\n\n", test_file.handle);
+            printf("Attrib is %d!!\n\n\n", (int)test_file.attributes);
+            
+            fs->open("\\FDSETUP", flags, 0, test_file);
+            printf("First folder cluster is %d !!\n\n\n", test_file.handle);
+            printf("Attrib is %d!!\n\n\n", (int)test_file.attributes);
+
+            fs->open("\\", flags, 0, test_file);
+            printf("First folder cluster is %d !!\n\n\n", test_file.handle);
+            printf("Attrib is %d!!\n\n\n", (int)test_file.attributes);
+
+            printf("AFTER OPEN\n\n\n\!!");
+
+            std::vector<char> out_buffer;
+            fs->read(test_file, 14, 0, out_buffer); //cteni souboru
+
+            printf("got content - START\n");
+            printf("size is %d and %d \n", out_buffer.size(), test_file.size);
+            for (int i = 0; i < out_buffer.size(); i++) {
+                printf("%c", out_buffer.at(i));
+            }
+            printf("got content - END\n");
+
             break;
         }
 
