@@ -85,32 +85,12 @@ void Init_Filesystems() {
             kiv_os::NOpen_File flags;
             flags = kiv_os::NOpen_File::fmOpen_Always; //soubor musi existovat, aby byl otevren
         
-            printf("BEFORE FS open\n\n\n\!!");
-            fs->open("\\FDSETUP\\SETUP\\DE\\FDSETUP.DEF", flags, 0, test_file);
+            fs->open("\\SETUP.BAT", flags, 0, test_file);
             printf("First folder cluster is %d !!\n\n\n", test_file.handle);
             printf("Attrib is %d!!\n\n\n", (int)test_file.attributes);
-            
-            fs->open("\\FDSETUP", flags, 0, test_file);
-            printf("First folder cluster is %d !!\n\n\n", test_file.handle);
-            printf("Attrib is %d!!\n\n\n", (int)test_file.attributes);
-
-            fs->open("\\", flags, 0, test_file);
-            printf("First folder cluster is %d !!\n\n\n", test_file.handle);
-            printf("Attrib is %d!!\n\n\n", (int)test_file.attributes);
-
-            printf("AFTER OPEN\n\n\n\!!");
 
             std::vector<char> out_buffer;
-            fs->read(test_file, sizeof(kiv_os::TDir_Entry), 0, out_buffer); //cteni souboru
-            kiv_os::TDir_Entry* entry = reinterpret_cast<kiv_os::TDir_Entry*>(out_buffer.data());
-            printf("New is %u!!\n\n\n", (uint8_t)entry -> file_attributes);
-
-            printf("got content - START\n");
-            printf("size is %d and %d \n", out_buffer.size(), test_file.size);
-            for (int i = 0; i < out_buffer.size(); i++) {
-                printf("%c", out_buffer.at(i));
-            }
-            printf("got content - END\n");
+           
 
             break;
         }
