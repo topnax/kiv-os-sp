@@ -5,6 +5,7 @@
 #include <thread>
 #include <random>
 #include <limits>
+#include <sstream>
 #include "rtl.h"
 
 struct Rgen_Stdin_Guard_Parameters {
@@ -84,16 +85,22 @@ extern "C" size_t __stdcall rgen(const kiv_hal::TRegisters &regs) {
     std::random_device rd; // obtain a random number from hardware
     std::mt19937 gen(rd()); // seed the generator
     //std::uniform_int_distribution<> distr(-128.0, 127.0); // define the range
-    std::uniform_real_distribution<> distr(std::numeric_limits<float>::min(), std::numeric_limits<float>::max());
+    //std::uniform_real_distribution<> distr(std::numeric_limits<float>::min(), std::numeric_limits<float>::max());
+    std::uniform_real_distribution<> distr(-100.0, 100.0); // todo, what should the span be?
 
     size_t counter;
     bool res;
     char small_buff[sizeof(float)];
+    char string[99]; // todo how big a buffer?
     while (*generate) {
         // std::this_thread::sleep_for(std::chrono::milliseconds(200));
         auto random_number = static_cast<float>(distr(gen)); // generate a random number
+        
+        
+        memset(string, 0, 99);
+        sprintf_s(string, "%.25lf", random_number); // todo remove trailing zeros, also how many decimal places?
         //char random_char = (char) random_number; // convert it to a char
-        const char* bytes = reinterpret_cast<const char*>(&random_number);
+        /*const char* bytes = reinterpret_cast<const char*>(&random_number);
         for (size_t i = 0; i != sizeof(float); ++i)
         {
             auto byte = bytes[i];
@@ -103,19 +110,17 @@ extern "C" size_t __stdcall rgen(const kiv_hal::TRegisters &regs) {
             small_buff[i] = byte;
 
             
-        }
-
-        // write to std_out (multiple bytes)
-        res = kiv_os_rtl::Write_File(std_out, small_buff/*&bytes[i]*/, sizeof(float) - 1, counter);
-        if (!res) {
-            // could not write to file, abort
-            is_generating = false;
-            break;
-        }
-        /*if (!res) {
-            break;
         }*/
-        
+
+        for (int i = 0; i < strlen(string); i++) {
+            res = kiv_os_rtl::Write_File(std_out, &string[i], 1, counter);
+       
+            if (!res) {
+                // could not write to file, abort
+                is_generating = false;
+                break;
+            }
+        }
 
         
     }
