@@ -83,9 +83,10 @@ void Init_Filesystems() {
    
             File test_file;
             kiv_os::NOpen_File flags;
-            flags = kiv_os::NOpen_File::fmOpen_Always; //soubor musi existovat, aby byl otevren
-        
-            //fs->open("\\SETUP.BAT", flags, 0, test_file);
+            flags = static_cast<kiv_os::NOpen_File>(0); //soubor musi existovat, aby byl otevren
+            test_file.attributes = 0x10;
+            printf("Gave attribute: %.2X\n", test_file.attributes);
+            fs->open("\\FDSETUP\\SETUP.BATx", flags, 0x10, test_file);
             //printf("First folder cluster is %d !!\n\n\n", test_file.handle);
             //printf("Attrib is %d!!\n\n\n", (int)test_file.attributes);
 

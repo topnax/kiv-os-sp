@@ -869,12 +869,9 @@ int create_file_item(const char* item_path, unsigned char attributes, std::vecto
 * vrati 0, pokud vse ok; -1 pokud uz neni misto
 * folder_path - cesta k nove slozce
 /**/
-int create_folder(const char* folder_path) {
+int create_folder(const char* folder_path, std::vector<int> &fat_table_dec, std::vector<unsigned char> &first_fat_table_hex) {
+    std::cout << "Creating new folder: IN CREATE_FOLDER\n";
     std::cout << "wanna write!!\n";
-
-    //FAT tabulka nacteni
-    std::vector<unsigned char> fat_table1_hex = load_first_fat_table_bytes();
-    std::vector<int> fat_table1_dec = convert_fat_table_to_dec(fat_table1_hex);
 
     std::vector<std::string> folders_in_path = path_to_indiv_items(folder_path);
     std::string new_fol_name = folders_in_path.at(folders_in_path.size() - 1); //nazev nove slozky
@@ -892,33 +889,71 @@ int create_folder(const char* folder_path) {
         }
     }
     else { //klasicka slozka, ne root
-        directory_item target_folder = retrieve_item_clust(19, fat_table1_dec, folders_in_path);
-        sectors_nums_data = retrieve_sectors_nums_fs(fat_table1_dec, target_folder.first_cluster);
+        directory_item target_folder = retrieve_item_clust(19, fat_table_dec, folders_in_path);
+        sectors_nums_data = retrieve_sectors_nums_fs(fat_table_dec, target_folder.first_cluster);
 
         start_sector = sectors_nums_data.at(0);
     }
 
     std::cout << "Got number cluster: " << sectors_nums_data.size() << "!!!!!!!!!!!\n\n\n";
 
-    std::vector<directory_item> items_folder = retrieve_folders_cur_folder(fat_table1_dec, start_sector);  //ziskani obsahu nadrazene slozky
+    std::vector<directory_item> items_folder = retrieve_folders_cur_folder(fat_table_dec, start_sector);  //ziskani obsahu nadrazene slozky
+
+    std::cout << "Items fol print - START\n";
+    for (int i = 0; i < items_folder.size(); i++) {
+        std::cout << items_folder.at(i).filename << "\n";
+    }
+    std::cout << "Items fol print - END\n";
     //ziskani clusteru, obsahu nadrazene slozky - KONEC
 
     //nalezeni volnych clusteru pro novou slozku - potrebuji 1
-    int free_index = retrieve_free_cluster_index(fat_table1_dec);
+    int free_index = retrieve_free_cluster_index(fat_table_dec);
     if (free_index == -1) { //volny index uz nelze najit
         std::cout << "No clust found!!\n";
         return -1; //nebyl nalezen zadny volny cluster, koncime
     }
     else { //uprava fat tabulek a oznaceni clusteru jako zabraneho
-        std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, fat_table1_hex, 4095);
-        fat_table1_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
-        fat_table1_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
-        fat_table1_dec.at(free_index) = 4095; //oznacit cluster jako konecny v dec tabulce
+        //std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 4095);
+        //first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+        //first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+        //fat_table_dec.at(free_index) = 4095; //oznacit cluster jako konecny v dec tabulce
+
+        for (int i = 0; i < fat_table_dec.size(); i++) {
+            std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(i, first_fat_table_hex, i);
+            first_fat_table_hex.at(i * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+            first_fat_table_hex.at((i * 1.5) + 1) = modified_bytes.at(1);
+            fat_table_dec.at(i) = i; //oznacit cluster jako konecny v dec tabulce
+        }
+
+        save_fat_tables(first_fat_table_hex);
 
         std::cout << "wanna assign clust " << free_index << "\n";
 
-        save_fat_tables(fat_table1_hex);
+        std::vector<unsigned char> loaded_hex = load_first_fat_table_bytes();
+        std::vector<int> loaded_dec = convert_fat_table_to_dec(loaded_hex);
+
+        std::vector<int> not_matching_index;
+
+        for (int i = 0; i < loaded_dec.size(); i++) {
+            printf("On index %d Original is %d ; new load is %d\n", i, fat_table_dec.at(i), loaded_dec.at(i));
+
+            if (fat_table_dec.at(i) != loaded_dec.at(i)) {
+                not_matching_index.push_back(i);
+            }
+        }
+
+        if (not_matching_index.size() == 0) {
+            printf("Everything match!!\n");
+        }
+        else {
+            printf("Everything NOT match!!\n");
+            for (int i = 0; i < not_matching_index.size(); i++) {
+                printf("%d \n", not_matching_index.at(i));
+            }
+        }
     }
+
+    return 0;
 
     //priprava bufferu s datovym obsahem jedne slozky - START
     std::vector<unsigned char> to_write_subfolder;

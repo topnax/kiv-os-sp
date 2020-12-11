@@ -25,10 +25,6 @@ void Fat_Fs::init() {
 Fat_Fs::Fat_Fs(uint8_t disk_number, kiv_hal::TDrive_Parameters disk_parameters): disk_number(disk_number), disk_parameters(disk_parameters) {
     first_fat_table_hex = load_first_fat_table_bytes(); //nacteni fat tabulky v hex
     first_fat_table_dec = convert_fat_table_to_dec(first_fat_table_hex); //prevod na dec
-
-    for (int i = 0; i < first_fat_table_dec.size(); i++) {
-        printf("On index %d got %d\n", i, first_fat_table_dec.at(i));
-    }
 }
 
 kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vector<char> &out) {
@@ -143,6 +139,7 @@ kiv_os::NOS_Error Fat_Fs::readdir(const char *name, std::vector<kiv_os::TDir_Ent
 }
 
 kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8_t attributes, File &file) {
+    printf("Received attribute: %.2X\n", attributes);
     std::cout << "Open caledyn with " << name << "\n";
     file = File {};
     file.name = const_cast<char*>(name);
@@ -177,8 +174,21 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
             return kiv_os::NOS_Error::File_Not_Found;
         }
         else { //soubor / slozka nemusi existovat, pokusim se vytvorit
+            dir_item.attribute = attributes; //pouziji pridelene atributy u nove vytvorene slozky / souboru
+            printf("Assigned attribute: %.2X\n", attributes);
             //PREPSAT DIR_ITEM
+            std::cout << "Non existent, create \n";
 
+            if (dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //vytvorit slozku
+                mkdir(name);
+                std::cout << "Creating new folder: IN OPEN\n";
+            }
+            else { //pokus vytvorit soubor
+                std::cout << "I am working with file: " << dir_item.filezise << "\n";
+                file.size = dir_item.filezise; //prideleni velikosti souboru
+            }
+
+            return kiv_os::NOS_Error::File_Not_Found;
         }
     }
 
@@ -209,13 +219,15 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
 }
 
 kiv_os::NOS_Error Fat_Fs::mkdir(const char *name) {
+    std::cout << "Creating new folder: IN MKDIR\n";
+
     //rozdelit na jednotlive slozky cesty => n polozek, hledame cluster n - 1 ; posledni prvek (n) bude nazev nove vytvarene slozky
     std::vector<std::string> folders_in_path = path_to_indiv_items(name); //rozdeleni na indiv. polozky v ceste
     std::string new_folder_name = folders_in_path.at(folders_in_path.size() - 1); //nazev nove slozky
 
     folders_in_path.pop_back(); //posledni polozka v seznamu je nazev nove slozky, tu ted nehledame
 
-    int result = create_folder(name);
+    int result = create_folder(name, first_fat_table_dec, first_fat_table_hex);
 
     if (result == 0) {
         return kiv_os::NOS_Error::Success;
