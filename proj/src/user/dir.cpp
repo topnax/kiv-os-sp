@@ -112,7 +112,13 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
             // read directory items till EOF
             while (kiv_os_rtl::Read_File(handle, read_buffer, dir_entry_size, read)) {
 
-                printf("READ FILE OK\n\n\n\!!");
+                printf("Handle is %d\n\n\n\!!");
+                printf("Read buf cont - start\n");
+                for (int i = 0; i < dir_entry_size; i++) {
+                    printf("%c", read_buffer[i]);
+                }
+                printf("Read buf cont - end\n");
+
 
                 if (read == dir_entry_size) {
                     auto *entry = reinterpret_cast<kiv_os::TDir_Entry *>(read_buffer);

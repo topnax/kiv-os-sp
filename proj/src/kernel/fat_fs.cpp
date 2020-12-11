@@ -32,7 +32,7 @@ Fat_Fs::Fat_Fs(uint8_t disk_number, kiv_hal::TDrive_Parameters disk_parameters):
 }
 
 kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vector<char> &out) {
-    std::cout << "To read is: " << size << "off: " << offset << "and filesize: " << file.size << "\n";
+    std::cout << "To read is: " << size << "off: " << offset << "and filesize: " << file.size << "Name is: "<< file.name << "and handle " << file.handle << "\n";
 
     if (((file.attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID)) != 0) || ((file.attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0)) { //ctu slozku
         std::vector<kiv_os::TDir_Entry> folder_entries;
@@ -97,7 +97,14 @@ kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vecto
 }
 
 kiv_os::NOS_Error Fat_Fs::readdir(const char *name, std::vector<kiv_os::TDir_Entry> &entries) {
+    std::cout << "Called readdir\n";
     std::vector<std::string> folders_in_path = path_to_indiv_items(name); //rozdeleni na indiv. polozky v ceste
+
+    if (folders_in_path.size() > 0 && strcmp(folders_in_path.at(folders_in_path.size() - 1).data(), ".") == 0) {
+        std::cout << "removing .\n";
+        folders_in_path.pop_back(); //odstranit .
+    }
+
     if (folders_in_path.size() == 0) { //chceme ziskat root obsah, pak break
         std::vector<unsigned char> root_dir_cont = read_data_from_fat_fs(19 - 31, 14); //root slozka zacina na sektoru 19 a ma 14 sektoru (fce pricita default 31, pocita s dat. sektory; proto odecteni 31)
         entries = retrieve_dir_items(14, root_dir_cont, true);
@@ -136,6 +143,7 @@ kiv_os::NOS_Error Fat_Fs::readdir(const char *name, std::vector<kiv_os::TDir_Ent
 }
 
 kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8_t attributes, File &file) {
+    std::cout << "Open caledyn with " << name << "\n";
     file = File {};
     file.name = const_cast<char*>(name);
     file.position = 0; //aktualni pozice, zaciname na 
@@ -147,38 +155,54 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
     int32_t target_cluster;
 
     std::vector<std::string> folders_in_path = path_to_indiv_items(name); //rozdeleni na indiv. polozky v ceste
+    std::cout << "Last item is " << folders_in_path.at(folders_in_path.size() - 1).data() << "\n";
+    if (folders_in_path.size() > 0 && strcmp(folders_in_path.at(folders_in_path.size() - 1).data(), ".") == 0) {
+        std::cout << "removing .\n";
+        folders_in_path.pop_back(); //odstranit .
+    }
 
-    if (flags == kiv_os::NOpen_File::fmOpen_Always) { //soubor / slozka musi existovat, aby byl otevren
-        directory_item dir_item = retrieve_item_clust(19, first_fat_table_dec, folders_in_path); //pokus o otevreni existujiciho souboru)
-        target_cluster = dir_item.first_cluster;
+    std::cout << "Printing path - START\n";
+    for (int i = 0; i < folders_in_path.size(); i++) {
+        std::cout << folders_in_path.at(i) << "\n";
+    }
+    std::cout << "Printing path - END\n";
 
-        if (target_cluster == -1) { //soubor / slozka nenalezena
+    directory_item dir_item = retrieve_item_clust(19, first_fat_table_dec, folders_in_path); //pokus o otevreni existujiciho souboru)
+    target_cluster = dir_item.first_cluster;
+    std::cout << "Target cluster is " << target_cluster << "\n";
+
+    if (target_cluster == -1) { //soubor / slozka nenalezena; zatim NEEXISTUJE
+        if (flags == kiv_os::NOpen_File::fmOpen_Always) { //soubor / slozka musi existovat, aby byl otevren
+            std::cout << "file not found in open!\n";
             return kiv_os::NOS_Error::File_Not_Found;
         }
-        else { //soubor / slozka nalezena, pokracovat s otevrenim
-            file.attributes = dir_item.attribute;
-            printf("Assigned attr %.2X\n", file.attributes);
+        else { //soubor / slozka nemusi existovat, pokusim se vytvorit
+            //PREPSAT DIR_ITEM
 
-            file.handle = target_cluster; //handler bude cislo clusteru
-            std::vector<int> sector_nums = retrieve_sectors_nums_fs(first_fat_table_dec, file.handle);
-
-            if (dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //jedna se o slozku, pridelit velikost vzorec: pocet_polozek_slozka * sizeof(TDir_Entry)
-                std::vector<kiv_os::TDir_Entry> dir_entries_size; //pro zjisteni poctu polozek ve slozce
-                readdir(file.name, dir_entries_size);
-
-                dir_item.filezise = dir_entries_size.size() * sizeof(kiv_os::TDir_Entry);
-                std::cout << "filesize is: " << dir_item.filezise << "\n";
-                file.size = dir_item.filezise;
-            }
-            else {
-                file.size = dir_item.filezise; //prideleni velikosti souboru
-            }
-
-            return kiv_os::NOS_Error::Success;
         }
     }
-    else { //soubor nemusi existovat, vytvorit
 
+    //v teto fazi uz tedy soubor / slozka existuje nebo byl vytvoren, dalsi prace s objektem je v obou pripadech shodna...
+    file.attributes = dir_item.attribute;
+    printf("Assigned attrs %.2X\n", file.attributes);
+
+    file.handle = target_cluster; //handler bude cislo clusteru
+    std::vector<int> sector_nums = retrieve_sectors_nums_fs(first_fat_table_dec, file.handle);
+
+    printf("Before if\n");
+    if (dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //jedna se o slozku, pridelit velikost vzorec: pocet_polozek_slozka * sizeof(TDir_Entry)
+        std::vector<kiv_os::TDir_Entry> dir_entries_size; //pro zjisteni poctu polozek ve slozce
+        std::cout << "Before readdir\n";
+        readdir(file.name, dir_entries_size);
+        std::cout << "After readdir\n";
+
+        dir_item.filezise = dir_entries_size.size() * sizeof(kiv_os::TDir_Entry);
+        std::cout << "filesize is: " << dir_item.filezise << "\n";
+        file.size = dir_item.filezise;
+    }
+    else {
+        std::cout << "I am working with file: " << dir_item.filezise << "\n";
+        file.size = dir_item.filezise; //prideleni velikosti souboru
     }
 
     return kiv_os::NOS_Error::Success;
@@ -355,9 +379,12 @@ kiv_os::NOS_Error Fat_Fs::close(File file) {
 
 bool Fat_Fs::file_exists(int32_t current_fd, const char* name, bool start_from_root, int32_t& found_fd)
 {
-    std::cout << "Calling file_exists with name: " << name << " \n";
+    std::cout << "Calling file_exists with name: " << name << "and current fd " << current_fd << " \n";
     if (strcmp(name, ".") == 0) { //aktualni slozka
-        return current_fd;
+        std::cout << "Cur fol matches\n";
+        found_fd = current_fd;
+        std::cout << "Returning target cluster created: " << found_fd << "\n";
+        return true; //aktualni slozka existuje vzdy
     }
 
     int start_cluster = -1;
@@ -369,14 +396,11 @@ bool Fat_Fs::file_exists(int32_t current_fd, const char* name, bool start_from_r
         start_cluster = current_fd;
     }
 
-    //ziskani obsahu FAT tabulky pro vyhledavani sektoru
-    std::vector<unsigned char> fat_table1_hex = load_first_fat_table_bytes();
-    std::vector<int> fat_table1_dec = convert_fat_table_to_dec(fat_table1_hex);
-
     std::vector<std::string> folders_in_path = path_to_indiv_items(name); //rozdeleni na indiv. polozky v ceste
 
-    directory_item dir_item = retrieve_item_clust(start_cluster, fat_table1_dec, folders_in_path);
+    directory_item dir_item = retrieve_item_clust(start_cluster, first_fat_table_dec, folders_in_path);
     found_fd = dir_item.first_cluster;
+    std::cout << "Returning target cluster: " << found_fd << "\n";
 
     if (dir_item.first_cluster == -1) { //polozka nenalezena
         return false;

@@ -85,9 +85,9 @@ void Init_Filesystems() {
             kiv_os::NOpen_File flags;
             flags = kiv_os::NOpen_File::fmOpen_Always; //soubor musi existovat, aby byl otevren
         
-            fs->open("\\SETUP.BAT", flags, 0, test_file);
-            printf("First folder cluster is %d !!\n\n\n", test_file.handle);
-            printf("Attrib is %d!!\n\n\n", (int)test_file.attributes);
+            //fs->open("\\SETUP.BAT", flags, 0, test_file);
+            //printf("First folder cluster is %d !!\n\n\n", test_file.handle);
+            //printf("Attrib is %d!!\n\n\n", (int)test_file.attributes);
 
             std::vector<char> out_buffer;
            

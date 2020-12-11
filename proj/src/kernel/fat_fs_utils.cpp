@@ -822,9 +822,52 @@ void update_size_file_in_folder(char *filename_path, int offset, int original_si
         write_data_to_fat_fs(sectors_nums_data.at(cluster_num), data_to_save);
     }
 }
+
+/*
+* Vytvori ve fs novou polozku, soubor.
+* vrati 0, pokud vse ok; -1 pokud uz neni misto
+* item_path - cesta k novemu souboru
+* attributes - bajt reprezentujici atributy
+* fat_table_dec - odkaz na FAT tabulku v dec (muze byt upravena, pokud zapis ok)
+* first_fat_table_hex - odkaz na FAT tabulku v hex (muze byt upravena, pokud zapis ok)
+/**/
+int create_file_item(const char* item_path, unsigned char attributes, std::vector<int> &fat_table_dec, std::vector<unsigned char> &first_fat_table_hex) {
+    std::cout << "About to create new file!!\n";
+
+    std::vector<std::string> items_in_path = path_to_indiv_items(item_path); //rozdeleni cesty na jednotliv. polozky
+    std::string new_file_name = items_in_path.at(items_in_path.size() - 1); //nazev nove polozky
+
+    items_in_path.pop_back(); //odstraneni posledni polozky - nazev nove polozky, tu ted nehledame; potreba najit nadrazenou slozku pro vytvoreni entry
+
+    //najit cluster nadrazene slozky - START
+    int start_sector = -1;
+    std::vector<int> sectors_upper_fol; //sektory nadrazene slozky
+    if (items_in_path.size() == 0) { //jsme v rootu
+        start_sector = 19;
+
+        for (int i = 19; i < 33; i++) {
+            sectors_upper_fol.push_back(i);
+        }
+    }
+    else { //klasicka slozka, ne root
+        directory_item target_folder = retrieve_item_clust(19, fat_table_dec, items_in_path);
+        sectors_upper_fol = retrieve_sectors_nums_fs(fat_table_dec, target_folder.first_cluster);
+
+        start_sector = sectors_upper_fol.at(0);
+    }
+
+    std::cout << "Got number cluster: " << sectors_upper_fol.size() << "!!!!!!!!!!!\n\n\n";
+
+    std::vector<directory_item> items_folder = retrieve_folders_cur_folder(fat_table_dec, start_sector);  //ziskani obsahu nadrazene slozky
+    //najit cluster nadrazene slozky - KONEC
+
+    return 0;
+}
+
 /*
 * Vytvori ve fs novou slozku
 * vrati 0, pokud vse ok; -1 pokud uz neni misto
+* folder_path - cesta k nove slozce
 /**/
 int create_folder(const char* folder_path) {
     std::cout << "wanna write!!\n";
