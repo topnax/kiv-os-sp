@@ -180,7 +180,7 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
             std::cout << "Non existent, create \n";
 
             if (dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //vytvorit slozku
-                mkdir(name);
+                mkdir(name, attributes);
                 std::cout << "Creating new folder: IN OPEN\n";
             }
             else { //pokus vytvorit soubor
@@ -218,7 +218,7 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
     return kiv_os::NOS_Error::Success;
 }
 
-kiv_os::NOS_Error Fat_Fs::mkdir(const char *name) {
+kiv_os::NOS_Error Fat_Fs::mkdir(const char *name, uint8_t attributes) {
     std::cout << "Creating new folder: IN MKDIR\n";
 
     //rozdelit na jednotlive slozky cesty => n polozek, hledame cluster n - 1 ; posledni prvek (n) bude nazev nove vytvarene slozky
@@ -227,7 +227,7 @@ kiv_os::NOS_Error Fat_Fs::mkdir(const char *name) {
 
     folders_in_path.pop_back(); //posledni polozka v seznamu je nazev nove slozky, tu ted nehledame
 
-    int result = create_folder(name, first_fat_table_dec, first_fat_table_hex);
+    int result = create_folder(name, attributes, first_fat_table_dec, first_fat_table_hex);
 
     if (result == 0) {
         return kiv_os::NOS_Error::Success;
@@ -399,7 +399,7 @@ bool Fat_Fs::file_exists(int32_t current_fd, const char* name, bool start_from_r
         return true; //aktualni slozka existuje vzdy
     }
 
-    if (strcmp(name, "..") != 0) { //nadrazena slozka existuje, pokud nejsme v rootu
+    if (strcmp(name, "..") == 0) { //nadrazena slozka existuje, pokud nejsme v rootu
         std::cout << "Cur fol matches\n";
 
         std::cout << "Rading from upper: " << current_fd << "\n";

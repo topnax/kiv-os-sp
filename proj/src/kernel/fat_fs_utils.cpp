@@ -869,7 +869,8 @@ int create_file_item(const char* item_path, unsigned char attributes, std::vecto
 * vrati 0, pokud vse ok; -1 pokud uz neni misto
 * folder_path - cesta k nove slozce
 /**/
-int create_folder(const char* folder_path, std::vector<int> &fat_table_dec, std::vector<unsigned char> &first_fat_table_hex) {
+int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>& fat_table_dec, std::vector<unsigned char>& first_fat_table_hex) {
+    printf("In create_folder Received attribute: %.2X\n", attributes);
     std::cout << "Creating new folder: IN CREATE_FOLDER\n";
     std::cout << "wanna write!!\n";
 
@@ -910,50 +911,22 @@ int create_folder(const char* folder_path, std::vector<int> &fat_table_dec, std:
     int free_index = retrieve_free_cluster_index(fat_table_dec);
     if (free_index == -1) { //volny index uz nelze najit
         std::cout << "No clust found!!\n";
-        return -1; //nebyl nalezen zadny volny cluster, koncime
+        return -1; //nebyl nalezen zadny volny cluster pro novou slozku, koncime
     }
     else { //uprava fat tabulek a oznaceni clusteru jako zabraneho
-        //std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 4095);
-        //first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
-        //first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
-        //fat_table_dec.at(free_index) = 4095; //oznacit cluster jako konecny v dec tabulce
 
-        for (int i = 0; i < fat_table_dec.size(); i++) {
-            std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(i, first_fat_table_hex, i);
-            first_fat_table_hex.at(i * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
-            first_fat_table_hex.at((i * 1.5) + 1) = modified_bytes.at(1);
-            fat_table_dec.at(i) = i; //oznacit cluster jako konecny v dec tabulce
-        }
+        //na volny index hex i dec tabulek ulozim 4095 - znaci konec slozky - START
+        std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 4095);
+        first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+        first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+        fat_table_dec.at(free_index) = 4095; //oznacit cluster jako konecny v dec tabulce
+        //na volny index hex i dec tabulek ulozim 4095 - znaci konec slozky - KONEC
 
-        save_fat_tables(first_fat_table_hex);
+        save_fat_tables(first_fat_table_hex); //po upravach ulozim hex podobu tabulky do souboru
 
         std::cout << "wanna assign clust " << free_index << "\n";
-
-        std::vector<unsigned char> loaded_hex = load_first_fat_table_bytes();
-        std::vector<int> loaded_dec = convert_fat_table_to_dec(loaded_hex);
-
-        std::vector<int> not_matching_index;
-
-        for (int i = 0; i < loaded_dec.size(); i++) {
-            printf("On index %d Original is %d ; new load is %d\n", i, fat_table_dec.at(i), loaded_dec.at(i));
-
-            if (fat_table_dec.at(i) != loaded_dec.at(i)) {
-                not_matching_index.push_back(i);
-            }
-        }
-
-        if (not_matching_index.size() == 0) {
-            printf("Everything match!!\n");
-        }
-        else {
-            printf("Everything NOT match!!\n");
-            for (int i = 0; i < not_matching_index.size(); i++) {
-                printf("%d \n", not_matching_index.at(i));
-            }
-        }
     }
-
-    return 0;
+    //ok, mame volny cluster pro novou slozku a FATka je ulozena...
 
     //priprava bufferu s datovym obsahem jedne slozky - START
     std::vector<unsigned char> to_write_subfolder;
@@ -973,24 +946,30 @@ int create_folder(const char* folder_path, std::vector<int> &fat_table_dec, std:
     }
 
     //doplnit atribut - subdirectory 0x10
-    to_write_subfolder.push_back(16);
+    to_write_subfolder.push_back(attributes);
 
-    for (int i = 0; i < 14; i++) { //14 bajtu nepotrebnych - datum vytvoreni, cas modifikace...
+    for (int i = 0; i < 14; i++) { //14 bajtu pro nas nezajimavych - datum vytvoreni, cas modifikace...
         to_write_subfolder.push_back(32);
     }
 
-    //na dva bajty prvni cluster
+    //na dva bajty ulozit prvni cluster
     std::vector<unsigned char> first_assigned_clust = convert_dec_to_hex_start_clus(free_index);
     for (int i = 0; i < 2; i++) {
         to_write_subfolder.push_back(first_assigned_clust.at(i));
     }
 
     //na 4 bajty 0 (velikost souboru, u slozky nulova)
-    for (int i = 0; i < 4; i++) { //14 bajtu nepotrebnych - datum vytvoreni, cas modifikace...
+    for (int i = 0; i < 4; i++) {
         to_write_subfolder.push_back(0);
     }
+    printf("Size velikost: %d\n", to_write_subfolder.size());
     //priprava bufferu s datovym obsahem jedne slozky - KONEC
 
+    //ok, novy cluster alokovan, obsh entry je pripraven
+    for (int i = 0; i < to_write_subfolder.size(); i++) {
+        to_save.push_back(to_write_subfolder.at(i));
+    }
+    
     if (folders_in_path.size() == 0) { //pokud chceme vytvorit slozku v rootu - tam se jich vejde 224
         if ((items_folder.size() + 1 + 1) <= (sectors_nums_data.size() * 16)) { //+1 pro odkaz na aktualni slozku +1 pro novou ; vejdeme se do clusteru
             //zjisteni clusteru, na kterem bude polozka lezet

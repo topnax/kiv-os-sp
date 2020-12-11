@@ -133,7 +133,7 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, kiv_os::NOpen_File flags, uint
     return kiv_os::NOS_Error::File_Not_Found;
 }
 
-kiv_os::NOS_Error Proc_Fs::mkdir(const char *name) {
+kiv_os::NOS_Error Proc_Fs::mkdir(const char* name, uint8_t attributes) {
     return kiv_os::NOS_Error::Permission_Denied;
 }
 
