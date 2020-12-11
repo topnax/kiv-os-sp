@@ -387,6 +387,31 @@ bool Fat_Fs::file_exists(int32_t current_fd, const char* name, bool start_from_r
         return true; //aktualni slozka existuje vzdy
     }
 
+    if (strcmp(name, "..") != 0) { //nadrazena slozka existuje, pokud nejsme v rootu
+        std::cout << "Cur fol matches\n";
+
+        std::cout << "Rading from upper: " << current_fd << "\n";
+        std::vector<unsigned char> data_first_clust = read_data_from_fat_fs(current_fd, 1);
+        unsigned char first_byte_addr = data_first_clust.at(58); //prvni bajt reprez. prvni cluster nadraz. slozky
+        unsigned char second_byte_addr = data_first_clust.at(59); //druhy bajt reprez. prvni cluster nadraz. slozky
+
+        std::cout << "Bytes - start\n";
+        for (int i = 0; i < data_first_clust.size(); i++) {
+            printf("Byte is %.2X\n", data_first_clust.at(i));
+        }
+
+        std::cout << "Bytes - end\n";
+
+        printf("BYTE IS %.2X %.2X", first_byte_addr, second_byte_addr);
+
+        found_fd = current_fd;
+        std::cout << "Returning target cluster created: " << found_fd << "\n";
+        return true; //aktualni slozka existuje vzdy
+    }
+    else {
+        std::cout << "Not match " << name << " with: " << current_fd << "\n";
+    }
+
     int start_cluster = -1;
 
     if (start_from_root) { //jdem z rootu, zacina na 19 clusteru
