@@ -28,8 +28,6 @@ Fat_Fs::Fat_Fs(uint8_t disk_number, kiv_hal::TDrive_Parameters disk_parameters):
 }
 
 kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vector<char> &out) {
-    std::cout << "To read is: " << size << "off: " << offset << "and filesize: " << file.size << "Name is: "<< file.name << "and handle " << file.handle << "\n";
-
     if (((file.attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID)) != 0) || ((file.attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0)) { //ctu slozku
         std::vector<kiv_os::TDir_Entry> folder_entries;
         std::vector<char> folder_entries_char;
@@ -152,9 +150,8 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
         else { //soubor / slozka nemusi existovat, pokusim se vytvorit
             dir_item.attribute = attributes; //pouziji pridelene atributy u nove vytvorene slozky / souboru
             dir_item.filezise = 0;
-           
+        
             printf("Assigned attribute: %.2X\n", attributes);
-            //PREPSAT DIR_ITEM
             std::cout << "Non existent, create \n";
             bool created = false;
 
@@ -199,10 +196,6 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
     file.handle = target_cluster; //handler bude cislo clusteru
     std::vector<int> sector_nums = retrieve_sectors_nums_fs(first_fat_table_dec, file.handle);
 
-    for (int i = 0; i < sector_nums.size(); i++) {
-        printf("Got clust %d\n", sector_nums.at(i));
-    }
-
     if (dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //jedna se o slozku, pridelit velikost vzorec: pocet_polozek_slozka * sizeof(TDir_Entry)
         std::vector<kiv_os::TDir_Entry> dir_entries_size; //pro zjisteni poctu polozek ve slozce
         readdir(file.name, dir_entries_size);
@@ -235,10 +228,146 @@ kiv_os::NOS_Error Fat_Fs::mkdir(const char *name, uint8_t attributes) {
 }
 
 kiv_os::NOS_Error Fat_Fs::rmdir(const char *name) {
+    std::vector<std::string> folders_in_path = path_to_indiv_items(name); //rozdeleni na indiv. polozky v ceste
+    directory_item dir_item = retrieve_item_clust(19, first_fat_table_dec, folders_in_path); //nalezt cilovou slozku
+
+    if (dir_item.first_cluster == -1) { //polozka nenalezena
+        return kiv_os::NOS_Error::File_Not_Found;
+    }
+    //pokracujem s pokusem o smazani
+
+    std::vector<int> sectors_nums_data = retrieve_sectors_nums_fs(first_fat_table_dec, dir_item.first_cluster);
+    std::vector<directory_item> items_folder = retrieve_folders_cur_folder(first_fat_table_dec, dir_item.first_cluster);
+    if (items_folder.size() != 0) { //slozka neni prazdna, nejde smazat
+        return kiv_os::NOS_Error::Directory_Not_Empty;
+    }
+
+    //slozka je prazdna, pokracujeme s premazanim jejich clusteru
+    std::vector<char> format;
+    for (int i = 0; i < 512; i++) { //prazdno
+        format.push_back(0);
+    }
+
+    for (int i = 0; i < sectors_nums_data.size(); i++) {
+        std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(sectors_nums_data.at(i), first_fat_table_hex, 0);
+        first_fat_table_hex.at(sectors_nums_data.at(i) * 1.5) = modified_bytes.at(0); //oznacit cluster jako volny v hex tabulce
+        first_fat_table_hex.at((sectors_nums_data.at(i) * 1.5) + 1) = modified_bytes.at(1);
+        first_fat_table_dec.at(sectors_nums_data.at(i)) = 0; //oznacit cluster jako volny v dec tabulce
+        write_data_to_fat_fs(sectors_nums_data.at(i), format); //prepsat prideleny cluster
+    }
+    save_fat_tables(first_fat_table_hex); //ulozit fat tabulku
+
+    //ted vymazat odkaz z nadrazene slozky - START
+    std::string filename = folders_in_path.at(folders_in_path.size() - 1);
+    folders_in_path.pop_back();
+
+    bool upper_root = false;
+
+    int start_sector = -1;
+    std::vector<int> sectors_nums_data_upper; //sektory nadrazene slozky
+    if (folders_in_path.size() == 0) { //nadrazena slozka je v rootu
+        upper_root = true;
+        start_sector = 19;
+
+        for (int i = 19; i < 33; i++) {
+            sectors_nums_data_upper.push_back(i);
+        }
+    }
+    else { //klasicka slozka, ne root
+        directory_item target_folder = retrieve_item_clust(19, first_fat_table_dec, folders_in_path);
+        sectors_nums_data_upper = retrieve_sectors_nums_fs(first_fat_table_dec, target_folder.first_cluster);
+
+        start_sector = sectors_nums_data_upper.at(0);
+    }
+
+    std::vector<directory_item> items_folder_upper = retrieve_folders_cur_folder(first_fat_table_dec, start_sector); //ziskani obsahu nadrazene slozky
+
+    //get number of folder to delete
+    int to_remove = -1;
+
+    for (int i = 0; i < items_folder_upper.size(); i++) { //kontrola poradi v dane slozce
+        std::string item_to_check = "";
+        directory_item dir_item = items_folder_upper.at(i);
+
+        if (!dir_item.extension.empty()) {
+            item_to_check = dir_item.filename + "." + dir_item.extension;
+        }
+        else {
+            item_to_check = dir_item.filename;
+        }
+
+        if (item_to_check.compare(filename) == 0) {
+            to_remove = i;
+            break; //nalezen index souboru, koncime
+        }
+    }
+
+    std::vector<char> fol_cont; //kompletni obsah slozky, neupraveny
+    for (int i = 0; i < sectors_nums_data_upper.size(); i++) { //projit clustery nadrazene slozky
+        std::vector<unsigned char> one_clust_data;
+        if (upper_root) {
+            one_clust_data = read_data_from_fat_fs(sectors_nums_data_upper.at(i) - 31, 1);
+        }
+        else {
+            one_clust_data = read_data_from_fat_fs(sectors_nums_data_upper.at(i), 1);
+        }
+
+        for (int j = 0; j < SECTOR_SIZE_B; j++) {
+            fol_cont.push_back(one_clust_data.at(j));
+        }
+    }
+
+    int index_to_remove;
+    if (upper_root) {
+        index_to_remove = to_remove + 1;
+    }
+    else {
+        index_to_remove = to_remove + 2;
+    }
+
+    //z fol_cont odstranit nechteny dir_entry - jedna polozka ma 32 bajtu
+    fol_cont.erase(fol_cont.begin() + ((index_to_remove) * 32), fol_cont.begin() + ((index_to_remove * 32) + 32)); 
+    for (int i = 0; i < 32; i++) { //doplnit 0 zbytek
+        fol_cont.push_back(0);
+    }
+
+    //zformatovat clustery - zapsat 0 - START
+    for(int i = 0; i < sectors_nums_data_upper.size(); i++) {
+        if (upper_root) {
+            write_data_to_fat_fs(sectors_nums_data_upper.at(i) - 31, format);
+        }
+        else {
+            write_data_to_fat_fs(sectors_nums_data_upper.at(i), format);
+        }
+    }
+    //zformatovat clustery - zapsat 0 - KONEC
+
+    //ted vymazat odkaz z nadrazene slozky - KONEC
+
+    for (int i = 0; i < sectors_nums_data_upper.size(); i++) {
+        std::vector<char> clust_to_save; // data jednoho clusteru
+
+        for (int j = 0; j < SECTOR_SIZE_B; j++) {
+            clust_to_save.push_back(fol_cont.at((i * SECTOR_SIZE_B) + j));
+        }
+
+        if (upper_root) {
+            write_data_to_fat_fs(sectors_nums_data_upper.at(i) - 31, clust_to_save);
+        }
+        else {
+            write_data_to_fat_fs(sectors_nums_data_upper.at(i), clust_to_save);
+        }
+    }
+    //ted vymazat odkaz z nadrazene slozky - KONEC
+
     return kiv_os::NOS_Error::IO_Error;
 }
 
 kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size, size_t offset, size_t &written) {
+    if (offset > file.size) { //nemuzeme v souboru nechat prazdne misto
+        return kiv_os::NOS_Error::IO_Error;
+    }
+
     std::vector<int> file_clust_nums = retrieve_sectors_nums_fs(first_fat_table_dec, file.handle); //seznam clusteru, na kterych se soubor nachazi
 
     int cluster_fully_occ_bef = (offset) / SECTOR_SIZE_B; //pocet plne obsazenych clusteru pred offsetem
@@ -274,7 +403,7 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
     }
 
     int written_bytes = 0 - bytes_to_save_clust;
-    std::cout << "Want to write to clust: " << file_clust_nums.at(sector_num - 1) << "\n";
+
     //v bufferu je ulozen obsah vsech clusteru, ktere maji byt prepsany - zaciname od clusteru sector_num_vect, pripadne pak posun na dalsi, pokud buffer > 512 - teoreticky zapis na vice clusteru
     int clusters_count = data_to_write.size() / SECTOR_SIZE_B + (data_to_write.size() % SECTOR_SIZE_B != 0); //pocet clusteru, pres ktere bude buffer ulozen
 
@@ -340,8 +469,6 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
 
             write_data_to_fat_fs(free_clust_index, clust_data_write); //zapis dat na nove alokovany cluster
             written_bytes += clust_data_write.size();
-
-            retrieve_sectors_nums_fs(first_fat_table_dec, file.handle); //ziskani seznamu clusteru, na kterych se soubor nachazi
         }
 
         clust_data_write.clear();
@@ -357,8 +484,6 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
         file.size = file.size + newly_written_bytes;
         written = written_bytes;
     }
-
-    //write_data_to_fat_fs(sector_num_vect, buffer);
 
     return kiv_os::NOS_Error::Success;
 }

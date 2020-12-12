@@ -86,17 +86,18 @@ void Init_Filesystems() {
             flags = static_cast<kiv_os::NOpen_File>(0); //soubor musi existovat, aby byl otevren
             test_file.attributes = 0x20;
             printf("Gave attribute: %.2X\n", test_file.attributes);
-            fs->open("\\FDSETUP\\FILE1", flags, 0x20, test_file);
+            //fs->open("\\FDSETUP\\BIN", flags, 0x20, test_file);
+            //fs->rmdir("\\FDSETUP");
 
             size_t written;
 
-            std::string to_write = "ahoj, zapisu se do clusteru!";
+            std::string to_write = "teplyjakogolfskyproud";
             std::vector<char> data_to_write;
             for (int i = 0; i < to_write.size(); i++) {
                 data_to_write.push_back(to_write.at(i));
             }
 
-            fs->write(test_file, data_to_write, 0, 0, written);
+            //fs->write(test_file, data_to_write, 0, 511, written);
             //printf("First folder cluster is %d !!\n\n\n", test_file.handle);
             //printf("Attrib is %d!!\n\n\n", (int)test_file.attributes);
 
