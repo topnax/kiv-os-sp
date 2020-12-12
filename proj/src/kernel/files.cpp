@@ -143,7 +143,13 @@ kiv_os::THandle Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8
     } else {
         std::filesystem::path resolved_path_relative_to_fs;
         std::filesystem::path absolute_path;
-        auto fs = File_Exists(file_name, resolved_path_relative_to_fs, absolute_path);
+
+        std::filesystem::path input_path = file_name;
+        if (flags == kiv_os::NOpen_File::fmOpen_Always) {
+            input_path = input_path.root_path();
+        }
+
+        auto fs = File_Exists(input_path, resolved_path_relative_to_fs, absolute_path);
         if (fs != nullptr) {
             File f{};
 
@@ -156,8 +162,11 @@ kiv_os::THandle Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8
                 file = new Filesystem_File(fs, f);
                 f.name = name;
             } else {
+                error = result;
                 delete[] name;
             }
+        } else {
+            error = kiv_os::NOS_Error::File_Not_Found;
         }
     }
     if (file == nullptr) {
