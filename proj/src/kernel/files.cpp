@@ -84,9 +84,9 @@ void Init_Filesystems() {
             File test_file;
             kiv_os::NOpen_File flags;
             flags = static_cast<kiv_os::NOpen_File>(0); //soubor musi existovat, aby byl otevren
-            test_file.attributes = 0x10;
+            test_file.attributes = 0x20;
             printf("Gave attribute: %.2X\n", test_file.attributes);
-            fs->open("\\FDSETUP\\SEW.GAY", flags, 0x20, test_file);
+            fs->open("\\FDSETUP\\DALSI.SEX", flags, 0x20, test_file);
             //printf("First folder cluster is %d !!\n\n\n", test_file.handle);
             //printf("Attrib is %d!!\n\n\n", (int)test_file.attributes);
 

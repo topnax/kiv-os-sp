@@ -192,6 +192,9 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
             return kiv_os::NOS_Error::File_Not_Found;
         }
     }
+    else {
+        std::cout << "Exists on cluster " << target_cluster;
+    }
 
     //v teto fazi uz tedy soubor / slozka existuje nebo byl vytvoren, dalsi prace s objektem je v obou pripadech shodna...
     file.attributes = dir_item.attribute;

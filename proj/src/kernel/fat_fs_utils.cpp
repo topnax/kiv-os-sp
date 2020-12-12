@@ -302,10 +302,7 @@ directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table
                 item_to_check = dir_item.filename;
             }
 
-            if (path.at(i).compare(item_to_check) == 0 && dir_item.filezise != 0) { //pokud sedi nazev a JEDNA se o soubor => nalezen cilovy soubor v ceste
-                dir_item_number = j;
-                std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise << "\n";
-            } else if (path.at(i).compare(item_to_check) == 0 && dir_item.extension.length() == 0 && dir_item.filezise == 0) { //pokud sedi nazev a nejedna se o soubor => nalezena odpovidajici slozka v ceste
+            if (path.at(i).compare(item_to_check) == 0) { //pokud sedi nazev a JEDNA se o soubor => nalezen cilovy soubor v ceste
                 dir_item_number = j;
                 std::cout << "FOUUUUND item name!!!!" << dir_item.filename << "size: " << dir_item.filezise << "\n";
             }
@@ -876,7 +873,6 @@ int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>&
         return -1; //nebyl nalezen zadny volny cluster pro novou slozku, koncime
     }
     else { //uprava fat tabulek a oznaceni clusteru jako zabraneho
-
         //na volny index hex i dec tabulek ulozim 4095 - znaci konec slozky - START
         std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 4095);
         first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
@@ -1158,9 +1154,10 @@ int create_file(const char* file_path, uint8_t attributes, std::vector<int>& fat
         extension.pop_back();
     }
 
-
-    for (int i = 0; i < extension.size() + 1; i++) { //odstranit priponu z nazvu a .
-        filename.pop_back();
+    if (extension_encountered) { //pokud byla zadana pripona
+        for (int i = 0; i < extension.size() + 1; i++) { //odstranit priponu z nazvu a .
+            filename.pop_back();
+        }
     }
     //rozdeleni na nazev a priponu souboru pro dir entry - KONEC
 
@@ -1175,7 +1172,6 @@ int create_file(const char* file_path, uint8_t attributes, std::vector<int>& fat
         printf("%c", extension.at(i));
     }
     std::cout << "Printing extension - konec" << "size: " << extension.size() << "\n";
-    return 0;
 
     //priprava bufferu s dir entry souboru, ktera bude v nadrazene slozce - START
     std::vector<unsigned char> to_write_subfolder; //obsahuje dir entry
@@ -1211,7 +1207,72 @@ int create_file(const char* file_path, uint8_t attributes, std::vector<int>& fat
     for (int i = 0; i < 2; i++) {
         to_write_subfolder.push_back(first_assigned_clust.at(i));
     }
+
+    //na ctyri bajty ulozit velikost souboru - zpocatku 0
+    for (int i = 0; i < 4; i++) {
+        to_write_subfolder.push_back(0);
+    }
     //priprava bufferu s dir entry souboru, ktera bude v nadrazene slozce - KONEC
+
+    if (items_in_path.size() == 0) { //vytvoreni polozky v rootu - vejde se 224
+        if ((items_folder.size() + 1 + 1) <= (sectors_upper_fol.size() * 16)) { //+1 pro odkaz na aktualni slozku +1 pro novou ; vejdeme se do clusteru
+           //zjisteni clusteru, na kterem bude polozka lezet
+            int cluster_num = (items_folder.size() + 1) / 16; //poradi clusteru
+            int item_num_clust_rel = (items_folder.size() + 1) % 16; //poradi polozky, v ramci clusteru
+
+            std::vector<unsigned char> data_clust = read_data_from_fat_fs(sectors_upper_fol.at(cluster_num) - 31, 1); //-31; fce cte z dat sektoru, nacteni dat sektoru, do ktereho bude nasledne nova polozka vlozena
+
+            for (int i = 0; i < to_write_subfolder.size(); i++) {
+                data_clust.at((item_num_clust_rel * 32) + i) = to_write_subfolder.at(i);
+            }
+
+            for (int i = 0; i < data_clust.size(); i++) {
+                to_save.push_back(data_clust.at(i));
+            }
+
+            write_data_to_fat_fs(sectors_upper_fol.at(cluster_num) - 31, to_save);
+        }
+        else { //chyba, soubor se nevejde do rootu
+            //zabrany cluster oznacim opet jako volny a jdeme pryc
+            std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 0);
+            first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+            first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+            fat_table_dec.at(free_index) = 0; //oznacit cluster jako konecny v dec tabulce
+
+            save_fat_tables(first_fat_table_hex); //po upravach ulozim hex podobu tabulky do souboru
+            return -1;
+        }
+    }
+    else { //mimo root, sektor pojme 16 polozek
+        if ((items_folder.size() + 2 + 1) <= (sectors_upper_fol.size() * 16)) {
+            int cluster_num = (items_folder.size() + 2) / 16; //poradi clusteru
+            int item_num_clust_rel = (items_folder.size() + 2) % 16; //poradi polozky, v ramci clusteru
+
+            std::vector<unsigned char> data_clust = read_data_from_fat_fs(sectors_upper_fol.at(cluster_num), 1);
+
+            for (int i = 0; i < to_write_subfolder.size(); i++) {
+                data_clust.at((item_num_clust_rel * 32) + i) = to_write_subfolder.at(i);
+            }
+
+            for (int i = 0; i < data_clust.size(); i++) {
+                to_save.push_back(data_clust.at(i));
+            }
+
+            write_data_to_fat_fs(sectors_upper_fol.at(cluster_num), to_save);
+        }
+        else { //chyba, soubor se nevejde do rootu
+            //zabrany cluster oznacim opet jako volny a jdeme pryc
+            std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 0);
+            first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+            first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+            fat_table_dec.at(free_index) = 0; //oznacit cluster jako konecny v dec tabulce
+
+            save_fat_tables(first_fat_table_hex); //po upravach ulozim hex podobu tabulky do souboru
+            return -1;
+        }
+    }
+
+    return 0; //zapis probehl, ok
 }
 
 /*
