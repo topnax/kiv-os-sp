@@ -225,6 +225,7 @@ void Write_File(kiv_hal::TRegisters &regs) {
         if (res != kiv_os::NOS_Error::Success) {
             // some error has happened
             regs.flags.carry = 1;
+            printf("error has happened\n");
             regs.rax.r = static_cast<decltype(regs.rax.r)>(res);
         }
     } else {
@@ -420,7 +421,7 @@ void Delete_File(kiv_hal::TRegisters &registers) {
         strcpy_s(name, length, resolved_path_relative_to_fs.string().c_str());
 
         // unlink a file with the found filesystem
-        auto result = fs->unlink(name);
+        auto result = fs->rmdir(name);
         if (result == kiv_os::NOS_Error::Success) {
             // unlink successful, do not set error
             return;

@@ -55,7 +55,9 @@ extern "C" size_t __stdcall type(const kiv_hal::TRegisters &regs) {
                     break;
                 }
             }
-            kiv_os_rtl::Write_File(std_out, buff, read, written);
+            if (!kiv_os_rtl::Write_File(std_out, buff, read, written)) {
+                break;
+            }
         }
 
         // close only if opening a file

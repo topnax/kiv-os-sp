@@ -118,10 +118,9 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
         } else if (i == programs.size() - 1) { // TODO test output to file!
             // the last program gets std out or a file as output
             kiv_os::THandle last_handle;
-
             if (programs[i].output.type == ProgramHandleType::File) {
                 kiv_os::NOS_Error error;
-                if (kiv_os_rtl::Open_File(programs[i].output.name, static_cast<kiv_os::NOpen_File>(0), 0, file_handle_last_out, error)) { ;;
+                if (kiv_os_rtl::Open_File(programs[i].output.name, static_cast<kiv_os::NOpen_File>(0), 0, file_handle_last_out, error)) {
                 } else {
                     cancel_all_programs(programs, pipe_handles, handles, file_handle_first_in, file_handle_last_out, running_progs_num, std_in);
                     if (error == kiv_os::NOS_Error::File_Not_Found) {

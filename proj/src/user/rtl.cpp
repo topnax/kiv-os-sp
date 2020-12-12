@@ -30,7 +30,6 @@ bool kiv_os_rtl::Write_File(const kiv_os::THandle file_handle, const char *buffe
 
 	const bool result = kiv_os::Sys_Call(regs);
 	written = static_cast<size_t>(regs.rax.r);
-
     return result;
 }
 

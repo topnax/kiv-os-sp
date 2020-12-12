@@ -378,7 +378,10 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
         sector_num = offset / SECTOR_SIZE_B + (offset % SECTOR_SIZE_B != 0);
     }
 
+    // TODO this causes trouble
+    printf("zx sector_num=%d, %d\n", sector_num, file_clust_nums.size());
     int sector_num_vect = file_clust_nums.at(sector_num - 1); //nalezeni odpovidajiciho sektoru v poradi v ramci vektoru
+    printf("wv\n");
 
     int bytes_to_save_clust = offset % SECTOR_SIZE_B; //pocet bajtu, ktere jsou na clusteru, na ktery se bude zapisovat pred offsetem (ty chceme uchovat)
 
@@ -422,7 +425,10 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
             written_bytes += clust_data_write.size();
         }
         else { //musime se pokusit alokovat novy cluster pro soubor
+            printf("ab\n");
             int free_clust_index = retrieve_free_cluster_index(first_fat_table_dec);
+
+            printf("cd\n");
             if (free_clust_index == -1) {
                 save_fat_tables(first_fat_table_hex); //zapis fat pred opustenim
 
@@ -433,7 +439,7 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
                     file.size = file.size + newly_written_bytes;
                     written = written_bytes;
                 }
-
+                printf("ef\n");
                 return kiv_os::NOS_Error::Not_Enough_Disk_Space; //nebyl nalezen zadny volny cluster, koncime, cely buffer nemuze byt zapsan..
             }
 
@@ -466,6 +472,9 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
 
             write_data_to_fat_fs(free_clust_index, clust_data_write); //zapis dat na nove alokovany cluster
             written_bytes += clust_data_write.size();
+
+            printf("gh\n");
+            printf("chi\n");
         }
 
         clust_data_write.clear();
@@ -473,15 +482,17 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
 
     //po dokonceni zapisu zapsat prvni a druhou fat tabulku
     save_fat_tables(first_fat_table_hex);
-
+    printf("jk\n");
     //updatovat velikost souboru v nadrazene slozce
     int newly_written_bytes = (offset + written_bytes) - file.size; //na jake misto jsem se dostal - puvodni velikost souboru = pocet pridanych bajtu
     if (newly_written_bytes > 0) { //soubor byl zvetsen, update velikosti ve slozce...
         update_size_file_in_folder(file.name, offset, file.size, newly_written_bytes, first_fat_table_dec);
-        file.size = file.size + newly_written_bytes;
-        written = written_bytes;
-    }
 
+        printf("lm\n");
+        file.size = file.size + newly_written_bytes;
+    }
+    written = written_bytes;
+    printf("fat_fs has written %d, %d\n", written, written_bytes);
     return kiv_os::NOS_Error::Success;
 }
 
