@@ -966,9 +966,6 @@ int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>&
     //priprava bufferu s datovym obsahem jedne slozky - KONEC
 
     //ok, novy cluster alokovan, obsh entry je pripraven
-    for (int i = 0; i < to_write_subfolder.size(); i++) {
-        to_save.push_back(to_write_subfolder.at(i));
-    }
     
     if (folders_in_path.size() == 0) { //pokud chceme vytvorit slozku v rootu - tam se jich vejde 224
         if ((items_folder.size() + 1 + 1) <= (sectors_nums_data.size() * 16)) { //+1 pro odkaz na aktualni slozku +1 pro novou ; vejdeme se do clusteru
@@ -976,13 +973,8 @@ int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>&
             int cluster_num = (items_folder.size() + 1) / 16; //poradi clusteru / 16 (jeden cluster mi pojme 16 polozek)
             int item_num_clust_rel = (items_folder.size() + 1) % 16; //poradi polozky v ramci jednoho clusteru
 
-            std::cout << "Total items: " << items_folder.size() << "Got cluster num: " << cluster_num << "got clust_rel: " << item_num_clust_rel;
-
-            std::vector<unsigned char> data_clust = read_data_from_fat_fs(sectors_nums_data.at(cluster_num) - 31, 1); //-31; fce cte z dat sektoru
-            for (int i = 0; i < data_clust.size(); i++) {
-                printf("%c", data_clust.at(i));
-            }
-
+            std::vector<unsigned char> data_clust = read_data_from_fat_fs(sectors_nums_data.at(cluster_num) - 31, 1); //-31; fce cte z dat sektoru ; nactu si data na clusteru, do ktereho budu ukladat
+            
             for (int i = 0; i < to_write_subfolder.size(); i++) {
                 data_clust.at((item_num_clust_rel * 32) + i) = to_write_subfolder.at(i);
             }
@@ -994,18 +986,22 @@ int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>&
             write_data_to_fat_fs(sectors_nums_data.at(cluster_num) - 31, to_save);
         }
         else { //err, slozka uz se nevejde
+            //zabrany cluster oznacim opet jako volny a jdeme pryc
+            std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 0);
+            first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+            first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+            fat_table_dec.at(free_index) = 0; //oznacit cluster jako konecny v dec tabulce
+
+            save_fat_tables(first_fat_table_hex); //po upravach ulozim hex podobu tabulky do souboru
             return -1;
         }
     }
     else { //slozka mimo root, na jeden sektor se vejde 16 polozek
-        if ((items_folder.size() + 1 + 2) <= (sectors_nums_data.size() * 16)) {
+        if ((items_folder.size() + 2 + 1) <= (sectors_nums_data.size() * 16)) {
             int cluster_num = (items_folder.size() + 2) / 16; //poradi slozky / 16 (jeden cluster mi pojme 16 polozek)
             int item_num_clust_rel = (items_folder.size() + 2) % 16; //poradi polozky v ramci jednoho clusteru
 
             std::vector<unsigned char> data_clust = read_data_from_fat_fs(sectors_nums_data.at(cluster_num), 1);
-            for (int i = 0; i < data_clust.size(); i++) {
-                printf("%c", data_clust.at(i));
-            }
 
             for (int i = 0; i < to_write_subfolder.size(); i++) {
                 data_clust.at((item_num_clust_rel * 32) + i) = to_write_subfolder.at(i);
@@ -1018,7 +1014,13 @@ int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>&
             write_data_to_fat_fs(sectors_nums_data.at(cluster_num), to_save);
         }
         else { //err, slozka uz se nevejde
-            std::cout << "Neevejdem set!!\n";
+            //zabrany cluster oznacim opet jako volny a jdeme pryc
+            std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 0);
+            first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+            first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+            fat_table_dec.at(free_index) = 0; //oznacit cluster jako konecny v dec tabulce
+
+            save_fat_tables(first_fat_table_hex); //po upravach ulozim hex podobu tabulky do souboru
             return -1;
         }
     }
@@ -1039,7 +1041,7 @@ void write_folder_basics_cluster(int clust_to_write_index, int upper_fol_index) 
         to_write_subfolder.push_back(32);
     }
 
-    to_write_subfolder.push_back(10); //atributy
+    to_write_subfolder.push_back(0x10); //atributy
 
     for (int i = 0; i < 14; i++) { //14 bajtu nepotrebnych - datum vytvoreni, cas modifikace...
         to_write_subfolder.push_back(32);
@@ -1086,6 +1088,12 @@ void write_folder_basics_cluster(int clust_to_write_index, int upper_fol_index) 
     }
     //vytvoreni .. - KONEC
 
+    //zbytek clusteru doplnit 0
+    for (int i = to_write_subfolder.size(); i < 512; i++) {
+        to_write_subfolder.push_back(0);
+    }
+
+    //zapsat do fs
     write_data_to_fat_fs(clust_to_write_index, to_write_subfolder);
 }
 
