@@ -150,11 +150,9 @@ kiv_os::THandle Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8
             auto length = resolved_path_relative_to_fs.string().length() + 1;
             char *name = new char[length];
             strcpy_s(name, length, resolved_path_relative_to_fs.string().c_str());
-
             // open a file with the found filesystem
             auto result = fs->open(name, flags, attributes, f);
             if (result == kiv_os::NOS_Error::Success) {
-
                 file = new Filesystem_File(fs, f);
                 f.name = name;
             } else {
@@ -256,18 +254,19 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
     // keep a stack of file systems, while we traverse the directory tree (we can find fs mount points)
     std::stack<std::filesystem::path> paths_relative_to_fs;
 
+    // keep a stack of found cluster ids
+    std::stack<int32_t> cluster_stack;
+
     // keep track of the current path relative
     std::filesystem::path current_fs_path;
 
     // find the fs for the current path
     VFS *current_fs = Get_Filesystem(current_path.string());
-//    if (current_fs == nullptr) {
-//        current_fs = Get_Filesystem(path.parent_path().string());
-//    }
 
     file_systems.push(current_fs);
 
     if (current_fs != nullptr) {
+        cluster_stack.push(current_fs->get_root_fd());
         // the first file lookup should start in the root of the fs
         bool first = true;
 
@@ -279,20 +278,23 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
         for (const auto &component : path.relative_path()) {
             if (component == "..") {
                 // move one level up
-                if (current_path.has_filename()) {
+                if (current_path.has_root_directory()) {
                     // when the current path has some file name, then it has atleast one component in the path
                     // that means we can move one level up
 
                     // remove the last filename
-                    current_path.remove_filename();
+                    current_path = current_path.parent_path();
 
                     // decrement the number of components in the current fs
                     components_in_current_fs--;
+
+                    cluster_stack.pop();
 
                     if (components_in_current_fs == 0) {
                         // no more components in the current fs, load the previous FS
                         file_systems.pop();
                         current_fs = file_systems.top();
+                        components_in_current_fs = 1;
 
                         current_fs_path = paths_relative_to_fs.top();
 
@@ -300,6 +302,8 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
                         paths_relative_to_fs.pop();
 
                         // current_fs->print_name();
+                    } else {
+                        current_fs_path = current_fs_path.parent_path();
                     }
                 } else {
                     // cannot pop out of the root folder
@@ -319,15 +323,19 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
                     file_systems.push(new_fs);
                     current_fs = new_fs;
 
+                    cluster_stack.push(new_fs->get_root_fd());
                     // set the
                     current_fs_path = "\\";
                     components_in_current_fs = 1;
 
                 } else {
                     current_fs_path /= component.string();
-                    if (!current_fs->file_exists(current_fd, component.string().c_str(), first, current_fd)) {
+                    auto fd = cluster_stack.top();
+                    // check whether current path relative to FS exists in the current fs
+                    if (!current_fs->file_exists(fd, component.string().c_str(), first, current_fd)) {
                         return nullptr;
                     }
+                    cluster_stack.push(current_fd);
                     components_in_current_fs++;
                 }
 
@@ -340,6 +348,10 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
         }
         absolute_path = current_path;
         path_relative_to_fs = current_fs_path;
+        // transform empty path into .
+        if (path_relative_to_fs.empty()) {
+            path_relative_to_fs.append(".");
+        }
         return current_fs;
     }
 
