@@ -156,18 +156,25 @@ kiv_os::THandle Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8
         std::filesystem::path absolute_path;
 
         std::filesystem::path input_path = file_name;
-        if (flags == kiv_os::NOpen_File::fmOpen_Always) {
+        std::string file_name = input_path.filename().string();
+
+        if (flags != kiv_os::NOpen_File::fmOpen_Always) {
             input_path = input_path.root_path();
         }
 
         auto fs = File_Exists(input_path, resolved_path_relative_to_fs, absolute_path);
         if (fs != nullptr) {
+
+            if (flags != kiv_os::NOpen_File::fmOpen_Always) {
+                resolved_path_relative_to_fs /= file_name;
+            }
             File f{};
 
             auto length = resolved_path_relative_to_fs.string().length() + 1;
             char *name = new char[length];
             strcpy_s(name, length, resolved_path_relative_to_fs.string().c_str());
             // open a file with the found filesystem
+
             auto result = fs->open(name, flags, attributes, f);
             if (result == kiv_os::NOS_Error::Success) {
                 file = new Filesystem_File(fs, f);
@@ -368,10 +375,7 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
         }
         absolute_path = current_path;
         path_relative_to_fs = current_fs_path;
-        // transform empty path into .
-        if (path_relative_to_fs.empty()) {
-            path_relative_to_fs.append(".");
-        }
+
         return current_fs;
     }
 

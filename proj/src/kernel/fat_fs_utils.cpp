@@ -275,17 +275,6 @@ directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table
         while (dir_item_number == -1 && j < cur_folder_items.size()) { //dokud nebyla nalezena slozka s odpovidajicim nazvem
             directory_item dir_item = cur_folder_items.at(j);
 
-            // TODO remove/rework this, this should take "dir ." command in root folder into consideration
-            if (start_cluster == 19 && path.at(i) == ".") {
-                auto di = directory_item{
-                    ".",
-                    "",
-                    static_cast<int>(cur_folder_items.size() * sizeof(kiv_os::TDir_Entry)),
-                    19
-                };
-                return di;
-            }
-
             if (!dir_item.extension.empty()) {
                 item_to_check = dir_item.filename + "." + dir_item.extension;
             }
@@ -498,8 +487,7 @@ std::vector<std::string> path_to_indiv_items(const char* path_file) {
 
         counter++;
     }
-   
-    if (folders_in_path.at(0).length() == 0) { //odstraneni polozky - byla zadana prazdna cesta... 
+    if (folders_in_path.at(0).length() == 0) { //odstraneni polozky - byla zadana prazdna cesta...
         folders_in_path.erase(folders_in_path.begin());
     }
     return folders_in_path;
@@ -786,13 +774,11 @@ int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>&
     std::string new_fol_name = folders_in_path.at(folders_in_path.size() - 1); //nazev nove slozky
 
     folders_in_path.pop_back(); //posledni polozka v seznamu je nazev nove polozky
-    
     //ziskani clusteru, obsahu nadrazene slozky - START
     int start_sector = -1;
     std::vector<int> sectors_nums_data; //sektory nadrazene slozky
     if (folders_in_path.size() == 0) { //jsme v rootu
         start_sector = 19;
-
         for (int i = 19; i < 33; i++) {
             sectors_nums_data.push_back(i);
         }
@@ -803,7 +789,6 @@ int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>&
 
         start_sector = sectors_nums_data.at(0);
     }
-
     std::vector<directory_item> items_folder = retrieve_folders_cur_folder(fat_table_dec, start_sector);  //ziskani obsahu nadrazene slozky
     //ziskani clusteru, obsahu nadrazene slozky - KONEC
 

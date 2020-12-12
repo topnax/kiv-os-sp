@@ -132,12 +132,10 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
     int32_t target_cluster;
 
     std::vector<std::string> folders_in_path = path_to_indiv_items(name); //rozdeleni na indiv. polozky v ceste
-    std::cout << "Last item is " << folders_in_path.at(folders_in_path.size() - 1).data() << "\n";
     if (folders_in_path.size() > 0 && strcmp(folders_in_path.at(folders_in_path.size() - 1).data(), ".") == 0) {
         std::cout << "removing .\n";
         folders_in_path.pop_back(); //odstranit .
     }
-
     directory_item dir_item = retrieve_item_clust(19, first_fat_table_dec, folders_in_path); //pokus o otevreni existujiciho souboru)
     target_cluster = dir_item.first_cluster;
     std::cout << "Target cluster is " << target_cluster << "\n";
@@ -216,7 +214,6 @@ kiv_os::NOS_Error Fat_Fs::mkdir(const char *name, uint8_t attributes) {
     std::string new_folder_name = folders_in_path.at(folders_in_path.size() - 1); //nazev nove slozky
 
     folders_in_path.pop_back(); //posledni polozka v seznamu je nazev nove slozky, tu ted nehledame
-
     int result = create_folder(name, attributes, first_fat_table_dec, first_fat_table_hex);
 
     if (result == 0) {
