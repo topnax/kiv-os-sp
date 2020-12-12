@@ -151,21 +151,43 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
         }
         else { //soubor / slozka nemusi existovat, pokusim se vytvorit
             dir_item.attribute = attributes; //pouziji pridelene atributy u nove vytvorene slozky / souboru
+            dir_item.filezise = 0;
+           
             printf("Assigned attribute: %.2X\n", attributes);
             //PREPSAT DIR_ITEM
             std::cout << "Non existent, create \n";
+            bool created = false;
 
             if (dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //vytvorit slozku
-                mkdir(name, attributes);
+                kiv_os::NOS_Error result = mkdir(name, attributes);
                 std::cout << "Creating new folder: IN OPEN\n";
+                if (result == kiv_os::NOS_Error::Not_Enough_Disk_Space) { //nebyl dostatek mista na disku (chybi cluster), slozka  nebyla vytvorena
+                    created = false;
+                }
+                else { //slozka vytvorena, dostala prideleny cluster
+                    created = true;
+                }
             }
             else { //pokus vytvorit soubor
-                create_file(name, attributes, first_fat_table_dec, first_fat_table_hex);
+                int result = create_file(name, attributes, first_fat_table_dec, first_fat_table_hex);
                 std::cout << "I am working with file: " << dir_item.filezise << "\n";
                 file.size = dir_item.filezise; //prideleni velikosti souboru
-            }
 
-            return kiv_os::NOS_Error::File_Not_Found;
+                if (result == -1) { //nebyl dostatek mista na disku
+                    created = false;
+                }
+                else { //ok, soubor vytvoren
+                    created = true;
+                }
+            }
+            
+            if (!created) { //koncime, pokud nenalezen volny cluster
+                return kiv_os::NOS_Error::Not_Enough_Disk_Space;
+            }
+            else { //priradim novy cluster
+                target_cluster = retrieve_item_clust(19, first_fat_table_dec, folders_in_path).first_cluster;
+                std::cout << "After creation found on" << target_cluster;
+            }
         }
     }
     else {
@@ -176,6 +198,10 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
     file.attributes = dir_item.attribute;
     file.handle = target_cluster; //handler bude cislo clusteru
     std::vector<int> sector_nums = retrieve_sectors_nums_fs(first_fat_table_dec, file.handle);
+
+    for (int i = 0; i < sector_nums.size(); i++) {
+        printf("Got clust %d\n", sector_nums.at(i));
+    }
 
     if (dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //jedna se o slozku, pridelit velikost vzorec: pocet_polozek_slozka * sizeof(TDir_Entry)
         std::vector<kiv_os::TDir_Entry> dir_entries_size; //pro zjisteni poctu polozek ve slozce
@@ -213,9 +239,7 @@ kiv_os::NOS_Error Fat_Fs::rmdir(const char *name) {
 }
 
 kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size, size_t offset, size_t &written) {
-    std::vector<unsigned char> fat_table1_hex = load_first_fat_table_bytes();
-    std::vector<int> fat_table1_dec = convert_fat_table_to_dec(fat_table1_hex);
-    std::vector<int> file_clust_nums = retrieve_sectors_nums_fs(fat_table1_dec, file.handle); //seznam clusteru, na kterych se soubor nachazi
+    std::vector<int> file_clust_nums = retrieve_sectors_nums_fs(first_fat_table_dec, file.handle); //seznam clusteru, na kterych se soubor nachazi
 
     int cluster_fully_occ_bef = (offset) / SECTOR_SIZE_B; //pocet plne obsazenych clusteru pred offsetem
 
@@ -250,7 +274,7 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
     }
 
     int written_bytes = 0 - bytes_to_save_clust;
-
+    std::cout << "Want to write to clust: " << file_clust_nums.at(sector_num - 1) << "\n";
     //v bufferu je ulozen obsah vsech clusteru, ktere maji byt prepsany - zaciname od clusteru sector_num_vect, pripadne pak posun na dalsi, pokud buffer > 512 - teoreticky zapis na vice clusteru
     int clusters_count = data_to_write.size() / SECTOR_SIZE_B + (data_to_write.size() % SECTOR_SIZE_B != 0); //pocet clusteru, pres ktere bude buffer ulozen
 
@@ -272,14 +296,14 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
             written_bytes += clust_data_write.size();
         }
         else { //musime se pokusit alokovat novy cluster pro soubor
-            int free_clust_index = retrieve_free_cluster_index(fat_table1_dec);
+            int free_clust_index = retrieve_free_cluster_index(first_fat_table_dec);
             if (free_clust_index == -1) {
-                save_fat_tables(fat_table1_hex); //zapis fat pred opustenim
+                save_fat_tables(first_fat_table_hex); //zapis fat pred opustenim
 
                  //updatovat velikost souboru v nadrazene slozce
                 int newly_written_bytes = (offset + written_bytes) - file.size; //na jake misto jsem se dostal - puvodni velikost souboru = pocet pridanych bajtu
                 if (newly_written_bytes > 0) { //soubor byl zvetsen, update velikosti ve slozce...
-                    update_size_file_in_folder(file.name, offset, file.size, newly_written_bytes, fat_table1_dec);
+                    update_size_file_in_folder(file.name, offset, file.size, newly_written_bytes, first_fat_table_dec);
                     file.size = file.size + newly_written_bytes;
                     written = written_bytes;
                 }
@@ -288,48 +312,48 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
             }
 
             //ok, mame novy cluster, prirazeni v dec tabulce
-            fat_table1_dec.at(file_clust_nums.at(file_clust_nums.size() - 1)) = free_clust_index; //posledni cluster dostane odkaz na volny
-            fat_table1_dec.at(free_clust_index) = 4095; //dosud volny cluster oznacen jako konecny
+            first_fat_table_dec.at(file_clust_nums.at(file_clust_nums.size() - 1)) = free_clust_index; //posledni cluster dostane odkaz na volny
+            first_fat_table_dec.at(free_clust_index) = 4095; //dosud volny cluster oznacen jako konecny
 
             //v hex tabulkach upravit cislo posledniho clusteru puvodne prideleno souboru - START
             int index_to_edit = file_clust_nums.at(file_clust_nums.size() - 1); //posledni cluster dostane prideleny odkaz na nove alokovany cluster - pocitano v dec
             int first_index_hex_tab = index_to_edit * 1.5; //index volneho clusteru v hex tabulce (na dvou bajtech)
 
-            char free_cluster_index_first = fat_table1_hex.at(first_index_hex_tab);
-            char free_cluster_index_sec = fat_table1_hex.at(first_index_hex_tab + 1);
+            char free_cluster_index_first = first_fat_table_hex.at(first_index_hex_tab);
+            char free_cluster_index_sec = first_fat_table_hex.at(first_index_hex_tab + 1);
 
-            std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(index_to_edit, fat_table1_hex, free_clust_index);
-            fat_table1_hex.at(index_to_edit * 1.5) = modified_bytes.at(0);
-            fat_table1_hex.at((index_to_edit * 1.5) + 1) = modified_bytes.at(1);
+            std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(index_to_edit, first_fat_table_hex, free_clust_index);
+            first_fat_table_hex.at(index_to_edit * 1.5) = modified_bytes.at(0);
+            first_fat_table_hex.at((index_to_edit * 1.5) + 1) = modified_bytes.at(1);
             //v hex tabulkach upravit cislo posledniho clusteru puvodne prideleno souboru - KONEC
 
             //v hex tabulkach na indexu nove prideleneho clusteru udelit 4095 (konec souboru) - START
             first_index_hex_tab = free_clust_index * 1.5; //index zabraneho clusteru
 
-            free_cluster_index_first = fat_table1_hex.at(first_index_hex_tab);
-            free_cluster_index_sec = fat_table1_hex.at(first_index_hex_tab + 1);
+            free_cluster_index_first = first_fat_table_hex.at(first_index_hex_tab);
+            free_cluster_index_sec = first_fat_table_hex.at(first_index_hex_tab + 1);
 
-            modified_bytes = convert_num_to_bytes_fat(free_clust_index, fat_table1_hex, 4095);
-            fat_table1_hex.at(free_clust_index * 1.5) = modified_bytes.at(0);
-            fat_table1_hex.at((free_clust_index * 1.5) + 1) = modified_bytes.at(1);
+            modified_bytes = convert_num_to_bytes_fat(free_clust_index, first_fat_table_hex, 4095);
+            first_fat_table_hex.at(free_clust_index * 1.5) = modified_bytes.at(0);
+            first_fat_table_hex.at((free_clust_index * 1.5) + 1) = modified_bytes.at(1);
             //v hex tabulkach na indexu nove prideleneho clusteru udelit 4095 (konec souboru) - KONEC
 
             write_data_to_fat_fs(free_clust_index, clust_data_write); //zapis dat na nove alokovany cluster
             written_bytes += clust_data_write.size();
 
-            retrieve_sectors_nums_fs(fat_table1_dec, file.handle); //ziskani seznamu clusteru, na kterych se soubor nachazi
+            retrieve_sectors_nums_fs(first_fat_table_dec, file.handle); //ziskani seznamu clusteru, na kterych se soubor nachazi
         }
 
         clust_data_write.clear();
     }
 
     //po dokonceni zapisu zapsat prvni a druhou fat tabulku
-    save_fat_tables(fat_table1_hex);
+    save_fat_tables(first_fat_table_hex);
 
     //updatovat velikost souboru v nadrazene slozce
     int newly_written_bytes = (offset + written_bytes) - file.size; //na jake misto jsem se dostal - puvodni velikost souboru = pocet pridanych bajtu
     if (newly_written_bytes > 0) { //soubor byl zvetsen, update velikosti ve slozce...
-        update_size_file_in_folder(file.name, offset, file.size, newly_written_bytes, fat_table1_dec);
+        update_size_file_in_folder(file.name, offset, file.size, newly_written_bytes, first_fat_table_dec);
         file.size = file.size + newly_written_bytes;
         written = written_bytes;
     }
