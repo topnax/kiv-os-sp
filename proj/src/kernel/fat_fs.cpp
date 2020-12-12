@@ -552,3 +552,7 @@ bool Fat_Fs::file_exists(int32_t current_fd, const char* name, bool start_from_r
         return true;
     }
 }
+
+uint32_t Fat_Fs::get_root_fd() {
+    return 19;
+}

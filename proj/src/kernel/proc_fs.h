@@ -38,6 +38,8 @@ public:
 
     kiv_os::NOS_Error get_attributes(const char *name, uint8_t &out_attributes) override;
 
+    uint32_t get_root_fd() override;
+
 private:
     static std::vector<char> generate_readproc_vector(Process process);
 

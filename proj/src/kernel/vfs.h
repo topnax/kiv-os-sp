@@ -115,6 +115,8 @@ public:
         return out;
     }
 
+    virtual uint32_t get_root_fd() = 0;
+
     // virtual destructor required, so that deleting child class instances invokes child destructor
     virtual ~VFS() = default;
 };

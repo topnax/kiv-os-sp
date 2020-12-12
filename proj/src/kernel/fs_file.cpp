@@ -10,7 +10,6 @@ kiv_os::NOS_Error Filesystem_File::read(size_t to_read, char *out_buffer, size_t
     std::vector<char> out;
 
     to_read = std::min(to_read, file.size - file.position);
-
     if (to_read <= 0) {
         // trying to read out of file's bounds
         return kiv_os::NOS_Error::IO_Error;
