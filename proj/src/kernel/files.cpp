@@ -86,22 +86,7 @@ void Init_Filesystems() {
             flags = static_cast<kiv_os::NOpen_File>(0); //soubor musi existovat, aby byl otevren
             test_file.attributes = 0x20;
             printf("Gave attribute: %.2X\n", test_file.attributes);
-            fs->open("\\FDSETUP\\FILE1", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE2", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE3", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE4", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE5", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE6", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE7", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE8", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE9", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE10", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE11", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE12", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE13", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE14", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE15", flags, 0x20, test_file);
-            fs->open("\\FDSETUP\\FILE16", flags, 0x20, test_file);
+
             //printf("First folder cluster is %d !!\n\n\n", test_file.handle);
             //printf("Attrib is %d!!\n\n\n", (int)test_file.attributes);
 
