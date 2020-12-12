@@ -360,7 +360,7 @@ kiv_os::NOS_Error Fat_Fs::rmdir(const char *name) {
     }
     //ted vymazat odkaz z nadrazene slozky - KONEC
 
-    return kiv_os::NOS_Error::IO_Error;
+    return kiv_os::NOS_Error::Success;
 }
 
 kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size, size_t offset, size_t &written) {
