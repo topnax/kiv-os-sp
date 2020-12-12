@@ -184,6 +184,7 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
                 std::cout << "Creating new folder: IN OPEN\n";
             }
             else { //pokus vytvorit soubor
+                create_file(name, attributes, first_fat_table_dec, first_fat_table_hex);
                 std::cout << "I am working with file: " << dir_item.filezise << "\n";
                 file.size = dir_item.filezise; //prideleni velikosti souboru
             }

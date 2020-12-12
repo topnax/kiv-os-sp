@@ -824,50 +824,12 @@ void update_size_file_in_folder(char *filename_path, int offset, int original_si
 }
 
 /*
-* Vytvori ve fs novou polozku, soubor.
-* vrati 0, pokud vse ok; -1 pokud uz neni misto
-* item_path - cesta k novemu souboru
-* attributes - bajt reprezentujici atributy
-* fat_table_dec - odkaz na FAT tabulku v dec (muze byt upravena, pokud zapis ok)
-* first_fat_table_hex - odkaz na FAT tabulku v hex (muze byt upravena, pokud zapis ok)
-/**/
-int create_file_item(const char* item_path, unsigned char attributes, std::vector<int> &fat_table_dec, std::vector<unsigned char> &first_fat_table_hex) {
-    std::cout << "About to create new file!!\n";
-
-    std::vector<std::string> items_in_path = path_to_indiv_items(item_path); //rozdeleni cesty na jednotliv. polozky
-    std::string new_file_name = items_in_path.at(items_in_path.size() - 1); //nazev nove polozky
-
-    items_in_path.pop_back(); //odstraneni posledni polozky - nazev nove polozky, tu ted nehledame; potreba najit nadrazenou slozku pro vytvoreni entry
-
-    //najit cluster nadrazene slozky - START
-    int start_sector = -1;
-    std::vector<int> sectors_upper_fol; //sektory nadrazene slozky
-    if (items_in_path.size() == 0) { //jsme v rootu
-        start_sector = 19;
-
-        for (int i = 19; i < 33; i++) {
-            sectors_upper_fol.push_back(i);
-        }
-    }
-    else { //klasicka slozka, ne root
-        directory_item target_folder = retrieve_item_clust(19, fat_table_dec, items_in_path);
-        sectors_upper_fol = retrieve_sectors_nums_fs(fat_table_dec, target_folder.first_cluster);
-
-        start_sector = sectors_upper_fol.at(0);
-    }
-
-    std::cout << "Got number cluster: " << sectors_upper_fol.size() << "!!!!!!!!!!!\n\n\n";
-
-    std::vector<directory_item> items_folder = retrieve_folders_cur_folder(fat_table_dec, start_sector);  //ziskani obsahu nadrazene slozky
-    //najit cluster nadrazene slozky - KONEC
-
-    return 0;
-}
-
-/*
 * Vytvori ve fs novou slozku
 * vrati 0, pokud vse ok; -1 pokud uz neni misto
 * folder_path - cesta k nove slozce
+* attributes - atributy slozky
+* fat_table_dec - fat tabulka v dec
+* first_fat_table_hex - fat tabulka v hex
 /**/
 int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>& fat_table_dec, std::vector<unsigned char>& first_fat_table_hex) {
     printf("In create_folder Received attribute: %.2X\n", attributes);
@@ -1095,6 +1057,161 @@ void write_folder_basics_cluster(int clust_to_write_index, int upper_fol_index) 
 
     //zapsat do fs
     write_data_to_fat_fs(clust_to_write_index, to_write_subfolder);
+}
+
+/*
+* Vytvori ve fs novy soubor
+* vrati 0, pokud vse ok; -1 pokud uz neni misto
+* file_path - cesta k novemu souboru
+* attributes - atributy souboru
+* fat_table_dec - fat tabulka v dec
+* first_fat_table_hex - fat tabulka v hex
+/**/
+int create_file(const char* file_path, uint8_t attributes, std::vector<int>& fat_table_dec, std::vector<unsigned char>& first_fat_table_hex) {
+    std::cout << "Creating new file: IN CREATE_FILE\n";
+    std::cout << "Filename is: " << file_path;
+    std::cout << "About to create new file!!\n";
+
+    std::vector<std::string> items_in_path = path_to_indiv_items(file_path); //rozdeleni cesty na jednotliv. polozky
+    std::string new_file_name = items_in_path.at(items_in_path.size() - 1); //nazev nove polozky
+
+    items_in_path.pop_back(); //odstraneni posledni polozky - nazev nove polozky, tu ted nehledame; potreba najit nadrazenou slozku pro vytvoreni entry
+
+    //najit cluster nadrazene slozky - START
+    int start_sector = -1;
+    std::vector<int> sectors_upper_fol; //sektory nadrazene slozky
+    if (items_in_path.size() == 0) { //jsme v rootu
+        start_sector = 19;
+
+        for (int i = 19; i < 33; i++) {
+            sectors_upper_fol.push_back(i);
+        }
+    }
+    else { //klasicka slozka, ne root
+        directory_item target_folder = retrieve_item_clust(19, fat_table_dec, items_in_path);
+        sectors_upper_fol = retrieve_sectors_nums_fs(fat_table_dec, target_folder.first_cluster);
+
+        start_sector = sectors_upper_fol.at(0);
+    }
+
+    std::cout << "Got number cluster: " << sectors_upper_fol.size() << "!!!!!!!!!!!\n\n\n";
+
+    std::vector<directory_item> items_folder = retrieve_folders_cur_folder(fat_table_dec, start_sector);  //ziskani obsahu nadrazene slozky
+
+    std::cout << "Items about to create folder fol print - START\n";
+    for (int i = 0; i < items_folder.size(); i++) {
+        std::cout << items_folder.at(i).filename << "\n";
+    }
+    std::cout << "Items about to create folder  fol print - END\n";
+    //najit cluster nadrazene slozky - KONEC
+
+    //najit cluster pro novy soubor
+    int free_index = retrieve_free_cluster_index(fat_table_dec);
+    if (free_index == -1) { //volny index uz nelze najit
+        std::cout << "No clust found for new file!!\n";
+        return -1; //nenalezl jsem cluster pro novy soubor, konec
+    }
+    else { //uprava fat tabulek a oznaceni clusteru jako zabraneho
+        //na volny index hex i dec tabulek ulozim 4095 - znaci konec soubor - START
+        std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 4095);
+        first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+        first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+        fat_table_dec.at(free_index) = 4095; //oznacit cluster jako konecny v dec tabulce
+        //na volny index hex i dec tabulek ulozim 4095 - znaci konec soubor - KONEC
+
+        save_fat_tables(first_fat_table_hex); //po upravach ulozim hex podobu tabulky do souboru
+
+        std::cout << "wanna assign clust " << free_index << "\n";
+    }
+    //novy cluster nalezen, fatka ulozena..
+
+    //dle posledni . v nazvu souboru rozdelit soubor na nazev + priponu - START
+    std::vector<char> filename; //nazev souboru
+    std::vector<char> extension; //pripona souboru 
+    //dle posledni . v nazvu souboru rozdelit soubor na nazev + priponu - KONEC
+
+    //rozdeleni na nazev a priponu souboru pro dir entry - START
+    bool extension_encountered = false;
+
+    char traversed_letter; //pujdem po nazvu nez '\0'
+    int traverse_counter = 0;
+    do {
+        traversed_letter = new_file_name[traverse_counter];
+        traverse_counter++;
+
+        filename.push_back(traversed_letter);
+
+        if (traversed_letter == '.') { //mozna pripona, zacinam ukladat do bufferu pripony..
+            extension.clear();
+            extension_encountered = true;
+        }
+        else if(extension_encountered){ //mozna soucast pripony
+            extension.push_back(traversed_letter);
+        }
+    } while(traversed_letter != '\0');
+
+    if (filename.size() > 0) { //odstraneni \0
+        filename.pop_back();
+    }
+
+    if (extension.size() > 0) { //odstraneni \0
+        extension.pop_back();
+    }
+
+
+    for (int i = 0; i < extension.size() + 1; i++) { //odstranit priponu z nazvu a .
+        filename.pop_back();
+    }
+    //rozdeleni na nazev a priponu souboru pro dir entry - KONEC
+
+    std::cout << "Printing filename - start" << "\n";
+    for (int i = 0; i < filename.size(); i++) {
+        printf("%c", filename.at(i));
+    }
+    std::cout << "Printing filename - konec" << "size: " << filename.size() << "\n";
+
+    std::cout << "Printing extension - start" << "\n";
+    for (int i = 0; i < extension.size(); i++) {
+        printf("%c", extension.at(i));
+    }
+    std::cout << "Printing extension - konec" << "size: " << extension.size() << "\n";
+    return 0;
+
+    //priprava bufferu s dir entry souboru, ktera bude v nadrazene slozce - START
+    std::vector<unsigned char> to_write_subfolder; //obsahuje dir entry
+    std::vector<char> to_save; //cely obsah clusteru (puvodni dir itemy na odpovidajicim clusteru + novy dir item)
+
+    int i = 0;
+    for (; i < filename.size(); i++) { //nazev souboru - 8 bajtu
+        to_write_subfolder.push_back(filename.at(i));
+    }
+
+    for (; i < 8; i++) { //doplnit na 8 bytu nazev, ve fat nazev vzdy 8 byt
+        to_write_subfolder.push_back(32);
+    }
+
+    i = 0;
+    for (; i < extension.size(); i++) { //pripona souboru - 3 bajty
+        to_write_subfolder.push_back(extension.at(i));
+    }
+
+    for (; i < 3; i++) { //doplnit na 3 bajty pripony, ve fat pripona vzdy 3 bajty
+        to_write_subfolder.push_back(32);
+    }
+
+    //doplnit atribut
+    to_write_subfolder.push_back(attributes);
+
+    for (int i = 0; i < 14; i++) { //14 bajtu pro nas nezajimavych - datum vytvoreni, cas modifikace...
+        to_write_subfolder.push_back(32);
+    }
+
+    //na dva bajty ulozit prvni cluster
+    std::vector<unsigned char> first_assigned_clust = convert_dec_to_hex_start_clus(free_index);
+    for (int i = 0; i < 2; i++) {
+        to_write_subfolder.push_back(first_assigned_clust.at(i));
+    }
+    //priprava bufferu s dir entry souboru, ktera bude v nadrazene slozce - KONEC
 }
 
 /*
