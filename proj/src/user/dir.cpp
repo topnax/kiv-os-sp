@@ -94,8 +94,8 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
             // prepare in which we will read
             char read_buffer[dir_entry_size];
 
-            // file_name size + 1 whitespace + 6 values in file_attributes + 1 \n + 1 NULL
-            const auto out_buffer_size = sizeof(kiv_os::TDir_Entry::file_name) + 1 + 6 + 1 + 1;
+            // file_name size + 1 possible \ (directories) + 1 whitespace + 6 values in file_attributes + 1 \n + 1 NULL
+            const auto out_buffer_size = sizeof(kiv_os::TDir_Entry::file_name) + 1 + 1 + 6 + 1 + 1;
 
             // prepare an out buffer
             char out_buffer[out_buffer_size];
@@ -114,14 +114,28 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
                         path_stack.push(path);
                     }
 
-                    sprintf_s(out_buffer, out_buffer_size, "%.12s %u%u%u%u%u%u\n", entry->file_name,
+                    auto is_directory = (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0;
+                    sprintf_s(out_buffer, out_buffer_size, "%-12.12s  %u%u%u%u%u%u\n", entry->file_name,
                               (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Read_Only)) != 0,
                               (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Hidden)) != 0,
                               (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::System_File)) != 0,
                               (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID)) != 0,
-                              (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0,
+                              is_directory,
                               (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Archive)) != 0
                     );
+
+                    if (is_directory) {
+                        // find the terminator position
+                        for (size_t i = 0; i < sizeof(entry->file_name); i++) {
+                            if (entry->file_name[i] == 0) {
+                                out_buffer[i] = '\\';
+                                break;
+                            }
+                            if (i == sizeof(entry->file_name) - 1) {
+                                out_buffer[i + 1] = '\\';
+                            }
+                        }
+                    }
 
                     // out_buffer_size - 1 => sprintf_s concatenates with NULL but we don't want write NULL to std_out
                     kiv_os_rtl::Write_File(std_out, out_buffer, out_buffer_size - 1, written);
