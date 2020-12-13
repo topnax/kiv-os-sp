@@ -131,10 +131,6 @@ void Open_File(kiv_hal::TRegisters &registers) {
     kiv_os::NOS_Error error = kiv_os::NOS_Error::Success;
     auto handle = Open_File(file_name, flags, attributes, error);
 
-    if (handle == kiv_os::Invalid_Handle) {
-        error = kiv_os::NOS_Error::File_Not_Found;
-    }
-
     if (error == kiv_os::NOS_Error::Success) {
         registers.rax.x = handle;
     } else {
@@ -143,22 +139,30 @@ void Open_File(kiv_hal::TRegisters &registers) {
     }
 }
 
-kiv_os::THandle Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8_t attributes, kiv_os::NOS_Error &error) {
+kiv_os::THandle Open_File(const char *input_file_name, kiv_os::NOpen_File flags, uint8_t attributes, kiv_os::NOS_Error &error) {
     std::lock_guard<std::mutex> guard(Files::Open_Guard);
     Generic_File *file = nullptr;
 
-    if (strcmp(file_name, "\\sys\\tty") == 0) {
+    if (strcmp(input_file_name, "\\sys\\tty") == 0) {
         file = new Tty_File();
-    } else if (strcmp(file_name, "\\sys\\kb") == 0) {
+    } else if (strcmp(input_file_name, "\\sys\\kb") == 0) {
         file = new Keyboard_File();
     } else {
         std::filesystem::path resolved_path_relative_to_fs;
         std::filesystem::path absolute_path;
 
-        std::filesystem::path input_path = file_name;
+        std::filesystem::path input_path = input_file_name;
         std::string file_name = input_path.filename().string();
 
+        // check whether the file has to exist in order to be opened
         if (flags != kiv_os::NOpen_File::fmOpen_Always) {
+            // file does not have to exist
+            if ((attributes & static_cast<decltype(attributes)>(kiv_os::NFile_Attributes::Directory) && File_Exists(input_path, resolved_path_relative_to_fs, absolute_path) != nullptr)) {
+                // if a directory should be created a file at the given path mustn't exist
+                error = kiv_os::NOS_Error::Invalid_Argument;
+                return kiv_os::Invalid_Handle;
+            }
+            // when the file does not have to check whether the parent path does exist
             input_path = input_path.parent_path();
         }
 
@@ -166,6 +170,7 @@ kiv_os::THandle Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8
         if (fs != nullptr) {
 
             if (flags != kiv_os::NOpen_File::fmOpen_Always) {
+                // add back the filename
                 resolved_path_relative_to_fs /= file_name;
             }
             File f{};
@@ -177,6 +182,7 @@ kiv_os::THandle Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8
 
             auto result = fs->open(name, flags, attributes, f);
             if (result == kiv_os::NOS_Error::Success) {
+                // file opened successfully
                 file = new Filesystem_File(fs, f);
                 f.name = name;
             } else {
