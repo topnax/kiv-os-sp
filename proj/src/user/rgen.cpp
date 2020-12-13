@@ -90,7 +90,6 @@ extern "C" size_t __stdcall rgen(const kiv_hal::TRegisters &regs) {
 
     size_t counter;
     bool res;
-    char small_buff[sizeof(float)];
     char string[99]; // todo how big a buffer?
     while (*generate) {
         // std::this_thread::sleep_for(std::chrono::milliseconds(200));
@@ -98,28 +97,13 @@ extern "C" size_t __stdcall rgen(const kiv_hal::TRegisters &regs) {
         
         
         memset(string, 0, 99);
-        sprintf_s(string, "%.25lf", random_number); // todo remove trailing zeros, also how many decimal places?
-        //char random_char = (char) random_number; // convert it to a char
-        /*const char* bytes = reinterpret_cast<const char*>(&random_number);
-        for (size_t i = 0; i != sizeof(float); ++i)
-        {
-            auto byte = bytes[i];
-            if (static_cast<kiv_hal::NControl_Codes>(bytes[i]) == kiv_hal::NControl_Codes::EOT) {
-                continue;
-            }
-            small_buff[i] = byte;
+        sprintf_s(string, "%.25lf", random_number); // todo remove trailing zeros?, also how many decimal places?
 
-            
-        }*/
-
-        for (int i = 0; i < strlen(string); i++) {
-            res = kiv_os_rtl::Write_File(std_out, &string[i], 1, counter);
-       
-            if (!res) {
-                // could not write to file, abort
-                is_generating = false;
-                break;
-            }
+        res = kiv_os_rtl::Write_File(std_out, string, strlen(string), counter);
+        if (!res) {
+            // could not write to file, abort
+            is_generating = false;
+            break;
         }
 
         
