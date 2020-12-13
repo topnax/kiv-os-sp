@@ -159,7 +159,7 @@ kiv_os::THandle Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8
         std::string file_name = input_path.filename().string();
 
         if (flags != kiv_os::NOpen_File::fmOpen_Always) {
-            input_path = input_path.root_path();
+            input_path = input_path.parent_path();
         }
 
         auto fs = File_Exists(input_path, resolved_path_relative_to_fs, absolute_path);
