@@ -80,29 +80,6 @@ void Init_Filesystems() {
             auto fs = new Fat_Fs(disk_num, *disk_params);
             fs->init();
             Add_Filesystem(R"(C:\)", fs);
-   
-            File test_file;
-            kiv_os::NOpen_File flags;
-            flags = static_cast<kiv_os::NOpen_File>(0); //soubor musi existovat, aby byl otevren
-            test_file.attributes = 0x20;
-            printf("Gave attribute: %.2X\n", test_file.attributes);
-            //fs->open("\\FDSETUP\\BIN", flags, 0x20, test_file);
-            //fs->rmdir("\\FDSETUP");
-
-            size_t written;
-
-            std::string to_write = "teplyjakogolfskyproud";
-            std::vector<char> data_to_write;
-            for (int i = 0; i < to_write.size(); i++) {
-                data_to_write.push_back(to_write.at(i));
-            }
-
-            //fs->write(test_file, data_to_write, 0, 511, written);
-            //printf("First folder cluster is %d !!\n\n\n", test_file.handle);
-            //printf("Attrib is %d!!\n\n\n", (int)test_file.attributes);
-
-            std::vector<char> out_buffer;
-           
 
             break;
         }

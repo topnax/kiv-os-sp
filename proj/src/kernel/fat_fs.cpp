@@ -133,29 +133,23 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
 
     std::vector<std::string> folders_in_path = path_to_indiv_items(name); //rozdeleni na indiv. polozky v ceste
     if (folders_in_path.size() > 0 && strcmp(folders_in_path.at(folders_in_path.size() - 1).data(), ".") == 0) {
-        std::cout << "removing .\n";
         folders_in_path.pop_back(); //odstranit .
     }
     directory_item dir_item = retrieve_item_clust(19, first_fat_table_dec, folders_in_path); //pokus o otevreni existujiciho souboru)
     target_cluster = dir_item.first_cluster;
-    std::cout << "Target cluster is " << target_cluster << "\n";
 
     if (target_cluster == -1) { //soubor / slozka nenalezena; zatim NEEXISTUJE
         if (flags == kiv_os::NOpen_File::fmOpen_Always) { //soubor / slozka musi existovat, aby byl otevren
-            std::cout << "file not found in open!\n";
             return kiv_os::NOS_Error::File_Not_Found;
         }
         else { //soubor / slozka nemusi existovat, pokusim se vytvorit
             dir_item.attribute = attributes; //pouziji pridelene atributy u nove vytvorene slozky / souboru
             dir_item.filezise = 0;
         
-            printf("Assigned attribute: %.2X\n", attributes);
-            std::cout << "Non existent, create \n";
             bool created = false;
 
             if (dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //vytvorit slozku
                 kiv_os::NOS_Error result = mkdir(name, attributes);
-                std::cout << "Creating new folder: IN OPEN\n";
                 if (result == kiv_os::NOS_Error::Not_Enough_Disk_Space) { //nebyl dostatek mista na disku (chybi cluster), slozka  nebyla vytvorena
                     created = false;
                 }
@@ -165,7 +159,7 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
             }
             else { //pokus vytvorit soubor
                 int result = create_file(name, attributes, first_fat_table_dec, first_fat_table_hex);
-                std::cout << "I am working with file: " << dir_item.filezise << "\n";
+
                 file.size = dir_item.filezise; //prideleni velikosti souboru
 
                 if (result == -1) { //nebyl dostatek mista na disku
@@ -181,12 +175,8 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
             }
             else { //priradim novy cluster
                 target_cluster = retrieve_item_clust(19, first_fat_table_dec, folders_in_path).first_cluster;
-                std::cout << "After creation found on" << target_cluster;
             }
         }
-    }
-    else {
-        std::cout << "Exists on cluster " << target_cluster;
     }
 
     //v teto fazi uz tedy soubor / slozka existuje nebo byl vytvoren, dalsi prace s objektem je v obou pripadech shodna...
@@ -375,13 +365,20 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
         sector_num = 1;
     }
     else {
-        sector_num = offset / SECTOR_SIZE_B + (offset % SECTOR_SIZE_B != 0);
+        sector_num = (offset / SECTOR_SIZE_B) + 1; //(offset % SECTOR_SIZE_B != 0)
     }
 
     // TODO this causes trouble
-    printf("zx sector_num=%d, %d\n", sector_num, file_clust_nums.size());
+    if (sector_num > file_clust_nums.size()) { //prideleni noveho clusteru, pokud na hrane predchoziho clusteru
+        int result = allocate_new_cluster(file_clust_nums.at(0), first_fat_table_dec, first_fat_table_hex);
+        if (result == -1) { //pokud neni dostatek mista, return
+            return kiv_os::NOS_Error::Not_Enough_Disk_Space;
+        }
+
+        file_clust_nums.push_back(result);
+    }
+
     int sector_num_vect = file_clust_nums.at(sector_num - 1); //nalezeni odpovidajiciho sektoru v poradi v ramci vektoru
-    printf("wv\n");
 
     int bytes_to_save_clust = offset % SECTOR_SIZE_B; //pocet bajtu, ktere jsou na clusteru, na ktery se bude zapisovat pred offsetem (ty chceme uchovat)
 
@@ -425,10 +422,8 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
             written_bytes += clust_data_write.size();
         }
         else { //musime se pokusit alokovat novy cluster pro soubor
-            printf("ab\n");
             int free_clust_index = retrieve_free_cluster_index(first_fat_table_dec);
 
-            printf("cd\n");
             if (free_clust_index == -1) {
                 save_fat_tables(first_fat_table_hex); //zapis fat pred opustenim
 
@@ -439,7 +434,7 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
                     file.size = file.size + newly_written_bytes;
                     written = written_bytes;
                 }
-                printf("ef\n");
+
                 return kiv_os::NOS_Error::Not_Enough_Disk_Space; //nebyl nalezen zadny volny cluster, koncime, cely buffer nemuze byt zapsan..
             }
 
@@ -472,9 +467,6 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
 
             write_data_to_fat_fs(free_clust_index, clust_data_write); //zapis dat na nove alokovany cluster
             written_bytes += clust_data_write.size();
-
-            printf("gh\n");
-            printf("chi\n");
         }
 
         clust_data_write.clear();
@@ -482,17 +474,15 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
 
     //po dokonceni zapisu zapsat prvni a druhou fat tabulku
     save_fat_tables(first_fat_table_hex);
-    printf("jk\n");
+
     //updatovat velikost souboru v nadrazene slozce
     int newly_written_bytes = (offset + written_bytes) - file.size; //na jake misto jsem se dostal - puvodni velikost souboru = pocet pridanych bajtu
     if (newly_written_bytes > 0) { //soubor byl zvetsen, update velikosti ve slozce...
         update_size_file_in_folder(file.name, offset, file.size, newly_written_bytes, first_fat_table_dec);
 
-        printf("lm\n");
         file.size = file.size + newly_written_bytes;
     }
     written = written_bytes;
-    printf("fat_fs has written %d, %d\n", written, written_bytes);
     return kiv_os::NOS_Error::Success;
 }
 
@@ -506,37 +496,18 @@ kiv_os::NOS_Error Fat_Fs::close(File file) {
 
 bool Fat_Fs::file_exists(int32_t current_fd, const char* name, bool start_from_root, int32_t& found_fd)
 {
-    std::cout << "Calling file_exists with name: " << name << "and current fd " << current_fd << " \n";
     if (strcmp(name, ".") == 0) { //aktualni slozka
-        std::cout << "Cur fol matches\n";
         found_fd = current_fd;
-        std::cout << "Returning target cluster created: " << found_fd << "\n";
         return true; //aktualni slozka existuje vzdy
     }
 
     if (strcmp(name, "..") == 0) { //nadrazena slozka existuje, pokud nejsme v rootu
-        std::cout << "Cur fol matches\n";
-
-        std::cout << "Rading from upper: " << current_fd << "\n";
         std::vector<unsigned char> data_first_clust = read_data_from_fat_fs(current_fd, 1);
         unsigned char first_byte_addr = data_first_clust.at(58); //prvni bajt reprez. prvni cluster nadraz. slozky
         unsigned char second_byte_addr = data_first_clust.at(59); //druhy bajt reprez. prvni cluster nadraz. slozky
 
-        std::cout << "Bytes - start\n";
-        for (int i = 0; i < data_first_clust.size(); i++) {
-            printf("Byte is %.2X\n", data_first_clust.at(i));
-        }
-
-        std::cout << "Bytes - end\n";
-
-        printf("BYTE IS %.2X %.2X", first_byte_addr, second_byte_addr);
-
         found_fd = current_fd;
-        std::cout << "Returning target cluster created: " << found_fd << "\n";
         return true; //aktualni slozka existuje vzdy
-    }
-    else {
-        std::cout << "Not match " << name << " with: " << current_fd << "\n";
     }
 
     int start_cluster = -1;
