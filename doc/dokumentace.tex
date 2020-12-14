@@ -361,11 +361,24 @@ Jelikož v souboru \texttt{api.h} není definována struktura položky tabulky p
 Sdílení struktury mezi uživatelským prostorem a kernelem lze předejít tak, že by položky v adresáří \texttt{procfs} představovaly adresáře, které by se jmenovaly dle identifikátorů běžících procesů. V těchto adresářích by se dále nacházely soubory, kdy každý soubor by obsahoval jeden atribut daného procesu.
 
 
+\subsection{Implementace souborového systému \texttt{FAT12}}
+Program umožňuje vytváření souborů a složek, přičemž k jejichž uchování je využíván dodaný obraz diskety pracující se souborovým systémem \texttt{FAT12}. Funkce, jež implementují uvedený souborový systém, jsou definovány v souborech \texttt{kernel/fat\_fs.h} a \texttt{kernel/fat\_fs\_utils.h}.
 
+\subsubsection{Definice v \texttt{kernel/fat\_fs.h}}
+Obsahuje definici veškerých funkcí, které jsou volány vyššími vrstvami OS ve spojitosti s prací se souborovým systémem \texttt{FAT12}. Některé z funkcí, jež jsou v souboru uvedeny, ve svém těle volají funkce definované v souboru \texttt{kernel/fat\_fs\_utils.h}.
 
+Třída \texttt{Fat\_Fs} dědí od abstraktní třídy \texttt{VFS} a obsahuje funkce umožňující zápis, respektive čtení souboru. Rovněž jsou obsaženy funkce, které umožňují vyšším vrstvám OS vytváření a mazání složek. Obsažena je i funkce ověřující existenci souborů a složek.
 
+\subsubsection{Definice v \texttt{kernel/fat\_fs\_utils.h}}
+Obsahuje podpůrné funkce souborového systému \texttt{FAT12}, jež nejsou přímo volány vyššími vrstvami OS, ale jsou využívány v rámci třídy \texttt{Fat\_Fs}. Jsou zde obsaženy funkce usnadňující práci se souborovým systémem. Příklady obsažených funkcí:
+\begin{itemize}
+    \item \texttt{int allocate\_new\_cluster()} - alokace nového clusteru (souboru / složky)
+    \item \texttt{std::vector<int> retrieve\_sectors\_nums\_fs} - získání seznamu sektorů daného souboru či složky
+    \item \texttt{bool check\_file\_name\_validity()} - zjištění platnosti názvu souboru ve \texttt{FAT12}.
+\end{itemize}
 
-
+\subsubsection{Problémy spojené s implementací}
+Při implementaci souborového systému byl pro nás problémem zejména fakt, že ve \texttt{FAT12} tabulce, jež obsahuje informace o stavu clusterů, je jedna hodnota reprezentována 12 bity. Při editaci hodnot v tabulce bylo tedy třeba načíst vždy dva bajty (resp. 16 bitů) a upravit jen odpovídající část dat.
 
 \section{User space}
 	User space je část operačního systému, která pomocí systémových volání žádá kernel o služby pro obsluhu uživatelských programů. Tato logika je použita i v naší práci. Funkcionalita uživatelských programů (jejich kód, spouštění, apod.) je implementovaná v projektu \texttt{user}. Jejich spouštění a případná orchestrace do pipeline je řešena v \texttt{shell.cpp}.
