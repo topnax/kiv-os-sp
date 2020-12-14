@@ -64,6 +64,8 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
     bool successCloning;
     int running_progs_num = 0;
 
+    bool close_file_handle_last_out = false;
+
     file_handle_first_in = std_in;
     file_handle_last_out = std_out;
     // at the beginning, assign first in/last out handle:
@@ -93,6 +95,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             if (programs[i].output.type == ProgramHandleType::File) {
                 kiv_os::NOS_Error error;
                 if (kiv_os_rtl::Open_File(programs[i].output.name, static_cast<kiv_os::NOpen_File>(0), 0, file_handle_last_out, error)) {
+                    close_file_handle_last_out = true;
                 }
                 else {
                     //cancel_all_programs(programs, pipe_handles, handles, file_handle_first_in, file_handle_last_out, running_progs_num, std_in);
@@ -247,6 +250,10 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
 
         // decrement the number of processes running:
         running_progs_num--;
+    }
+
+    if (close_file_handle_last_out) {
+        kiv_os_rtl::Close_Handle(file_handle_last_out);
     }
 }
 
