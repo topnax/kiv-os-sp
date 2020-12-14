@@ -141,6 +141,11 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
             bool created = false;
 
             if (dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //vytvorit slozku
+                //pred vytvorenim zkontrolovat validitu nazvu slozky
+                if (!check_folder_name_validity(name)) { //nevalidni nazev slozky, err
+                    return kiv_os::NOS_Error::Invalid_Argument;
+                }
+                
                 kiv_os::NOS_Error result = mkdir(name, attributes);
                 if (result == kiv_os::NOS_Error::Not_Enough_Disk_Space) { //nebyl dostatek mista na disku (chybi cluster), slozka  nebyla vytvorena
                     created = false;
@@ -150,6 +155,11 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
                 }
             }
             else { //pokus vytvorit soubor
+                 //pred vytvorenim zkontrolovat validitu nazvu souboru
+                if (!check_file_name_validity(name)) { //nevalidni nazev souboru, err
+                    return kiv_os::NOS_Error::Invalid_Argument;
+                }
+
                 int result = create_file(name, attributes, first_fat_table_dec, first_fat_table_hex);
 
                 file.size = dir_item.filezise; //prideleni velikosti souboru

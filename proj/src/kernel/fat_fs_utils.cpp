@@ -1308,3 +1308,75 @@ int allocate_new_cluster(int start_cluster, std::vector<int>& fat_table_dec, std
         return free_index;
     }
 }
+
+/*
+* Zkontroluje platnost nazvu souboru ve FAT12 (8 nazev + 3 pripona)
+* file_path - cesta k nove vytvarenemu souboru
+* vraci true pokud nazev validni, jinak false
+/**/
+bool check_file_name_validity(const char* file_path) {
+    std::vector<std::string> items_in_path = path_to_indiv_items(file_path); //zjistit polozky v ceste
+    std::string new_file_name = items_in_path.at(items_in_path.size() - 1); //pozadovany nazev souboru
+
+    std::vector<char> file_name; //nazev
+    std::vector<char> file_extension; //pripona 
+
+    bool extension_encountered = false;
+
+    char traversed_letter;
+    int traverse_counter = 0;
+    do {
+        traversed_letter = new_file_name[traverse_counter];
+        traverse_counter++;
+
+        file_name.push_back(traversed_letter);
+
+        if (traversed_letter == '.') { //mozny zacatek pripony, zacatek ukladani pripony do bufferu
+            file_extension.clear();
+            extension_encountered = true;
+        }
+        else if (extension_encountered) { //potencionalni soucast pripony
+            file_extension.push_back(traversed_letter);
+        }
+    } while (traversed_letter != '\0');
+
+    if (file_name.size() > 0) { //odstraneni konce \0
+        file_name.pop_back();
+    }
+
+    if (file_extension.size() > 0) { //odstraneni konce \0
+        file_extension.pop_back();
+    }
+
+    if (extension_encountered) { //pokud byla zadana pripona
+        for (int i = 0; i < file_extension.size() + 1; i++) { //odstranit priponu z nazvu a .
+            file_name.pop_back();
+        }
+    }
+
+    if (extension_encountered && file_extension.size() == 0) {
+        return false;
+    }else if (file_name.size() <= 8 && file_extension.size() <= 3) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+/*
+* Zkontroluje platnost nazvu slozky ve FAT12 (8 nazev)
+* folder_path - cesta k nove vytvarene slozce
+* vraci true pokud nazev validni, jinak false
+/**/
+bool check_folder_name_validity(const char* folder_path) {
+    std::vector<std::string> items_in_path = path_to_indiv_items(folder_path); //polozky v ceste
+    std::string new_folder_name = items_in_path.at(items_in_path.size() - 1); //pozadovany nazev slozky
+
+    if (new_folder_name.size() <= 8) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
