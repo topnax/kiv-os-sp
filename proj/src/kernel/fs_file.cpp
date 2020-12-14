@@ -83,9 +83,7 @@ kiv_os::NOS_Error Filesystem_File::write(char *buffer, size_t buf_size, size_t &
     std::vector<char> buf(buffer, buffer + buf_size);
 
     // write into the file system
-    printf("about to write %d bytes\n", buf_size);
     auto result = vfs->write(file, buf, buf_size, file.position, written);
-    printf("vfs has written %d bytes\n", written);
     // move the position boy the amount of bytes we have written
     file.position += written;
     file.size += written;

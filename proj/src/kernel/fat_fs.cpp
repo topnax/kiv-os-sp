@@ -11,14 +11,6 @@ std::vector<unsigned char> first_fat_table_hex; //obsah prvni fat tabulky v hex 
 std::vector<int> first_fat_table_dec; //obsah prvni fat tabulky v desitkove soustave, prevedene z hex
 
 void Fat_Fs::init() {
-
-    printf("################\n");
-    printf("INIT FAT12 disk %d\n", disk_number);
-    printf("param anos %d\n", disk_parameters.absolute_number_of_sectors);
-    printf("param spt %d\n", disk_parameters.sectors_per_track);
-    printf("param bps %d\n", disk_parameters.bytes_per_sector);
-    printf("param c %d\n", disk_parameters.cylinders);
-    printf(" param h %d\n", disk_parameters.heads);
     // init some FAT stuff :D
 }
 

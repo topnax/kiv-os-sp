@@ -208,7 +208,6 @@ void Write_File(kiv_hal::TRegisters &regs) {
         if (res != kiv_os::NOS_Error::Success) {
             // some error has happened
             regs.flags.carry = 1;
-            printf("error has happened\n");
             regs.rax.r = static_cast<decltype(regs.rax.r)>(res);
         }
     } else {
