@@ -15,7 +15,8 @@ std::vector<unsigned char> load_first_fat_table_bytes() {
     kiv_hal::TDisk_Address_Packet ap_to_read;
 
     ap_to_read.count = 9; //prvni fat tabulka zabira 9 sektoru
-    ap_to_read.sectors = (void*)malloc(SECTOR_SIZE_B * 9);
+    auto s = malloc(SECTOR_SIZE_B * 9);
+    ap_to_read.sectors = (void*) s;
     ap_to_read.lba_index = 1; //prvni sektor fat tabulky, od ktereho cteme
 
     reg_to_read.rdx.l = 129; //cislo disku
@@ -30,6 +31,8 @@ std::vector<unsigned char> load_first_fat_table_bytes() {
         first_fat_cont.push_back(buffer[i]);
     }
 
+    free(s);
+
     return first_fat_cont;
 }
 
@@ -42,9 +45,9 @@ std::vector<unsigned char> load_second_fat_table_bytes() {
     //precist sektory 10 - 18
     kiv_hal::TRegisters reg_to_read;
     kiv_hal::TDisk_Address_Packet ap_to_read;
-
+    auto s = malloc(SECTOR_SIZE_B * 9);
     ap_to_read.count = 9; //druha fat tabulka zabira 9 sektoru
-    ap_to_read.sectors = (void*)malloc(SECTOR_SIZE_B * 9);
+    ap_to_read.sectors = (void*) s;
     ap_to_read.lba_index = 10; //druhy sektor fat tabulky, od ktereho cteme
 
     reg_to_read.rdx.l = 129; //cislo disku
@@ -59,6 +62,8 @@ std::vector<unsigned char> load_second_fat_table_bytes() {
         second_fat_cont.push_back(buffer[i]);
     }
 
+    free(s);
+
     return second_fat_cont;
 }
 
@@ -72,8 +77,9 @@ std::vector<unsigned char> load_root_dir_bytes() {
     kiv_hal::TRegisters reg_to_read;
     kiv_hal::TDisk_Address_Packet ap_to_read;
 
+    auto s = malloc(SECTOR_SIZE_B * 14);
     ap_to_read.count = 14; //hlavni slozka zabira 14 sektoru
-    ap_to_read.sectors = (void*)malloc(SECTOR_SIZE_B * 14);
+    ap_to_read.sectors = (void*) s;
     ap_to_read.lba_index = 19; //prvni sektor root slozky, od ktere cteme
 
     reg_to_read.rdx.l = 129; //cislo disku
@@ -87,6 +93,8 @@ std::vector<unsigned char> load_root_dir_bytes() {
     for (int i = 0; i < (SECTOR_SIZE_B * 14); i++) { //prevod na vector charu
         root_dir_cont.push_back(buffer[i]);
     }
+
+    free(s);
 
     return root_dir_cont;
 }
@@ -148,7 +156,8 @@ std::vector<unsigned char> read_data_from_fat_fs(int start_sector_num, int total
     kiv_hal::TDisk_Address_Packet ap_to_read;
 
     ap_to_read.count = total_sector_num; //pozadovany pocet sektoru k precteni
-    ap_to_read.sectors = (void*)malloc(SECTOR_SIZE_B * total_sector_num);
+    auto s = malloc(SECTOR_SIZE_B * total_sector_num);
+    ap_to_read.sectors = (void*) s;
     ap_to_read.lba_index = start_sector_num + 31; //sektor, od ktereho cteme (+31 presun na dat sektory)
 
     reg_to_read.rdx.l = 129; //cislo disku
@@ -162,6 +171,7 @@ std::vector<unsigned char> read_data_from_fat_fs(int start_sector_num, int total
         file_bytes.push_back(buffer[i]);
     }
 
+    free(s);
     return file_bytes;
 }
 
