@@ -42,38 +42,52 @@ kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vecto
         }
     }
     else { //jdeme cist klasicky soubor
-        std::vector<int> file_clust_nums = retrieve_sectors_nums_fs(first_fat_table_dec, file.handle); //ziskani seznamu clusteru, na kterych se soubor nachazi
-
-        std::vector<unsigned char> file_one_clust; //obsah jednoho clusteru souboru
-        std::vector<unsigned char> file_all_clust; //obsah veskerych clusteru souboru
-
-        for (int i = 0; i < file_clust_nums.size(); i++) { //pruchod vsemi clustery, pres ktere je soubor natazen
-            file_one_clust = read_data_from_fat_fs(file_clust_nums[i], 1); //ziskani bajtu souboru v ramci jednoho sektoru
-
-            for (int j = 0; j < file_one_clust.size(); j++) { //vlozeni obsahu jednoho sektoru do celkoveho seznamu bajtu
-                file_all_clust.push_back(file_one_clust.at(j));
-            }
-        }
-
-        //mame cely obsah souboru - vratit jen pozadovanou cast
-        int to_read = -1;
-
-        if ((offset + size) > file.size) { //offset je mimo, vratit rozmezi offset - konec souboru
-            for (int i = offset; i < file.size; i++) {
-                out.push_back(file_all_clust.at(i));
-            }
-
+        if ((offset + size) > file.size) { //offset je mimo, err
             return kiv_os::NOS_Error::IO_Error;
         }
-        else { //rozsah ok
-            to_read = size;
 
-            for (int i = 0; i < to_read; i++) {
-                out.push_back(file_all_clust.at(offset + i));
-            }
+        std::vector<int> file_clust_nums = retrieve_sectors_nums_fs(first_fat_table_dec, file.handle); //ziskani seznamu clusteru, na kterych se soubor nachazi
 
-            return kiv_os::NOS_Error::Success;
+        std::vector<unsigned char> one_clust_cont; //obsah jednoho clusteru, na kterem se vyskytuje pozadovana cast souboru
+        int sector_num; //poradi sektoru, od ktereho zaciname cist
+
+        if (offset == 0) {
+            sector_num = 1;
         }
+        else {
+            sector_num = (offset / SECTOR_SIZE_B) + 1;
+        }
+
+        int sector_num_vect = file_clust_nums.at(sector_num - 1); //najdu sektor odpovidajiciho poradi v ramci vektoru
+        int bytes_to_skip = offset % SECTOR_SIZE_B; //pocet bajtu, ktere jsou na prvnim clusteru, ze ktereho chceme cist pred offsetem (ty nevracet)
+
+        //ziskani bajtu souboru v ramci prvniho sektoru - START
+        one_clust_cont = read_data_from_fat_fs(sector_num_vect, 1);
+        for (int i = bytes_to_skip; i < SECTOR_SIZE_B; i++) { //precteni prvniho sektoru, jeho pozadovane casti
+            if (out.size() == size) {
+                break;
+            }
+            else {
+                out.push_back(one_clust_cont.at(i));
+            }
+        }
+        //ziskani bajtu souboru v ramci prvniho sektoru - KONEC
+
+        sector_num++; //posun na dalsi cluster
+        while (out.size() != size) { //dokud neprecten pozadovany pocet bajtu, pokracuji pres dalsi sektory...
+            one_clust_cont = read_data_from_fat_fs(file_clust_nums.at(sector_num - 1), 1);
+            sector_num++;
+
+            for (int i = 0; i < SECTOR_SIZE_B; i++) {
+                if (out.size() == size) {
+                    break;
+                }
+                else {
+                    out.push_back(one_clust_cont.at(i));
+                }
+            }
+        }
+        return kiv_os::NOS_Error::Success;
     }
 }
 
