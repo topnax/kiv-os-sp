@@ -61,10 +61,6 @@ Generic_File *Resolve_THandle_To_File(kiv_os::THandle handle) {
 void Init_Filesystems() {
     Add_Filesystem("C:\\procfs", new Proc_Fs());
 
-//   Add_Filesystem(R"(C:\)", new Fat_Fs(0, kiv_hal::TDrive_Parameters{}));
-
-  // TODO remove
-
     // find a fat drive
     kiv_hal::TRegisters regs{};
     for (regs.rdx.l = 0;; regs.rdx.l++) {

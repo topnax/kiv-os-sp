@@ -149,7 +149,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
 
             handles.push_back(first_handle);
 
-        } else if (i == programs.size() - 1) { // TODO test output to file!
+        } else if (i == programs.size() - 1) {
             // the last program gets std out or a file as output
             kiv_os::THandle last_handle;
 

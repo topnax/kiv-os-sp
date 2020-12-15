@@ -431,8 +431,6 @@ void read_exit_code(kiv_hal::TRegisters &registers) {
 
         // we have read the process' exit code - remove it from the table
         (*Proc::Pcb).Remove_Process(handle);
-    } else {
-        // TODO in this case EC is set to Unknown_Error, but what should we do, if the exit code has already been read?
     }
 
     registers.rcx.x = static_cast<decltype(registers.rcx.x)>(exit_code);

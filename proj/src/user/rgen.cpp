@@ -5,7 +5,6 @@
 #include <thread>
 #include <random>
 #include <limits>
-#include <sstream>
 #include "rtl.h"
 
 struct Rgen_Stdin_Guard_Parameters {
@@ -86,18 +85,18 @@ extern "C" size_t __stdcall rgen(const kiv_hal::TRegisters &regs) {
     std::mt19937 gen(rd()); // seed the generator
     //std::uniform_int_distribution<> distr(-128.0, 127.0); // define the range
     //std::uniform_real_distribution<> distr(std::numeric_limits<float>::min(), std::numeric_limits<float>::max());
-    std::uniform_real_distribution<> distr(-100.0, 100.0); // todo, what should the span be?
+    std::uniform_real_distribution<> distr(-100.0, 100.0);
 
     size_t counter;
     bool res;
-    char string[99]; // todo how big a buffer?
+    char string[99];
     while (*generate) {
         // std::this_thread::sleep_for(std::chrono::milliseconds(200));
         auto random_number = static_cast<float>(distr(gen)); // generate a random number
         
         
         memset(string, 0, 99);
-        sprintf_s(string, "%.25lf", random_number); // todo remove trailing zeros?, also how many decimal places?
+        sprintf_s(string, "%.25lf", random_number);
 
         res = kiv_os_rtl::Write_File(std_out, string, strlen(string), counter);
         if (!res) {

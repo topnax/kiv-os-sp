@@ -78,7 +78,6 @@ public:
      * @return result code
      */
     virtual kiv_os::NOS_Error set_attributes(const char *name, uint8_t attributes) {
-        // TODO implement
         return kiv_os::NOS_Error::Permission_Denied;
     };
 
@@ -89,7 +88,6 @@ public:
      * @return result code
      */
     virtual kiv_os::NOS_Error get_attributes(const char *name, uint8_t &out_attributes) {
-        // TODO implement
         return kiv_os::NOS_Error::Permission_Denied;
     };
 

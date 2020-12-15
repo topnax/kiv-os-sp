@@ -46,7 +46,6 @@ kiv_os::NOS_Error Filesystem_File::seek(size_t value, kiv_os::NFile_Seek seek_po
             }
             file.size = value;
             file.position = value;
-            // TODO fs resize ???
             break;
 
         default:
@@ -92,7 +91,6 @@ kiv_os::NOS_Error Filesystem_File::write(char *buffer, size_t buf_size, size_t &
 }
 
 void Filesystem_File::close() {
-    // TODO might call vfs' close, if any
 }
 
 Filesystem_File::~Filesystem_File() {
