@@ -446,19 +446,26 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                         kiv_os_rtl::Get_Working_Dir(working_directory, PROMPT_BUFFER_SIZE, get_wd_read_count);
                         if (get_wd_read_count > 0) {
                             fill_prompt_buffer(working_directory, prompt, PROMPT_BUFFER_SIZE);
+                        } else {
+                            size_t written = 0;
+                            const char* error = "Could not read current working directory\n";
+                            kiv_os_rtl::Write_File(std_out, error, strlen(error), written);
                         }
                     } else {
                         size_t written = 0;
                         const char* error = "Directory not found\n";
                         kiv_os_rtl::Write_File(std_out, error, strlen(error), written);
                     }
+                } else {
+                    size_t written = 0;
+                    const char* error = "Directory not specified\n";
+                    kiv_os_rtl::Write_File(std_out, error, strlen(error), written);
                 }
                 continue;
             }
             else if (command == "exit") {
                 break;
             }
-
             // actual command execution:
             // cast from const to non const
             char* command_c = const_cast<char*>(command.c_str());
