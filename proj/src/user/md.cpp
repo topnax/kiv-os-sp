@@ -33,7 +33,7 @@ extern "C" size_t __stdcall md(const kiv_hal::TRegisters &regs) {
             kiv_os_rtl::Close_Handle(handle);
         } else {
             if (error == kiv_os::NOS_Error::Invalid_Argument) {
-                const char *error_message = "File already exists.\n";
+                const char *error_message = "File already exists or invalid name specified.\n";
                 size_t written;
                 kiv_os_rtl::Write_File(std_out, error_message, strlen(error_message), written);
             } else {
