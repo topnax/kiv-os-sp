@@ -807,8 +807,8 @@ int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>&
     else { //uprava fat tabulek a oznaceni clusteru jako zabraneho
         //na volny index hex i dec tabulek ulozim 4095 - znaci konec slozky - START
         std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 4095);
-        first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
-        first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+        first_fat_table_hex.at(static_cast<int>(static_cast<double>(free_index) * 1.5)) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+        first_fat_table_hex.at((static_cast<int>(static_cast<double>(free_index) * 1.5)) + 1) = modified_bytes.at(1);
         fat_table_dec.at(free_index) = 4095; //oznacit cluster jako konecny v dec tabulce
         //na volny index hex i dec tabulek ulozim 4095 - znaci konec slozky - KONEC
 
@@ -857,8 +857,8 @@ int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>&
     if (folders_in_path.size() == 0) { //pokud chceme vytvorit slozku v rootu - tam se jich vejde 224
         if ((items_folder.size() + 1 + 1) <= (sectors_nums_data.size() * 16)) { //+1 pro odkaz na aktualni slozku +1 pro novou ; vejdeme se do clusteru
             //zjisteni clusteru, na kterem bude polozka lezet
-            int cluster_num = (items_folder.size() + 1) / 16; //poradi clusteru / 16 (jeden cluster mi pojme 16 polozek)
-            int item_num_clust_rel = (items_folder.size() + 1) % 16; //poradi polozky v ramci jednoho clusteru
+            size_t cluster_num = (items_folder.size() + 1) / 16; //poradi clusteru / 16 (jeden cluster mi pojme 16 polozek)
+            size_t item_num_clust_rel = (items_folder.size() + 1) % 16; //poradi polozky v ramci jednoho clusteru
 
             std::vector<unsigned char> data_clust = read_data_from_fat_fs(sectors_nums_data.at(cluster_num) - 31, 1); //-31; fce cte z dat sektoru ; nactu si data na clusteru, do ktereho budu ukladat
             
@@ -875,8 +875,8 @@ int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>&
         else { //err, slozka uz se nevejde - root nejde rozsirit....
             //zabrany cluster oznacim opet jako volny a jdeme pryc
             std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 0);
-            first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
-            first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+            first_fat_table_hex.at(static_cast<int>(static_cast<double>(free_index) * 1.5)) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+            first_fat_table_hex.at((static_cast<int>(static_cast<double>(free_index) * 1.5)) + 1) = modified_bytes.at(1);
             fat_table_dec.at(free_index) = 0; //oznacit cluster jako konecny v dec tabulce
 
             save_fat_tables(first_fat_table_hex); //po upravach ulozim hex podobu tabulky do souboru
@@ -901,8 +901,8 @@ int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>&
         }
 
         if (can_write) { //provedu zapis, mame misto nebo novy cluster
-            int cluster_num = (items_folder.size() + 2) / 16; //poradi slozky / 16 (jeden cluster mi pojme 16 polozek)
-            int item_num_clust_rel = (items_folder.size() + 2) % 16; //poradi polozky v ramci jednoho clusteru
+            size_t cluster_num = (items_folder.size() + 2) / 16; //poradi slozky / 16 (jeden cluster mi pojme 16 polozek)
+            size_t item_num_clust_rel = (items_folder.size() + 2) % 16; //poradi polozky v ramci jednoho clusteru
 
             std::vector<unsigned char> data_clust = read_data_from_fat_fs(sectors_nums_data.at(cluster_num), 1);
 
@@ -919,8 +919,8 @@ int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>&
         else { //novy cluster se nepodarilo alokovat, nova slozka uz nepujde vytvorit
             //zabrany cluster oznacim opet jako volny a jdeme pryc
             std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 0);
-            first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
-            first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+            first_fat_table_hex.at(static_cast<int>(static_cast<double>(free_index) * 1.5)) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+            first_fat_table_hex.at((static_cast<int>(static_cast<double>(free_index) * 1.5)) + 1) = modified_bytes.at(1);
             fat_table_dec.at(free_index) = 0; //oznacit cluster jako konecny v dec tabulce
 
             save_fat_tables(first_fat_table_hex); //po upravach ulozim hex podobu tabulky do souboru
@@ -993,7 +993,7 @@ void write_folder_basics_cluster(int clust_to_write_index, int upper_fol_index) 
     //vytvoreni .. - KONEC
 
     //zbytek clusteru doplnit 0
-    for (int i = to_write_subfolder.size(); i < 512; i++) {
+    for (size_t i = to_write_subfolder.size(); i < 512; i++) {
         to_write_subfolder.push_back(0);
     }
 
