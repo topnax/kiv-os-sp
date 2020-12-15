@@ -231,10 +231,9 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
         } else if (ind == orig_handles.size() - 1) {
 
             // if it was the last program that ended, close only the output of the last pipe (at pipe_handles[size - 1])
-            if (pipe_handles.size() > 0)
+            if (pipe_handles.size() > 0) {
                 kiv_os_rtl::Close_Handle(pipe_handles[pipe_handles.size() - 1]);
-            if (programs[programs.size() - 1].input.type == ProgramHandleType::File)
-                kiv_os_rtl::Close_Handle(file_handle_last_out);
+            }
 
             num_of_handles_closed++;
         } else {

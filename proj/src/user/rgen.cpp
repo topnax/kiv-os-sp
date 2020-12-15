@@ -101,8 +101,6 @@ extern "C" size_t __stdcall rgen(const kiv_hal::TRegisters &regs) {
                 continue;
             }
             small_buff[i] = byte;
-
-            
         }
 
         // write to std_out (multiple bytes)
@@ -115,9 +113,6 @@ extern "C" size_t __stdcall rgen(const kiv_hal::TRegisters &regs) {
         /*if (!res) {
             break;
         }*/
-        
-
-        
     }
 
     //check whether std_in guard has not yet signalled us to stop generating
