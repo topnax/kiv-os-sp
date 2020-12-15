@@ -49,7 +49,7 @@ kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vecto
         std::vector<int> file_clust_nums = retrieve_sectors_nums_fs(first_fat_table_dec, file.handle); //ziskani seznamu clusteru, na kterych se soubor nachazi
 
         std::vector<unsigned char> one_clust_cont; //obsah jednoho clusteru, na kterem se vyskytuje pozadovana cast souboru
-        int sector_num; //poradi sektoru, od ktereho zaciname cist
+        size_t sector_num; //poradi sektoru, od ktereho zaciname cist
 
         if (offset == 0) {
             sector_num = 1;
@@ -150,7 +150,7 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
         }
         else { //soubor / slozka nemusi existovat, pokusim se vytvorit
             dir_item.attribute = attributes; //pouziji pridelene atributy u nove vytvorene slozky / souboru
-            dir_item.filezise = 0;
+            dir_item.filesize = 0;
         
             bool created = false;
 
@@ -176,7 +176,7 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
 
                 int result = create_file(name, attributes, first_fat_table_dec, first_fat_table_hex);
 
-                file.size = dir_item.filezise; //prideleni velikosti souboru
+                file.size = dir_item.filesize; //prideleni velikosti souboru
 
                 if (result == -1) { //nebyl dostatek mista na disku
                     created = false;
@@ -203,12 +203,11 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
     if (dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //jedna se o slozku, pridelit velikost vzorec: pocet_polozek_slozka * sizeof(TDir_Entry)
         std::vector<kiv_os::TDir_Entry> dir_entries_size; //pro zjisteni poctu polozek ve slozce
         readdir(file.name, dir_entries_size);
-
-        dir_item.filezise = dir_entries_size.size() * sizeof(kiv_os::TDir_Entry);
-        file.size = dir_item.filezise;
+        dir_item.filesize = dir_entries_size.size() * sizeof(kiv_os::TDir_Entry);
+        file.size = dir_item.filesize;
     }
     else {
-        file.size = dir_item.filezise; //prideleni velikosti souboru
+        file.size = dir_item.filesize; //prideleni velikosti souboru
     }
 
     return kiv_os::NOS_Error::Success;

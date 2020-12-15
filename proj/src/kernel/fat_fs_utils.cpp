@@ -181,11 +181,8 @@ std::vector<unsigned char> read_data_from_fat_fs(int start_sector_num, int total
 * dir_clusters - obsah clusteru, ze kterych ma byt obsah slozky vycten
 * is_root - true, pokud byl predan obsah rootovske slozky (vynecha se prvni polozka - aktualni adresar) / jinak false (vynecha se . a ..)
 /**/
-std::vector<kiv_os::TDir_Entry> retrieve_dir_items(int num_sectors, std::vector<unsigned char> dir_clusters, bool is_root) {
+std::vector<kiv_os::TDir_Entry> retrieve_dir_items(size_t num_sectors, std::vector<unsigned char> dir_clusters, bool is_root) {
     std::vector<kiv_os::TDir_Entry> directory_content; //obsahuje struktury TDir_Entry, ktere reprezentuji jednu entry ve slozce
-
-    char first_clust_buff_conv[5]; //buffer pro konverzi dvou hexu na dec (reprezentuje prvni cluster souboru)
-    char filesize_buff_conv[9]; //buffer pro konverzi ctyr hexu na dec (reprezentuje velikost souboru)
 
     for (int i = 0; i < SECTOR_SIZE_B * num_sectors;) {
         if (dir_clusters[i] == 0 || dir_clusters[i] == 246) { /* pokud nazev zacina 0, pak neni polozka obsazena -> ani zadna dalsi, cely obsah slozky uz je vypsan */
@@ -268,7 +265,7 @@ directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table
 
         dir_item.filename = "\\";
         dir_item.extension = "";
-        dir_item.filezise = 0;
+        dir_item.filesize = 0;
         dir_item.first_cluster = 19;
         dir_item.attribute = static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID);
 
@@ -322,7 +319,7 @@ directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table
     }
     else { //nektera ze slozek v ceste nebyla nalezena, err
         dir_item.first_cluster = -1;
-        dir_item.filezise = -1;
+        dir_item.filesize = -1;
     }
 
     return dir_item;
@@ -427,7 +424,7 @@ std::vector<directory_item> get_dir_items(int num_sectors, std::vector<unsigned 
         snprintf(first_clust_buff_conv, sizeof(first_clust_buff_conv), "%.2X%.2X", dir_cont[i++], dir_cont[i++]);
         dir_item.first_cluster = (int)strtol(first_clust_buff_conv, NULL, 16);
         snprintf(filesize_buff_conv, sizeof(filesize_buff_conv), "%.2X%.2X%.2X%.2X", dir_cont[i++], dir_cont[i++], dir_cont[i++], dir_cont[i++]);
-        dir_item.filezise = (int)strtol(filesize_buff_conv, NULL, 16);
+        dir_item.filesize = (int)strtol(filesize_buff_conv, NULL, 16);
 
         directory_content.push_back(dir_item);
     }
@@ -545,7 +542,7 @@ void write_data_to_fat_fs(int start_sector_num, std::vector<char> buffer_to_writ
     reg_to_write.rdi.r = reinterpret_cast<decltype(reg_to_write.rdi.r)>(&ap_to_write);
 
     //posledni cluster bude cely prepsan za normalnich okolnosti, chceme cast zachovat => vytahnout data z clusteru a prepsat jen relevantni cast
-    int last_sector_alloc = (start_sector_num + ap_to_write.count) - 1;
+    int last_sector_alloc = (start_sector_num + static_cast<int>(ap_to_write.count)) - 1;
     std::vector<unsigned char> last_sector_data = read_data_from_fat_fs(last_sector_alloc, 1);
     int size_to_hold = ap_to_write.count * SECTOR_SIZE_B;
 
