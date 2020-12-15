@@ -1042,8 +1042,8 @@ int create_file(const char* file_path, uint8_t attributes, std::vector<int>& fat
     else { //uprava fat tabulek a oznaceni clusteru jako zabraneho
         //na volny index hex i dec tabulek ulozim 4095 - znaci konec soubor - START
         std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 4095);
-        first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
-        first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+        first_fat_table_hex.at(static_cast<int>(static_cast<double>(free_index) * 1.5)) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+        first_fat_table_hex.at((static_cast<int>(static_cast<double>(free_index) * 1.5)) + 1) = modified_bytes.at(1);
         fat_table_dec.at(free_index) = 4095; //oznacit cluster jako konecny v dec tabulce
         //na volny index hex i dec tabulek ulozim 4095 - znaci konec soubor - KONEC
 
@@ -1135,8 +1135,8 @@ int create_file(const char* file_path, uint8_t attributes, std::vector<int>& fat
     if (items_in_path.size() == 0) { //vytvoreni polozky v rootu - vejde se 224
         if ((items_folder.size() + 1 + 1) <= (sectors_upper_fol.size() * 16)) { //+1 pro odkaz na aktualni slozku +1 pro novou ; vejdeme se do clusteru
            //zjisteni clusteru, na kterem bude polozka lezet
-            int cluster_num = (items_folder.size() + 1) / 16; //poradi clusteru
-            int item_num_clust_rel = (items_folder.size() + 1) % 16; //poradi polozky, v ramci clusteru
+            size_t cluster_num = (items_folder.size() + 1) / 16; //poradi clusteru
+            size_t item_num_clust_rel = (items_folder.size() + 1) % 16; //poradi polozky, v ramci clusteru
 
             std::vector<unsigned char> data_clust = read_data_from_fat_fs(sectors_upper_fol.at(cluster_num) - 31, 1); //-31; fce cte z dat sektoru, nacteni dat sektoru, do ktereho bude nasledne nova polozka vlozena
 
@@ -1153,8 +1153,8 @@ int create_file(const char* file_path, uint8_t attributes, std::vector<int>& fat
         else { //chyba, soubor se nevejde do rootu
             //zabrany cluster oznacim opet jako volny a jdeme pryc
             std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 0);
-            first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
-            first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+            first_fat_table_hex.at(static_cast<int>(static_cast<double>(free_index) * 1.5)) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+            first_fat_table_hex.at((static_cast<int>(static_cast<double>(free_index) * 1.5)) + 1) = modified_bytes.at(1);
             fat_table_dec.at(free_index) = 0; //oznacit cluster jako konecny v dec tabulce
 
             save_fat_tables(first_fat_table_hex); //po upravach ulozim hex podobu tabulky do souboru
@@ -1179,8 +1179,8 @@ int create_file(const char* file_path, uint8_t attributes, std::vector<int>& fat
         }
 
         if (can_write) {
-            int cluster_num = (items_folder.size() + 2) / 16; //poradi clusteru
-            int item_num_clust_rel = (items_folder.size() + 2) % 16; //poradi polozky, v ramci clusteru
+            size_t cluster_num = (items_folder.size() + 2) / 16; //poradi clusteru
+            size_t item_num_clust_rel = (items_folder.size() + 2) % 16; //poradi polozky, v ramci clusteru
 
             std::vector<unsigned char> data_clust = read_data_from_fat_fs(sectors_upper_fol.at(cluster_num), 1);
 
@@ -1197,8 +1197,8 @@ int create_file(const char* file_path, uint8_t attributes, std::vector<int>& fat
         else { //novy item uz nepujde pridat, slozku se nepodarilo alokovat
             //zabrany cluster oznacim opet jako volny a jdeme pryc
             std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 0);
-            first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
-            first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+            first_fat_table_hex.at(static_cast<int>(static_cast<double>(free_index) * 1.5)) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+            first_fat_table_hex.at((static_cast<int>(static_cast<double>(free_index) * 1.5)) + 1) = modified_bytes.at(1);
             fat_table_dec.at(free_index) = 0; //oznacit cluster jako konecny v dec tabulce
 
             save_fat_tables(first_fat_table_hex); //po upravach ulozim hex podobu tabulky do souboru
@@ -1288,15 +1288,15 @@ int allocate_new_cluster(int start_cluster, std::vector<int>& fat_table_dec, std
 
         //na novy index priradim 4095 - znaci konec slozky / souboru - START
         std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(free_index, first_fat_table_hex, 4095);
-        first_fat_table_hex.at(free_index * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
-        first_fat_table_hex.at((free_index * 1.5) + 1) = modified_bytes.at(1);
+        first_fat_table_hex.at(static_cast<int>(static_cast<double>(free_index) * 1.5)) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+        first_fat_table_hex.at((static_cast<int>(static_cast<double>(free_index) * 1.5)) + 1) = modified_bytes.at(1);
         fat_table_dec.at(free_index) = 4095; //oznacit cluster jako konecny v dec tabulce
         //na novy index priradim 4095 - znaci konec slozky / souboru - KONEC
 
         //na puvodne posledni cluster souboru navazu novy - START
         modified_bytes = convert_num_to_bytes_fat(item_clusters.at(item_clusters.size() - 1), first_fat_table_hex, free_index);
-        first_fat_table_hex.at(item_clusters.at(item_clusters.size() - 1) * 1.5) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
-        first_fat_table_hex.at((item_clusters.at(item_clusters.size() - 1) * 1.5) + 1) = modified_bytes.at(1);
+        first_fat_table_hex.at(static_cast<int>(static_cast<double>(item_clusters.at(item_clusters.size() - 1)) * 1.5)) = modified_bytes.at(0); //oznacit cluster jako konecny v hex tabulce
+        first_fat_table_hex.at((static_cast<int>(static_cast<double>(item_clusters.at(item_clusters.size() - 1)) * 1.5)) + 1) = modified_bytes.at(1);
         fat_table_dec.at(item_clusters.at(item_clusters.size() - 1)) = free_index; //oznacit cluster jako konecny v dec tabulce
         //na puvodne posledni cluster souboru navazu novy - KONEC
 
