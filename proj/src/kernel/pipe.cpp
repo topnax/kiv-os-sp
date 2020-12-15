@@ -64,6 +64,9 @@ std::vector<char> Pipe::Read(size_t nodes_to_read, bool &nothing_left_to_read) {
 }
 
 bool Pipe::write_char(char c) {
+    if (this->closed_out) {
+        return false;
+    }
     this->empty_count.wait();
 
     // check whether the out handle has not been closed while we have been waiting

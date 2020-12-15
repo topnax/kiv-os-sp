@@ -123,7 +123,7 @@ set(Header_Files
     "../../src/kernel/handles.h"
     "../../src/kernel/io.h"
     "../../src/kernel/kernel.h"
-        ../../src/kernel/process.h ../../src/kernel/pipe.h ../../src/kernel/pipes.h ../../src/kernel/files.h ../../src/kernel/process/pcb.h ../../src/kernel/process/process_entry.h ../../src/kernel/vfs.h ../../src/kernel/proc_fs.h ../../src/kernel/fs_file.h ../../src/kernel/fat_fs.h ../../src/kernel/dir.h)
+        ../../src/kernel/process.h ../../src/kernel/pipe.h ../../src/kernel/pipes.h ../../src/kernel/files.h ../../src/kernel/process/pcb.h ../../src/kernel/process/process_entry.h ../../src/kernel/vfs.h ../../src/kernel/proc_fs.h ../../src/kernel/fs_file.h ../../src/kernel/fat_fs.h ../../src/kernel/dir.h ../../src/kernel/fat_fs_utils.h)
 source_group("Header Files" FILES ${Header_Files})
 
 set(Source_Files
@@ -131,7 +131,7 @@ set(Source_Files
     "../../src/kernel/handles.cpp"
     "../../src/kernel/io.cpp"
     "../../src/kernel/kernel.cpp"
-        ../../src/kernel/process.cpp ../../src/kernel/pipe.cpp ../../src/kernel/pipes.cpp ../../src/kernel/files.cpp ../../src/kernel/process/process_entry.cpp ../../src/kernel/process/pcb.cpp ../../src/kernel/proc_fs.cpp ../../src/kernel/fs_file.cpp ../../src/kernel/fat_fs.cpp ../../src/kernel/dir.cpp)
+        ../../src/kernel/process.cpp ../../src/kernel/pipe.cpp ../../src/kernel/pipes.cpp ../../src/kernel/files.cpp ../../src/kernel/process/process_entry.cpp ../../src/kernel/process/pcb.cpp ../../src/kernel/proc_fs.cpp ../../src/kernel/fs_file.cpp ../../src/kernel/fat_fs.cpp ../../src/kernel/dir.cpp ../../src/kernel/fat_fs_utils.cpp)
 source_group("Source Files" FILES ${Source_Files})
 
 set(ALL_FILES

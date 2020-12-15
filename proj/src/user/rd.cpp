@@ -16,7 +16,11 @@ extern "C" size_t __stdcall rd(const kiv_hal::TRegisters &regs) {
 
     kiv_os::NOS_Error error;
 
-    if (!kiv_os_rtl::Delete_File(directory_name, error)) {
+    if (directory_name == nullptr || strlen(directory_name) == 0) {
+        const char *error_message = "Name not specified.\n";
+        size_t written;
+        kiv_os_rtl::Write_File(std_out, error_message, strlen(error_message), written);
+    } else if (!kiv_os_rtl::Delete_File(directory_name, error)) {
         // syscall failed - directory not deleted
         handle_error_message(error, std_out);
     }

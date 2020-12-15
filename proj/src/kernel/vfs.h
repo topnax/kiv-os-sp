@@ -24,7 +24,7 @@ public:
     /**
      * Creates the directory with the given name
      */
-    virtual kiv_os::NOS_Error mkdir(const char *name) = 0;
+    virtual kiv_os::NOS_Error mkdir(const char* name, uint8_t attributes) = 0;
 
     /**
      * Removes the directory with the given name
@@ -115,6 +115,7 @@ public:
         return out;
     }
 
+    virtual uint32_t get_root_fd() = 0;
 
     // virtual destructor required, so that deleting child class instances invokes child destructor
     virtual ~VFS() = default;

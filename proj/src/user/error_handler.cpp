@@ -25,6 +25,24 @@ void handle_error_message(kiv_os::NOS_Error error, kiv_os::THandle std_out) {
             kiv_os_rtl::Write_File(std_out, error_message, strlen(error_message), written);
             break;
         }
+        case kiv_os::NOS_Error::Permission_Denied: {
+            const char *error_message = "Permission denied.\n";
+            size_t written;
+            kiv_os_rtl::Write_File(std_out, error_message, strlen(error_message), written);
+            break;
+        }
+        case kiv_os::NOS_Error::Not_Enough_Disk_Space: {
+            const char *error_message = "Not enough disk space.\n";
+            size_t written;
+            kiv_os_rtl::Write_File(std_out, error_message, strlen(error_message), written);
+            break;
+        }
+        case kiv_os::NOS_Error::Invalid_Argument: {
+            const char *error_message = "Invalid argument.\n";
+            size_t written;
+            kiv_os_rtl::Write_File(std_out, error_message, strlen(error_message), written);
+            break;
+        }
 
         default: {
             char error_message[42];

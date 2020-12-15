@@ -10,7 +10,6 @@ kiv_os::NOS_Error Filesystem_File::read(size_t to_read, char *out_buffer, size_t
     std::vector<char> out;
 
     to_read = std::min(to_read, file.size - file.position);
-
     if (to_read <= 0) {
         // trying to read out of file's bounds
         return kiv_os::NOS_Error::IO_Error;
@@ -79,15 +78,15 @@ kiv_os::NOS_Error Filesystem_File::write(char *buffer, size_t buf_size, size_t &
     if (is_read_only() || is_directory()) {
         return kiv_os::NOS_Error::Permission_Denied;
     }
-
+//    printf("about to write size=%d, offset=%d \"%s\"\n", buf_size, file.position,buffer);
     // copy buffer into a vector
     std::vector<char> buf(buffer, buffer + buf_size);
 
     // write into the file system
     auto result = vfs->write(file, buf, buf_size, file.position, written);
-
     // move the position boy the amount of bytes we have written
     file.position += written;
+    file.size += written;
 
     return result;
 }

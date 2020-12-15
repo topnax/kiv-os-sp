@@ -30,7 +30,6 @@ bool kiv_os_rtl::Write_File(const kiv_os::THandle file_handle, const char *buffe
 
 	const bool result = kiv_os::Sys_Call(regs);
 	written = static_cast<size_t>(regs.rax.r);
-
     return result;
 }
 
@@ -191,6 +190,8 @@ bool kiv_os_rtl::Get_Working_Dir(const char *buffer, size_t buffer_size, size_t 
     regs.rcx.r = buffer_size;
 
     const bool result = kiv_os::Sys_Call(regs);
+
+    read = static_cast<size_t>(regs.rax.r);
 
     return result;
 }

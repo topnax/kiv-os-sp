@@ -22,7 +22,7 @@ public:
 
     kiv_os::NOS_Error open(const char *name, kiv_os::NOpen_File flags, uint8_t attributes, File &file) override;
 
-    kiv_os::NOS_Error mkdir(const char *name) override;
+    kiv_os::NOS_Error mkdir(const char* name, uint8_t attributes) override;
 
     kiv_os::NOS_Error rmdir(const char *name) override;
 
@@ -38,7 +38,10 @@ public:
 
     kiv_os::NOS_Error get_attributes(const char *name, uint8_t &out_attributes) override;
 
+    uint32_t get_root_fd() override;
+
 private:
     static std::vector<char> generate_readproc_vector(Process process);
+
 
 };

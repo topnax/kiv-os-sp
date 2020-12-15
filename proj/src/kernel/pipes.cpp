@@ -4,7 +4,7 @@
 #include "pipe_file.h"
 #include "files.h"
 
-const size_t PIPE_BUFFER_SIZE_BYTES = 64000;
+const size_t PIPE_BUFFER_SIZE_BYTES = 1028;
 
 std::pair<kiv_os::THandle, kiv_os::THandle> Create_Pipe() {
     // create a shared pointer to an instance of a pipe,

@@ -80,6 +80,7 @@ void Init_Filesystems() {
             auto fs = new Fat_Fs(disk_num, *disk_params);
             fs->init();
             Add_Filesystem(R"(C:\)", fs);
+
             break;
         }
 
@@ -107,10 +108,6 @@ void Open_File(kiv_hal::TRegisters &registers) {
     kiv_os::NOS_Error error = kiv_os::NOS_Error::Success;
     auto handle = Open_File(file_name, flags, attributes, error);
 
-    if (handle == kiv_os::Invalid_Handle) {
-        error = kiv_os::NOS_Error::File_Not_Found;
-    }
-
     if (error == kiv_os::NOS_Error::Success) {
         registers.rax.x = handle;
     } else {
@@ -119,34 +116,58 @@ void Open_File(kiv_hal::TRegisters &registers) {
     }
 }
 
-kiv_os::THandle Open_File(const char *file_name, kiv_os::NOpen_File flags, uint8_t attributes, kiv_os::NOS_Error &error) {
+kiv_os::THandle Open_File(const char *input_file_name, kiv_os::NOpen_File flags, uint8_t attributes, kiv_os::NOS_Error &error) {
     std::lock_guard<std::mutex> guard(Files::Open_Guard);
     Generic_File *file = nullptr;
 
-    if (strcmp(file_name, "\\sys\\tty") == 0) {
+    if (strcmp(input_file_name, "\\sys\\tty") == 0) {
         file = new Tty_File();
-    } else if (strcmp(file_name, "\\sys\\kb") == 0) {
+    } else if (strcmp(input_file_name, "\\sys\\kb") == 0) {
         file = new Keyboard_File();
     } else {
         std::filesystem::path resolved_path_relative_to_fs;
         std::filesystem::path absolute_path;
-        auto fs = File_Exists(file_name, resolved_path_relative_to_fs, absolute_path);
+
+        std::filesystem::path input_path = input_file_name;
+        std::string file_name = input_path.filename().string();
+
+        // check whether the file has to exist in order to be opened
+        if (flags != kiv_os::NOpen_File::fmOpen_Always) {
+            // file does not have to exist
+            if ((attributes & static_cast<decltype(attributes)>(kiv_os::NFile_Attributes::Directory) && File_Exists(input_path, resolved_path_relative_to_fs, absolute_path) != nullptr)) {
+                // if a directory should be created a file at the given path mustn't exist
+                error = kiv_os::NOS_Error::Invalid_Argument;
+                return kiv_os::Invalid_Handle;
+            }
+            // when the file does not have to check whether the parent path does exist
+            input_path = input_path.parent_path();
+        }
+
+        auto fs = File_Exists(input_path, resolved_path_relative_to_fs, absolute_path);
         if (fs != nullptr) {
+
+            if (flags != kiv_os::NOpen_File::fmOpen_Always) {
+                // add back the filename
+                resolved_path_relative_to_fs /= file_name;
+            }
             File f{};
 
             auto length = resolved_path_relative_to_fs.string().length() + 1;
             char *name = new char[length];
             strcpy_s(name, length, resolved_path_relative_to_fs.string().c_str());
-
             // open a file with the found filesystem
+
             auto result = fs->open(name, flags, attributes, f);
             if (result == kiv_os::NOS_Error::Success) {
-
+                // file opened successfully
                 file = new Filesystem_File(fs, f);
                 f.name = name;
             } else {
+                error = result;
                 delete[] name;
             }
+        } else {
+            error = kiv_os::NOS_Error::File_Not_Found;
         }
     }
     if (file == nullptr) {
@@ -243,18 +264,19 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
     // keep a stack of file systems, while we traverse the directory tree (we can find fs mount points)
     std::stack<std::filesystem::path> paths_relative_to_fs;
 
+    // keep a stack of found cluster ids
+    std::stack<int32_t> cluster_stack;
+
     // keep track of the current path relative
     std::filesystem::path current_fs_path;
 
     // find the fs for the current path
     VFS *current_fs = Get_Filesystem(current_path.string());
-//    if (current_fs == nullptr) {
-//        current_fs = Get_Filesystem(path.parent_path().string());
-//    }
 
     file_systems.push(current_fs);
 
     if (current_fs != nullptr) {
+        cluster_stack.push(current_fs->get_root_fd());
         // the first file lookup should start in the root of the fs
         bool first = true;
 
@@ -266,20 +288,23 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
         for (const auto &component : path.relative_path()) {
             if (component == "..") {
                 // move one level up
-                if (current_path.has_filename()) {
+                if (current_path.has_root_directory()) {
                     // when the current path has some file name, then it has atleast one component in the path
                     // that means we can move one level up
 
                     // remove the last filename
-                    current_path.remove_filename();
+                    current_path = current_path.parent_path();
 
                     // decrement the number of components in the current fs
                     components_in_current_fs--;
+
+                    cluster_stack.pop();
 
                     if (components_in_current_fs == 0) {
                         // no more components in the current fs, load the previous FS
                         file_systems.pop();
                         current_fs = file_systems.top();
+                        components_in_current_fs = 1;
 
                         current_fs_path = paths_relative_to_fs.top();
 
@@ -287,6 +312,8 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
                         paths_relative_to_fs.pop();
 
                         // current_fs->print_name();
+                    } else {
+                        current_fs_path = current_fs_path.parent_path();
                     }
                 } else {
                     // cannot pop out of the root folder
@@ -306,15 +333,19 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
                     file_systems.push(new_fs);
                     current_fs = new_fs;
 
+                    cluster_stack.push(new_fs->get_root_fd());
                     // set the
                     current_fs_path = "\\";
                     components_in_current_fs = 1;
 
                 } else {
                     current_fs_path /= component.string();
-                    if (!current_fs->file_exists(current_fd, component.string().c_str(), first, current_fd)) {
+                    auto fd = cluster_stack.top();
+                    // check whether current path relative to FS exists in the current fs
+                    if (!current_fs->file_exists(fd, component.string().c_str(), first, current_fd)) {
                         return nullptr;
                     }
+                    cluster_stack.push(current_fd);
                     components_in_current_fs++;
                 }
 
@@ -327,6 +358,7 @@ VFS *File_Exists(std::filesystem::path path, std::filesystem::path &path_relativ
         }
         absolute_path = current_path;
         path_relative_to_fs = current_fs_path;
+
         return current_fs;
     }
 
@@ -371,7 +403,7 @@ void Delete_File(kiv_hal::TRegisters &registers) {
         strcpy_s(name, length, resolved_path_relative_to_fs.string().c_str());
 
         // unlink a file with the found filesystem
-        auto result = fs->unlink(name);
+        auto result = fs->rmdir(name);
         if (result == kiv_os::NOS_Error::Success) {
             // unlink successful, do not set error
             return;

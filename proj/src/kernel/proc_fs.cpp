@@ -129,11 +129,10 @@ kiv_os::NOS_Error Proc_Fs::open(const char *name, kiv_os::NOpen_File flags, uint
             return kiv_os::NOS_Error::Success;
         }
     }
-
-    return kiv_os::NOS_Error::File_Not_Found;
+    return kiv_os::NOS_Error::Permission_Denied;
 }
 
-kiv_os::NOS_Error Proc_Fs::mkdir(const char *name) {
+kiv_os::NOS_Error Proc_Fs::mkdir(const char* name, uint8_t attributes) {
     return kiv_os::NOS_Error::Permission_Denied;
 }
 
@@ -164,6 +163,7 @@ bool Proc_Fs::file_exists(int32_t current_fd, const char *name, bool start_from_
         }
 
         if (strcmp(name, "") == 0 || strcmp(name, ".") == 0) {
+            found_fd = 0;
             return true;
         }
 
@@ -214,4 +214,8 @@ kiv_os::NOS_Error Proc_Fs::get_attributes(const char *name, uint8_t &out_attribu
 
 kiv_os::NOS_Error Proc_Fs::set_attributes(const char *name, uint8_t attributes) {
     return kiv_os::NOS_Error::Permission_Denied;
+}
+
+uint32_t Proc_Fs::get_root_fd() {
+    return PROCFS_ROOT;
 }

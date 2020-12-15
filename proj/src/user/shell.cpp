@@ -63,30 +63,64 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
     // for each program assign input and output, clone the process and save it's handle:
     bool successCloning;
     int running_progs_num = 0;
-    //for (int i = 0; i < programs.size(); i++) {
-    for (int i = static_cast<int>(programs.size()) - 1; i >= 0; i--) {
-        if (i == 0) {
-            // first program gets std in or a file as input and first pipe's in as output
-            kiv_os::THandle first_handle;
 
+    bool close_file_handle_last_out = false;
+
+    file_handle_first_in = std_in;
+    file_handle_last_out = std_out;
+    // at the beginning, assign first in/last out handle:
+    for (int i = 0; i < programs.size(); i++) {
+        if (i == 0) {
             if (programs[i].input.type == ProgramHandleType::File) {
                 kiv_os::NOS_Error error;
-                if (kiv_os_rtl::Open_File(programs[i].input.name, kiv_os::NOpen_File::fmOpen_Always, 0, file_handle_first_in, error)) { ;;
-                } else {
+                if (kiv_os_rtl::Open_File(programs[i].input.name, kiv_os::NOpen_File::fmOpen_Always, 0, file_handle_first_in, error)) {
+                    ;;
+                }
+                else {
                     if (error == kiv_os::NOS_Error::File_Not_Found) {
                         // file not found
                         char buff[200];
                         memset(buff, 0, 200);
                         size_t n = sprintf_s(buff, "File %s not found.\n", programs[i].input.name);
                         kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
-                    } else {
+                    }
+                    else {
                         handle_error_message(error, std_out);
                     }
                     return;
                 }
-            } else if (programs[i].input.type == ProgramHandleType::Standard) {
-                file_handle_first_in = std_in;
             }
+        }
+        if (i == programs.size() - 1) {
+            if (programs[i].output.type == ProgramHandleType::File) {
+                kiv_os::NOS_Error error;
+                if (kiv_os_rtl::Open_File(programs[i].output.name, static_cast<kiv_os::NOpen_File>(0), 0, file_handle_last_out, error)) {
+                    close_file_handle_last_out = true;
+                }
+                else {
+                    //cancel_all_programs(programs, pipe_handles, handles, file_handle_first_in, file_handle_last_out, running_progs_num, std_in);
+                    if (error == kiv_os::NOS_Error::File_Not_Found) {
+                        // file not found
+                        char buff[200];
+                        memset(buff, 0, 200);
+                        size_t n = sprintf_s(buff, "File %s not found.\n", programs[i].output.name);
+                        kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
+                    }
+                    else {
+                        handle_error_message(error, std_out);
+                    }
+                    return;
+                }
+            }
+        }
+    }
+
+
+    //for (int i = 0; i < programs.size(); i++) {
+    for (int i = static_cast<int>(programs.size()) - 1; i >= 0; i--) {
+        if (i == 0) {
+            // first program gets std in or a file as input and first pipe's in as output
+            kiv_os::THandle first_handle;
 
             if (i < programs.size() - 1) {
                 successCloning = kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, file_handle_first_in/*std_in*/,
@@ -101,7 +135,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
                 }
 
             } else if (i == programs.size() - 1) {
-                successCloning = kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, file_handle_first_in/*std_in*/, std_out,
+                successCloning = kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, file_handle_first_in/*std_in*/, file_handle_last_out/*std_out*/,
                                           first_handle);
                 if (!successCloning) {
                     cancel_all_programs(programs, pipe_handles, handles, file_handle_first_in, file_handle_last_out, running_progs_num, std_in);
@@ -119,26 +153,6 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             // the last program gets std out or a file as output
             kiv_os::THandle last_handle;
 
-            if (programs[i].output.type == ProgramHandleType::File) {
-                kiv_os::NOS_Error error;
-                if (kiv_os_rtl::Open_File(programs[i].output.name, static_cast<kiv_os::NOpen_File>(0), 0, file_handle_last_out, error)) { ;;
-                } else {
-                    cancel_all_programs(programs, pipe_handles, handles, file_handle_first_in, file_handle_last_out, running_progs_num, std_in);
-                    if (error == kiv_os::NOS_Error::File_Not_Found) {
-                        // file not found
-                        char buff[200];
-                        memset(buff, 0, 200);
-                        size_t n = sprintf_s(buff, "File %s not found.\n", programs[i].output.name);
-                        kiv_os_rtl::Write_File(std_out, buff, strlen(buff), n);
-                    } else {
-                        handle_error_message(error, std_out);
-                    }
-                    return;
-                }
-            } else if (programs[i].output.type == ProgramHandleType::Standard) {
-                file_handle_last_out = std_out;
-            }
-
             if (programs.size() > 1) {
                 successCloning = kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[pipe_handles.size() - 1],
                                           file_handle_last_out/*std_out*/, last_handle);
@@ -151,7 +165,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
                     running_progs_num++;
                 }
             } else {
-                successCloning = kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, std_in, file_handle_last_out/*std_out*/,
+                successCloning = kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, file_handle_first_in/*std_in*/, file_handle_last_out/*std_out*/,
                                           last_handle);
                 if (!successCloning) {
                     cancel_all_programs(programs, pipe_handles, handles, file_handle_first_in, file_handle_last_out, running_progs_num, std_in);
@@ -217,10 +231,9 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
         } else if (ind == orig_handles.size() - 1) {
 
             // if it was the last program that ended, close only the output of the last pipe (at pipe_handles[size - 1])
-            if (pipe_handles.size() > 0)
+            if (pipe_handles.size() > 0) {
                 kiv_os_rtl::Close_Handle(pipe_handles[pipe_handles.size() - 1]);
-            if (programs[programs.size() - 1].input.type == ProgramHandleType::File)
-                kiv_os_rtl::Close_Handle(file_handle_last_out);
+            }
 
             num_of_handles_closed++;
         } else {
@@ -236,6 +249,10 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
 
         // decrement the number of processes running:
         running_progs_num--;
+    }
+
+    if (close_file_handle_last_out) {
+        kiv_os_rtl::Close_Handle(file_handle_last_out);
     }
 }
 
@@ -428,19 +445,26 @@ size_t __stdcall shell(const kiv_hal::TRegisters &regs) {
                         kiv_os_rtl::Get_Working_Dir(working_directory, PROMPT_BUFFER_SIZE, get_wd_read_count);
                         if (get_wd_read_count > 0) {
                             fill_prompt_buffer(working_directory, prompt, PROMPT_BUFFER_SIZE);
+                        } else {
+                            size_t written = 0;
+                            const char* error = "Could not read current working directory\n";
+                            kiv_os_rtl::Write_File(std_out, error, strlen(error), written);
                         }
                     } else {
                         size_t written = 0;
                         const char* error = "Directory not found\n";
                         kiv_os_rtl::Write_File(std_out, error, strlen(error), written);
                     }
+                } else {
+                    size_t written = 0;
+                    const char* error = "Directory not specified\n";
+                    kiv_os_rtl::Write_File(std_out, error, strlen(error), written);
                 }
                 continue;
             }
             else if (command == "exit") {
                 break;
             }
-
             // actual command execution:
             // cast from const to non const
             char* command_c = const_cast<char*>(command.c_str());

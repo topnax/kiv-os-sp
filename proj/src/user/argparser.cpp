@@ -229,8 +229,6 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
     }
 
 
-
-
     // go through the programs and assign correct inputs and outputs to them:
     for (int i = 0; i < prog_count - 1; ++i) {
 
@@ -263,8 +261,8 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
         else if (delims[i] == out_symb) {
             // if there is > symbol between current program and the next one:
             // set the output type of the current program to file and the name of the file
-            programs_vec[i].output.type = ProgramHandleType::File;
-            strncpy_s(programs_vec[i].output.name, programs_vec[i + 1].name, NAME_LEN);
+            programs_vec[actual_prog_count - 1].output.type = ProgramHandleType::File;
+            strncpy_s(programs_vec[actual_prog_count - 1].output.name, programs_vec[i + 1].name, NAME_LEN);
 
             //new_prog_count--;
         }

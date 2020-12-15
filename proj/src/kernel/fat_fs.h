@@ -29,9 +29,9 @@ public:
 
     kiv_os::NOS_Error open(const char *name, kiv_os::NOpen_File flags, uint8_t attributes, File &file) override;
 
-    kiv_os::NOS_Error mkdir(const char *name) override;
+    kiv_os::NOS_Error mkdir(const char* name, uint8_t attributes) override;
 
-    kiv_os::NOS_Error rmdir(const char *name) override;
+    kiv_os::NOS_Error rmdir(const char *name) override; //pujde pryc, unlink
 
     kiv_os::NOS_Error write(File file, std::vector<char> buffer, size_t size, size_t offset, size_t &written) override;
 
@@ -41,8 +41,9 @@ public:
 
     bool file_exists(int32_t current_fd, const char *name, bool start_from_root, int32_t &found_fd) override;
 
+    uint32_t get_root_fd() override;
+
 private:
     uint8_t disk_number;
     kiv_hal::TDrive_Parameters disk_parameters;
-
 };
