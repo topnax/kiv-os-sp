@@ -44,7 +44,7 @@ unsigned char conv_char_arr_to_hex(char char_arr[2]);
 std::vector<unsigned char> convert_num_to_bytes_fat(int target_index, std::vector<unsigned char> fat_table_hex, int num_to_inject);
 void save_fat_tables(std::vector<unsigned char> fat_table);
 std::vector<unsigned char> convert_dec_num_to_hex(long num_dec);
-void update_size_file_in_folder(char* filename_path, int offset, int original_size, int newly_written_bytes, std::vector<int> fat_table_dec);
+void update_size_file_in_folder(char* filename_path, size_t offset, size_t original_size, size_t newly_written_bytes, std::vector<int> fat_table_dec);
 int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>& fat_table_dec, std::vector<unsigned char>& first_fat_table_hex);
 std::vector<unsigned char> convert_dec_to_hex_start_clus(int start_clust);
 void write_folder_basics_cluster(int clust_to_write_index, int upper_fol_index);
