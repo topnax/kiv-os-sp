@@ -380,15 +380,15 @@ Obsahuje podpůrné funkce souborového systému \texttt{FAT12}, jež nejsou př
 \subsubsection{Problémy spojené s implementací}
 Při implementaci souborového systému byl pro nás problémem zejména fakt, že ve \texttt{FAT12} tabulce, jež obsahuje informace o stavu clusterů, je jedna hodnota reprezentována 12 bity. Při editaci hodnot v tabulce bylo tedy třeba načíst vždy dva bajty (resp. 16 bitů) a upravit jen odpovídající část dat.
 
-\section{User space}
-	User space je část operačního systému, která pomocí systémových volání žádá kernel o služby pro obsluhu uživatelských programů. Tato logika je použita i v naší práci. Funkcionalita uživatelských programů (jejich kód, spouštění, apod.) je implementovaná v projektu \texttt{user}. Jejich spouštění a případná orchestrace do pipeline je řešena v \texttt{shell.cpp}.
+\section{Uživatelský prostor}
+	Uživatelský prostor je část operačního systému, která pomocí systémových volání žádá jádro o služby pro obsluhu uživatelských programů. Tato logika je použita i v naší práci. Funkcionalita uživatelských programů (jejich kód, spouštění, apod.) je implementovaná v projektu \texttt{user}. Jejich spouštění a případná orchestrace do pipeline je řešena v \texttt{shell.cpp}.
 	
 	
 	\subsection{Podrobný popis podporovaných příkazů} \label{subDetail}
 	Zde je podrobnější popis podporovaných příkazů. Implementace funkcionality se nachází v příslušných \texttt{.cpp} zdrojových souborech (tj. \texttt{nazev\_prikazu.cpp}).    
     
     \subsubsection*{\texttt{echo}}
-    \texttt{echo} jako argument očekává řetězec, který má vypsat na standardní výstup. Pokud se v řetězci nachází 'speciální' znaky (tj. znak | nebo < nebo >), je potřeba řetězec uzavřít do uvozovek (`` ''), pokud výstup programu echo chceme přesměrovat na vstup jiného programu nebo do souboru.
+    \texttt{echo} jako argument očekává řetězec, který má vypsat na standardní výstup. Pokud se v řetězci nachází 'speciální' znaky (tj. znak '|' nebo '<' nebo '>'), je potřeba řetězec uzavřít do uvozovek (`` ''), pokud výstup programu \texttt{echo} chceme přesměrovat na vstup jiného programu nebo do souboru.
     Příklad:
     \begin{lstlisting}[language=C, caption={Ukázka chování programu echo},captionpos=b]
     > echo "hello" | freq
@@ -421,7 +421,7 @@ Při implementaci souborového systému byl pro nás problémem zejména fakt, �
     \texttt{type} na standardní výstup vypíše obsah zadaného souboru. Cesta k požadovanému souboru se zadává jako argument příkazu. Pokud argument není zadaný, \texttt{type} začne číst ze standardního vstupu, dokud nepřečte znak \texttt{EOT}.
     
     \subsubsection*{\texttt{find}}
-    \texttt{find} na standardní výstup vypíše počet řádek zadaného souboru. Tento příkaz se zadává ve formátu \texttt{find /v /c "{}"{} file.txt}, kde \texttt{file.txt} je cesta k požadovanému souboru. Pokud cesta k souboru není zadaná, \texttt{type} začne číst ze standardního vstupu, dokud nepřečte znak \texttt{EOT}.
+    \texttt{find} na standardní výstup vypíše počet řádek zadaného souboru. Tento příkaz se zadává ve formátu \texttt{find /c /v"{}"{} file.txt}, kde \texttt{file.txt} je cesta k požadovanému souboru. Pokud cesta k souboru není zadaná, \texttt{type} začne číst ze standardního vstupu, dokud nepřečte znak \texttt{EOT}.
     
     \subsubsection*{\texttt{sort}}
     \texttt{sort} na standardní výstup vypíše abecedně seřazené řádky zadaného souboru. Pokud cesta k souboru není zadaná, \texttt{sort} začne číst ze standardního vstupu, dokud nepřečte znak \texttt{EOT}.
@@ -437,7 +437,9 @@ Při implementaci souborového systému byl pro nás problémem zejména fakt, �
     \texttt{shutdown} ukončí všechny běžící procesy, tj. vč. všech spuštěných shellů.
     
     \subsubsection*{\texttt{rgen}}
-    \texttt{rgen} začne na standardní výstup vypisovat náhodné byty. Ne však byty s hodnotou 0x04, tj. znak \texttt{EOT}.
+    \texttt{rgen} začne na standardní výstup vypisovat náhodná čísla v plovoucí čárce.
+    
+    \texttt{rgen} používá dvě vlákna - jedno pro generování čísel a jejich výpis a druhé pro čtení vstupu, aby poznal, jestli byl na jeho vstup zapsán znak \texttt{EOT}, \texttt{ETX} nebo \texttt{EOF}.
     
     \subsubsection*{\texttt{freq}}
     \texttt{freq} začne číst ze standardního vstupu, dokud nepřečte znak \texttt{EOT}. Poté na standardní výstup vypíše frekvenční tabulku bytů pro všechny byty s frekvencí větší než 0.
@@ -467,7 +469,7 @@ Při implementaci souborového systému byl pro nás problémem zejména fakt, �
 	\texttt{C:\textbackslash> p1 | p2 | p3},\\
 	potom prvním spuštěným procesem bude \texttt{p3} a posledním \texttt{p1}.
 	
-	Procesy jsou spouštěny tímto způsobem z toho důvodu, že pokud uživatel zadá neplatný příkaz, potom je potřeba všechny (již spuštěné) procesy ukončit. Pokud by první proces v pipeline byl spuštěn a potom bylo nutné jej předčasně ukončit, jedinou možností by bylo poslat na jeho vstup znak \texttt{EOT}, protože standardní vstup shellu nechceme zavírat. To s sebou ale nese komplikace. V případě spouštění od posledního k prvnímu taková situace nemůže nastat (pokud by první zadaný příkaz byl neplatný, nebude vůbec spuštěn).
+	Procesy jsou spouštěny tímto způsobem z toho důvodu, že pokud uživatel zadá neplatný příkaz, potom je potřeba všechny (již spuštěné) procesy ukončit. Pokud by první proces v pipeline byl spuštěn a potom bylo nutné jej předčasně ukončit, jedinou možností by bylo zapsat na jeho vstup znak \texttt{EOT}, protože standardní vstup shellu nechceme zavírat. To s sebou ale nese komplikace. V případě spouštění od posledního k prvnímu taková situace nemůže nastat (pokud by první zadaný příkaz byl neplatný, nebude vůbec spuštěn).
 	
 	Při předčasném ukončování procesů jsou zavřeny \texttt{Handles} vstupů a výstupů všech rour a otevřených souborů a nakonec jsou přečteny \texttt{ExitCodes} procesů.
 	\\
@@ -480,7 +482,8 @@ Při implementaci souborového systému byl pro nás problémem zejména fakt, �
 
 \section{Závěr}	
 
-Zadáním semestrální práce byla simulace operačního systému. Zadání bylo z velké části splněno.
+Zadání semestrální práce bylo splněno. Byly navrženy a implementovány všechny jednotlivé části popsané v Zadání.
+ 
 
 \subsection{Rozdělení práce a bodů}
 
@@ -495,9 +498,5 @@ Rozdělení práce mezi členy týmu vypadalo zhruba následovně (rozdělení n
 		- práce na FS FAT s využitím přiloženého obrazu diskety, implementace VFS rozhraní
 \end{itemize}
 
-\subsection{Zhodnocení dosažených výsledků}
-Přes veškerou snahu jsme bohužel nebyli schopni včas implementovat souborový systém FAT. Část jeho nutné funkcionality je implementovaná a funkční, ale nelze ho zatím integrovat do celého projektu. Avšak projekt by měl být řádně připraven na pouhé dodání implementace rozhraní VFS souborovým systémem FAT, aby mohl plně fungovat.
-
-Máme důvěru v robustnost a správnost implementace zbytku částí projektu.
 
 \end{document}    
