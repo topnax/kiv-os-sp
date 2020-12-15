@@ -51,3 +51,5 @@ void write_folder_basics_cluster(int clust_to_write_index, int upper_fol_index);
 uint8_t retrieve_file_attrib(unsigned char byte_attrib);
 int create_file(const char* file_path, uint8_t attributes, std::vector<int>& fat_table_dec, std::vector<unsigned char>& first_fat_table_hex);
 int allocate_new_cluster(int start_cluster, std::vector<int>& fat_table_dec, std::vector<unsigned char>& first_fat_table_hex);
+bool check_file_name_validity(const char* file_path);
+bool check_folder_name_validity(const char* folder_path);
