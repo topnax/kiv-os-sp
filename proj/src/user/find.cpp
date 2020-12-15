@@ -42,21 +42,21 @@ extern "C" size_t __stdcall find(const kiv_hal::TRegisters & regs) {
 
     // parse the data here:
     // the format is find /v /c "" file.txt
-    //std::string form = "/v /c \"\"";
-    //int pos = 0;
+    std::string form = "/c /v\"\"";
+    int pos = 0;
     std::string args = data;
-    //int index = static_cast<int>(args.find(form, pos));
-    //if (index == 0) {
-    //    // the format is ok, now separate the file path:
-    //    args = args.substr(form.size(), args.size() - 1);
-    //    args = trim(args, " ");
-    //}
-    //else {
-    //    size_t written;
-    //    char* message = "Arguments expected: find /v /c \"\" {optional/path/to/file}\n";
-    //    kiv_os_rtl::Write_File(std_out, message, strlen(message), written);
-    //    return 0;
-    //}
+    int index = static_cast<int>(args.find(form, pos));
+    if (index == 0) {
+        // the format is ok, now separate the file path:
+        args = args.substr(form.size(), args.size() - 1);
+        args = trim(args, " ");
+    }
+    else {
+        size_t written;
+        char* message = "Arguments expected: find /c /v\"\" {optional/path/to/file}\n";
+        kiv_os_rtl::Write_File(std_out, message, strlen(message), written);
+        return 0;
+    }
 
 
     if (args.c_str() && strlen(args.c_str()) > 0) {
