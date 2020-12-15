@@ -252,8 +252,8 @@ kiv_os::NOS_Error Fat_Fs::rmdir(const char *name) {
 
     for (int i = 0; i < sectors_nums_data.size(); i++) {
         std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(sectors_nums_data.at(i), first_fat_table_hex, 0);
-        first_fat_table_hex.at(sectors_nums_data.at(i) * 1.5) = modified_bytes.at(0); //oznacit cluster jako volny v hex tabulce
-        first_fat_table_hex.at((sectors_nums_data.at(i) * 1.5) + 1) = modified_bytes.at(1);
+        first_fat_table_hex.at(static_cast<size_t>(static_cast<double>(sectors_nums_data.at(i)) * 1.5)) = modified_bytes.at(0); //oznacit cluster jako volny v hex tabulce
+        first_fat_table_hex.at(static_cast<size_t>(static_cast<double>(sectors_nums_data.at(i) * 1.5)) + 1) = modified_bytes.at(1);
         first_fat_table_dec.at(sectors_nums_data.at(i)) = 0; //oznacit cluster jako volny v dec tabulce
         write_data_to_fat_fs(sectors_nums_data.at(i), format); //prepsat prideleny cluster
     }
