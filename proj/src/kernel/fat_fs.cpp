@@ -462,19 +462,19 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
             char free_cluster_index_sec = first_fat_table_hex.at(first_index_hex_tab + 1);
 
             std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(index_to_edit, first_fat_table_hex, free_clust_index);
-            first_fat_table_hex.at(index_to_edit * 1.5) = modified_bytes.at(0);
-            first_fat_table_hex.at((index_to_edit * 1.5) + 1) = modified_bytes.at(1);
+            first_fat_table_hex.at(static_cast<int>(static_cast<double>(index_to_edit) * 1.5)) = modified_bytes.at(0);
+            first_fat_table_hex.at((static_cast<int>(static_cast<double>(index_to_edit) * 1.5)) + 1) = modified_bytes.at(1);
             //v hex tabulkach upravit cislo posledniho clusteru puvodne prideleno souboru - KONEC
 
             //v hex tabulkach na indexu nove prideleneho clusteru udelit 4095 (konec souboru) - START
-            first_index_hex_tab = free_clust_index * 1.5; //index zabraneho clusteru
+            first_index_hex_tab = static_cast<int>(static_cast<double>(free_clust_index) * 1.5); //index zabraneho clusteru
 
             free_cluster_index_first = first_fat_table_hex.at(first_index_hex_tab);
             free_cluster_index_sec = first_fat_table_hex.at(first_index_hex_tab + 1);
 
             modified_bytes = convert_num_to_bytes_fat(free_clust_index, first_fat_table_hex, 4095);
-            first_fat_table_hex.at(free_clust_index * 1.5) = modified_bytes.at(0);
-            first_fat_table_hex.at((free_clust_index * 1.5) + 1) = modified_bytes.at(1);
+            first_fat_table_hex.at(static_cast<int>(static_cast<double>(free_clust_index) * 1.5)) = modified_bytes.at(0);
+            first_fat_table_hex.at((static_cast<int>(static_cast<double>(free_clust_index) * 1.5)) + 1) = modified_bytes.at(1);
             //v hex tabulkach na indexu nove prideleneho clusteru udelit 4095 (konec souboru) - KONEC
 
             write_data_to_fat_fs(free_clust_index, clust_data_write); //zapis dat na nove alokovany cluster
@@ -488,7 +488,7 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
     save_fat_tables(first_fat_table_hex);
 
     //updatovat velikost souboru v nadrazene slozce
-    int newly_written_bytes = (offset + written_bytes) - file.size; //na jake misto jsem se dostal - puvodni velikost souboru = pocet pridanych bajtu
+    size_t newly_written_bytes = (offset + written_bytes) - file.size; //na jake misto jsem se dostal - puvodni velikost souboru = pocet pridanych bajtu
     if (newly_written_bytes > 0) { //soubor byl zvetsen, update velikosti ve slozce...
         update_size_file_in_folder(file.name, offset, file.size, newly_written_bytes, first_fat_table_dec);
 
