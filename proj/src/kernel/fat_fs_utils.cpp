@@ -569,7 +569,8 @@ void write_data_to_fat_fs(int start_sector_num, std::vector<char> buffer_to_writ
 int retrieve_free_cluster_index(std::vector<int> fat_table_dec) {
     int free_clust_num = -1;
 
-    for (int i = 0; i < fat_table_dec.size(); i++) {
+    // iterate up to 2848, all other clusters are out of drive's bounds
+    for (int i = 0; i < 2848; i++) {
         if (fat_table_dec.at(i) == 0) { //nasel se neobsazeny cluster, koncime
             free_clust_num = i;
             break;
