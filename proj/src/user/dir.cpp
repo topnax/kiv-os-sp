@@ -110,8 +110,11 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
 
                     if (recursive &&
                         (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0) {
-                        auto path = std::string(path_to_open_char_ptr) + "/" + std::string (entry->file_name);
-                        path_stack.push(path);
+                        if (path_to_open == ".") {
+                           path_stack.push(std::string(entry->file_name));
+                        } else {
+                            path_stack.push(std::string(path_to_open_char_ptr) + "/" + std::string(entry->file_name));
+                        }
                     }
 
                     auto is_directory = (file_attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) != 0;
