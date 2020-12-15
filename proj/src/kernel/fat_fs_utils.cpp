@@ -544,13 +544,13 @@ void write_data_to_fat_fs(int start_sector_num, std::vector<char> buffer_to_writ
     //posledni cluster bude cely prepsan za normalnich okolnosti, chceme cast zachovat => vytahnout data z clusteru a prepsat jen relevantni cast
     int last_sector_alloc = (start_sector_num + static_cast<int>(ap_to_write.count)) - 1;
     std::vector<unsigned char> last_sector_data = read_data_from_fat_fs(last_sector_alloc, 1);
-    int size_to_hold = ap_to_write.count * SECTOR_SIZE_B;
+    int size_to_hold = static_cast<int>(ap_to_write.count) * SECTOR_SIZE_B;
 
     int last_cluster_occupied = buffer_to_write.size() % SECTOR_SIZE_B;
-    int start_pos = buffer_to_write.size();
+    size_t start_pos = buffer_to_write.size();
 
     int added_bytes = 0;
-    for (int i = start_pos; i < size_to_hold; i++) {
+    for (size_t i = start_pos; i < size_to_hold; i++) {
         buffer_to_write.push_back(last_sector_data.at(last_cluster_occupied + added_bytes));
         added_bytes++;
     }
@@ -583,7 +583,7 @@ int retrieve_free_cluster_index(std::vector<int> fat_table_dec) {
 unsigned char conv_char_arr_to_hex(char char_arr[2])
 {
     char buff[1];
-    buff[0] = strtol(char_arr, NULL, 16); 
+    buff[0] = static_cast<char>(strtol(char_arr, NULL, 16));
 
     return buff[0];
 }
@@ -597,8 +597,7 @@ unsigned char conv_char_arr_to_hex(char char_arr[2])
 std::vector<unsigned char> convert_num_to_bytes_fat(int target_index, std::vector<unsigned char> fat_table_hex, int num_to_inject) {
     std::vector<unsigned char> converted_bytes;
 
-    int first_index_hex_tab = target_index * 1.5; //index volneho clusteru v hex(na dvou bajtech)
-
+    int first_index_hex_tab = static_cast<int>(static_cast<double>(target_index) * 1.5); //index volneho clusteru v hex(na dvou bajtech)
     unsigned char free_cluster_index_first = fat_table_hex.at(first_index_hex_tab);
     unsigned char free_cluster_index_sec = fat_table_hex.at(first_index_hex_tab + 1);
 
@@ -658,9 +657,9 @@ void save_fat_tables(std::vector<unsigned char> fat_table) {
 * Prevod cisla v dec na 4 bajty, hex soustava.
 * num_dec - cislo v desitkove soustave
 /**/
-std::vector<unsigned char> convert_dec_num_to_hex(long num_dec) {
+std::vector<unsigned char> convert_dec_num_to_hex(size_t num_dec) {
     unsigned char bytes[4];
-    unsigned long num = num_dec;
+    size_t num = num_dec;
 
     bytes[0] = (num >> 24) & 0xFF;
     bytes[1] = (num >> 16) & 0xFF;
