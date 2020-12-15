@@ -543,3 +543,11 @@ bool Fat_Fs::file_exists(int32_t current_fd, const char* name, bool start_from_r
 uint32_t Fat_Fs::get_root_fd() {
     return 19;
 }
+
+kiv_os::NOS_Error Fat_Fs::set_attributes(const char *name, uint8_t attributes) {
+    return kiv_os::NOS_Error::IO_Error;
+}
+
+kiv_os::NOS_Error Fat_Fs::get_attributes(const char *name, uint8_t &out_attributes) {
+    return kiv_os::NOS_Error::IO_Error;
+}

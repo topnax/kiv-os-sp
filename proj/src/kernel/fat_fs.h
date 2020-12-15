@@ -41,6 +41,10 @@ public:
 
     uint32_t get_root_fd() override;
 
+    kiv_os::NOS_Error set_attributes(const char *name, uint8_t attributes) override;
+
+    kiv_os::NOS_Error get_attributes(const char *name, uint8_t &out_attributes) override;
+
 private:
     uint8_t disk_number;
     kiv_hal::TDrive_Parameters disk_parameters;
