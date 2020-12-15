@@ -5,7 +5,10 @@
 #include "files.h"
 #include "process.h"
 
+std::mutex Dir_Mutex;
+
 bool Set_Working_Dir(kiv_hal::TRegisters &regs) {
+    std::lock_guard<decltype(Dir_Mutex)> guard(Dir_Mutex);
     auto path = reinterpret_cast<char *>(regs.rdx.r);
 
     // check whether path has been correctly set
@@ -53,6 +56,7 @@ bool Get_Working_Dir(char *out_buffer, size_t buffer_size, size_t &written) {
 }
 
 bool Get_Working_Dir(kiv_hal::TRegisters &regs) {
+    std::lock_guard<decltype(Dir_Mutex)> guard(Dir_Mutex);
     char *out_buffer = reinterpret_cast<char *>(regs.rdx.r);
     size_t buffer_size = static_cast<size_t>(regs.rcx.r);
     size_t written;

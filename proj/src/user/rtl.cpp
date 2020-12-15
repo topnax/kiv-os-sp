@@ -191,6 +191,8 @@ bool kiv_os_rtl::Get_Working_Dir(const char *buffer, size_t buffer_size, size_t 
 
     const bool result = kiv_os::Sys_Call(regs);
 
+    read = static_cast<size_t>(regs.rax.r);
+
     return result;
 }
 
