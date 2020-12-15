@@ -149,7 +149,6 @@ std::vector<int> convert_fat_table_to_dec(std::vector<unsigned char> fat_table_h
 * total_sector_num = celkovy pocet sektoru, ktery ma byt precten
 /**/
 std::vector<unsigned char> read_data_from_fat_fs(int start_sector_num, int total_sector_num) {
-    std::vector<unsigned char> file_bytes; //nactene byty souboru
     std::vector<unsigned char> second_fat_cont;
 
     kiv_hal::TRegisters reg_to_read;
@@ -167,9 +166,7 @@ std::vector<unsigned char> read_data_from_fat_fs(int start_sector_num, int total
     kiv_hal::Call_Interrupt_Handler(kiv_hal::NInterrupt::Disk_IO, reg_to_read);
     char* buffer = reinterpret_cast<char*>(ap_to_read.sectors);
 
-    for (int i = 0; i < (total_sector_num * SECTOR_SIZE_B); i++) { //prevod na vector charu
-        file_bytes.push_back(buffer[i]);
-    }
+    std::vector<unsigned char> file_bytes(buffer, buffer + (total_sector_num * SECTOR_SIZE_B)); //nactene byty souboru
 
     free(s);
     return file_bytes;
@@ -820,12 +817,12 @@ int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>&
     std::vector<unsigned char> to_write_subfolder;
     std::vector<char> to_save;
 
-    int i = 0;
-    for (; i < new_fol_name.length(); i++) {
-        to_write_subfolder.push_back(new_fol_name.at(i));
+    int j = 0;
+    for (; j < new_fol_name.length(); j++) {
+        to_write_subfolder.push_back(new_fol_name.at(j));
     }
 
-    for (; i < 8; i++) { //doplnit na 8 bytu, ve fat nazev vzdy 8 byt
+    for (; j < 8; j++) { //doplnit na 8 bytu, ve fat nazev vzdy 8 byt
         to_write_subfolder.push_back(32);
     }
 
@@ -1095,21 +1092,21 @@ int create_file(const char* file_path, uint8_t attributes, std::vector<int>& fat
     std::vector<unsigned char> to_write_subfolder; //obsahuje dir entry
     std::vector<char> to_save; //cely obsah clusteru (puvodni dir itemy na odpovidajicim clusteru + novy dir item)
 
-    int i = 0;
-    for (; i < filename.size(); i++) { //nazev souboru - 8 bajtu
-        to_write_subfolder.push_back(filename.at(i));
+    int x = 0;
+    for (; x < filename.size(); x++) { //nazev souboru - 8 bajtu
+        to_write_subfolder.push_back(filename.at(x));
     }
 
-    for (; i < 8; i++) { //doplnit na 8 bytu nazev, ve fat nazev vzdy 8 byt
+    for (; x < 8; x++) { //doplnit na 8 bytu nazev, ve fat nazev vzdy 8 byt
         to_write_subfolder.push_back(32);
     }
 
-    i = 0;
-    for (; i < extension.size(); i++) { //pripona souboru - 3 bajty
-        to_write_subfolder.push_back(extension.at(i));
+    x = 0;
+    for (; x < extension.size(); x++) { //pripona souboru - 3 bajty
+        to_write_subfolder.push_back(extension.at(x));
     }
 
-    for (; i < 3; i++) { //doplnit na 3 bajty pripony, ve fat pripona vzdy 3 bajty
+    for (; x < 3; x++) { //doplnit na 3 bajty pripony, ve fat pripona vzdy 3 bajty
         to_write_subfolder.push_back(32);
     }
 

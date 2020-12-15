@@ -289,13 +289,13 @@ kiv_os::NOS_Error Fat_Fs::rmdir(const char *name) {
 
     for (int i = 0; i < items_folder_upper.size(); i++) { //kontrola poradi v dane slozce
         std::string item_to_check = "";
-        directory_item dir_item = items_folder_upper.at(i);
+        directory_item di = items_folder_upper.at(i);
 
-        if (!dir_item.extension.empty()) {
-            item_to_check = dir_item.filename + "." + dir_item.extension;
+        if (!di.extension.empty()) {
+            item_to_check = di.filename + "." + di.extension;
         }
         else {
-            item_to_check = dir_item.filename;
+            item_to_check = di.filename;
         }
 
         if (item_to_check.compare(filename) == 0) {
