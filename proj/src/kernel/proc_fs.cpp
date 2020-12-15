@@ -144,10 +144,6 @@ kiv_os::NOS_Error Proc_Fs::write(File f, std::vector<char> buffer, size_t size, 
     return kiv_os::NOS_Error::Permission_Denied;
 }
 
-kiv_os::NOS_Error Proc_Fs::unlink(const char *name) {
-    return kiv_os::NOS_Error::Permission_Denied;
-}
-
 kiv_os::NOS_Error Proc_Fs::close(File file) {
     return kiv_os::NOS_Error::IO_Error;
 }

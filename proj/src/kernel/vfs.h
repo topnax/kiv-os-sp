@@ -53,11 +53,6 @@ public:
     virtual kiv_os::NOS_Error read(File file, size_t size, size_t offset, std::vector<char> &out) = 0;
 
     /**
-     * Deletes the file with the given name
-     */
-    virtual kiv_os::NOS_Error unlink(const char *name) = 0;
-
-    /**
      * Checks whether an item with the given `name` exists in the directory specified by `current_fd` identifier.
      * When `start_from_root` is set to `true` then `current_fd` should be ignored and `name` should be searched for in
      * the root directory of the filesystem.

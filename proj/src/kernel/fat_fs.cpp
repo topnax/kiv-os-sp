@@ -498,10 +498,6 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
     return kiv_os::NOS_Error::Success;
 }
 
-kiv_os::NOS_Error Fat_Fs::unlink(const char *name) {
-    return kiv_os::NOS_Error::IO_Error;
-}
-
 kiv_os::NOS_Error Fat_Fs::close(File file) {
     return kiv_os::NOS_Error::IO_Error;
 }

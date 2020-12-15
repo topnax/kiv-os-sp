@@ -35,8 +35,6 @@ public:
 
     kiv_os::NOS_Error write(File file, std::vector<char> buffer, size_t size, size_t offset, size_t &written) override;
 
-    kiv_os::NOS_Error unlink(const char *name) override;
-
     kiv_os::NOS_Error close(File file) override;
 
     bool file_exists(int32_t current_fd, const char *name, bool start_from_root, int32_t &found_fd) override;
