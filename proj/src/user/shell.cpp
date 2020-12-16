@@ -94,7 +94,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
         if (i == programs.size() - 1) {
             if (programs[i].output.type == ProgramHandleType::File) {
                 kiv_os::NOS_Error error;
-                if (kiv_os_rtl::Open_File(programs[i].output.name, static_cast<kiv_os::NOpen_File>(0), 0, file_handle_last_out, error)) {
+                if (kiv_os_rtl::Open_File(programs[i].output.name, static_cast<kiv_os::NOpen_File>(0), static_cast<uint8_t>(kiv_os::NFile_Attributes::Archive), file_handle_last_out, error)) {
                     close_file_handle_last_out = true;
                 }
                 else {
