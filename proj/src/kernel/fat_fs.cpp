@@ -545,9 +545,165 @@ uint32_t Fat_Fs::get_root_fd() {
 }
 
 kiv_os::NOS_Error Fat_Fs::set_attributes(const char *name, uint8_t attributes) {
-    return kiv_os::NOS_Error::IO_Error;
+    std::vector<std::string> folders_in_path = path_to_indiv_items(name); //rozdeleni na indiv. polozky v ceste
+    std::string filename = folders_in_path.at(folders_in_path.size() - 1); //nazev souboru, u ktereho chceme upravit atribut
+
+    folders_in_path.pop_back(); //posledni polozkou je nazev souboru, u ktereho chceme upravit atribut - ten ted nehledame
+
+    int start_sector = -1;
+    std::vector<int> sectors_nums_data; //clustery obsahujici data nadrazene slozky, ve ktere se soubor nachazi
+    if (folders_in_path.size() == 0) { //jsme v rootu
+        start_sector = 19;
+
+        for (int i = 19; i < 33; i++) {
+            sectors_nums_data.push_back(i);
+        }
+    }
+    else { //jsme v klasicke slozce
+        directory_item target_folder = retrieve_item_clust(19, first_fat_table_dec, folders_in_path);
+        sectors_nums_data = retrieve_sectors_nums_fs(first_fat_table_dec, target_folder.first_cluster);
+
+        start_sector = sectors_nums_data.at(0);
+    }
+
+    if (start_sector == -1) { //nadraz slozka neexistuje
+        return kiv_os::NOS_Error::File_Not_Found;
+    }
+
+    std::vector<directory_item> items_folder = retrieve_folders_cur_folder(first_fat_table_dec, start_sector); //obsah nadrazene slozky, ve ktere se soubor vyskytuje
+
+    int target_index = -1; //poradi hledane polozky v ramci adrazene slozky
+
+    if (target_index == -1) { //hledana polozka neexistuje
+        return kiv_os::NOS_Error::File_Not_Found;
+    }
+
+    for (int i = 0; i < items_folder.size(); i++) { //kontrola poradi souboru v dane slozce
+        std::string item_to_check = "";  //kontroluji nazev i priponu soucasne
+        directory_item dir_item = items_folder.at(i);
+
+        if (!dir_item.extension.empty()) {
+            item_to_check = dir_item.filename + "." + dir_item.extension;
+        }
+        else {
+            item_to_check = dir_item.filename;
+        }
+
+        if (item_to_check.compare(filename) == 0) { //shoduje se nazev vcetne pripony
+            target_index = i;
+            break; //nalezen index slozky, souboru; konec
+        }
+    }
+
+    if (folders_in_path.size() == 0) { //pokud root, pak index +1 (neobsahuje nadrazenou slozku)
+        target_index += 1;
+    }
+    else { //nejsme v rootu; klasicka slozka, +2 (. a ..)
+        target_index += 2;
+    }
+
+    //na kterem clusteru polozka lezi + jeji index..
+    int cluster_num = (target_index) / 16; //poradi slozky / 16 (cluster pojme 16 polozek)
+    int item_num_clust_rel = (target_index) % 16; //poradi slozky v ramci jednoho clusteru
+
+    std::vector<unsigned char> data_clust_fol; //obsahuje data daneho clusteru se slozkou
+    if (folders_in_path.size() == 0) { //jsme v root slozce
+        data_clust_fol = read_data_from_fat_fs(sectors_nums_data.at(cluster_num) - 31, 1); //-31; fce cte z dat sektoru
+
+        data_clust_fol.at(item_num_clust_rel * 32 + 11) = attributes;
+
+        std::vector<char> data_to_save;
+        for (int i = 0; i < data_clust_fol.size(); i++) {
+            data_to_save.push_back(data_clust_fol.at(i));
+        }
+
+        write_data_to_fat_fs(sectors_nums_data.at(cluster_num) - 31, data_to_save);
+    }
+    else {
+        data_clust_fol = read_data_from_fat_fs(sectors_nums_data.at(cluster_num), 1); //fce cte z dat sektoru
+
+        data_clust_fol.at(item_num_clust_rel * 32 + 11) = attributes;
+
+        std::vector<char> data_to_save;
+        for (int i = 0; i < data_clust_fol.size(); i++) {
+            data_to_save.push_back(data_clust_fol.at(i));
+        }
+
+        write_data_to_fat_fs(sectors_nums_data.at(cluster_num), data_to_save);
+    }
+
+    return kiv_os::NOS_Error::Success;
 }
 
 kiv_os::NOS_Error Fat_Fs::get_attributes(const char *name, uint8_t &out_attributes) {
-    return kiv_os::NOS_Error::IO_Error;
+    std::vector<std::string> folders_in_path = path_to_indiv_items(name);
+    std::string filename = folders_in_path.at(folders_in_path.size() - 1);
+
+    folders_in_path.pop_back();
+
+    int start_sector = -1;
+    std::vector<int> sectors_nums_data;
+    if (folders_in_path.size() == 0) {
+        start_sector = 19;
+
+        for (int i = 19; i < 33; i++) {
+            sectors_nums_data.push_back(i);
+        }
+    }
+    else {
+        directory_item target_folder = retrieve_item_clust(19, first_fat_table_dec, folders_in_path);
+        sectors_nums_data = retrieve_sectors_nums_fs(first_fat_table_dec, target_folder.first_cluster);
+
+        start_sector = sectors_nums_data.at(0);
+    }
+
+    if (start_sector == -1) {
+        return kiv_os::NOS_Error::File_Not_Found;
+    }
+
+    std::vector<directory_item> items_folder = retrieve_folders_cur_folder(first_fat_table_dec, start_sector);
+
+    int target_index = -1;
+
+    if (target_index == -1) {
+        return kiv_os::NOS_Error::File_Not_Found;
+    }
+
+    for (int i = 0; i < items_folder.size(); i++) {
+        std::string item_to_check = "";
+        directory_item dir_item = items_folder.at(i);
+
+        if (!dir_item.extension.empty()) {
+            item_to_check = dir_item.filename + "." + dir_item.extension;
+        }
+        else {
+            item_to_check = dir_item.filename;
+        }
+
+        if (item_to_check.compare(filename) == 0) {
+            target_index = i;
+            break;
+        }
+    }
+
+    if (folders_in_path.size() == 0) {
+        target_index += 1;
+    }
+    else {
+        target_index += 2;
+    }
+
+    int cluster_num = (target_index) / 16;
+    int item_num_clust_rel = (target_index) % 16;
+
+    std::vector<unsigned char> data_clust_fol;
+    if (folders_in_path.size() == 0) {
+        data_clust_fol = read_data_from_fat_fs(sectors_nums_data.at(cluster_num) - 31, 1);
+        out_attributes = data_clust_fol.at(item_num_clust_rel * 32 + 11);
+    }
+    else {
+        data_clust_fol = read_data_from_fat_fs(sectors_nums_data.at(cluster_num), 1);
+        out_attributes = data_clust_fol.at(item_num_clust_rel * 32 + 11);
+    }
+    return kiv_os::NOS_Error::Success;
 }
