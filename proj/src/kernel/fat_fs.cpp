@@ -4,7 +4,6 @@
 
 #include "fat_fs.h"
 #include "fat_fs_utils.h"
-#include <iostream>
 #include <algorithm>
 
 std::vector<unsigned char> first_fat_table_hex; //obsah prvni fat tabulky v hex formatu

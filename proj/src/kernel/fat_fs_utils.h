@@ -8,8 +8,6 @@
 
 #include "../api/hal.h"
 #include "../api/api.h"
-#include <iostream>
-#include <fstream>
 #include <vector>
 #include <math.h>
 #include <sstream>
