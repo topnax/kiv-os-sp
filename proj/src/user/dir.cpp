@@ -153,6 +153,9 @@ extern "C" size_t __stdcall dir(const kiv_hal::TRegisters &regs) {
                         print = false;
                         // \*.* pattern specified, print only if the entry contains a dot in it's name
                         for (size_t i = 0; i < sizeof(entry->file_name); i++) {
+                            if (entry->file_name[i] == 0) {
+                                break;
+                            }
                             if (entry->file_name[i] == '.') {
                                 print = true;
                                 break;
