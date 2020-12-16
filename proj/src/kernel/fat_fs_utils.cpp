@@ -736,10 +736,10 @@ void update_size_file_in_folder(char *filename_path, size_t offset, size_t origi
     if (folders_in_path.size() == 0) { //jsme v root slozce
         data_clust_fol = read_data_from_fat_fs(sectors_nums_data.at(cluster_num) - 31, 1); //-31; fce cte z dat sektoru
 
-        data_clust_fol.at(static_cast<int>(item_num_clust_rel * 32) + 28) = new_file_size_hex.at(0);
-        data_clust_fol.at(static_cast<int>(item_num_clust_rel * 32) + 29) = new_file_size_hex.at(1);
-        data_clust_fol.at(static_cast<int>(item_num_clust_rel * 32) + 30) = new_file_size_hex.at(2);
-        data_clust_fol.at(static_cast<int>(item_num_clust_rel * 32) + 31) = new_file_size_hex.at(3);
+        data_clust_fol.at(item_num_clust_rel * 32 + 28) = new_file_size_hex.at(0);
+        data_clust_fol.at(item_num_clust_rel * 32 + 29) = new_file_size_hex.at(1);
+        data_clust_fol.at(item_num_clust_rel * 32 + 30) = new_file_size_hex.at(2);
+        data_clust_fol.at(item_num_clust_rel * 32 + 31) = new_file_size_hex.at(3);
 
         std::vector<char> data_to_save;
         for (int i = 0; i < data_clust_fol.size(); i++) {
@@ -751,10 +751,10 @@ void update_size_file_in_folder(char *filename_path, size_t offset, size_t origi
     else {
         data_clust_fol = read_data_from_fat_fs(sectors_nums_data.at(cluster_num), 1); //fce cte z dat sektoru
 
-        data_clust_fol.at(static_cast<int>(item_num_clust_rel * 32) + 28) = new_file_size_hex.at(0);
-        data_clust_fol.at(static_cast<int>(item_num_clust_rel * 32) + 29) = new_file_size_hex.at(1);
-        data_clust_fol.at(static_cast<int>(item_num_clust_rel * 32) + 30) = new_file_size_hex.at(2);
-        data_clust_fol.at(static_cast<int>(item_num_clust_rel * 32) + 31) = new_file_size_hex.at(3);
+        data_clust_fol.at(item_num_clust_rel * 32 + 28) = new_file_size_hex.at(0);
+        data_clust_fol.at(item_num_clust_rel * 32 + 29) = new_file_size_hex.at(1);
+        data_clust_fol.at(item_num_clust_rel * 32 + 30) = new_file_size_hex.at(2);
+        data_clust_fol.at(item_num_clust_rel * 32 + 31) = new_file_size_hex.at(3);
 
         std::vector<char> data_to_save;
         for (int i = 0; i < data_clust_fol.size(); i++) {
