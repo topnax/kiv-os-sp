@@ -133,7 +133,7 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
     //file.size - zjisteno v dalsi casti fce
     //file.handle - zjisteno v dalsi casti fce
     //file.attributes - zjisteno v dalsi casti fce
-   
+
     //najit cil a ulozit do handle souboru
     int32_t target_cluster;
 
@@ -151,7 +151,7 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
         else { //soubor / slozka nemusi existovat, pokusim se vytvorit
             dir_item.attribute = attributes; //pouziji pridelene atributy u nove vytvorene slozky / souboru
             dir_item.filesize = 0;
-        
+
             bool created = false;
 
             if (dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //vytvorit slozku
@@ -159,7 +159,7 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
                 if (!check_folder_name_validity(name)) { //nevalidni nazev slozky, err
                     return kiv_os::NOS_Error::Invalid_Argument;
                 }
-                
+
                 kiv_os::NOS_Error result = mkdir(name, attributes);
                 if (result == kiv_os::NOS_Error::Not_Enough_Disk_Space) { //nebyl dostatek mista na disku (chybi cluster), slozka  nebyla vytvorena
                     created = false;
@@ -185,7 +185,7 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
                     created = true;
                 }
             }
-            
+
             if (!created) { //koncime, pokud nenalezen volny cluster
                 return kiv_os::NOS_Error::Not_Enough_Disk_Space;
             }
@@ -193,6 +193,9 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
                 target_cluster = retrieve_item_clust(19, first_fat_table_dec, folders_in_path).first_cluster;
             }
         }
+    } else if ((dir_item.attribute & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) && ((attributes & static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) == 0)) {
+        // check whether we are trying to open a directory without specifying the directory attribute
+        return kiv_os::NOS_Error::Permission_Denied;
     }
 
     //v teto fazi uz tedy soubor / slozka existuje nebo byl vytvoren, dalsi prace s objektem je v obou pripadech shodna...
