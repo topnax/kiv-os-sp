@@ -181,7 +181,7 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
         } else {
             // else connect it correctly
             kiv_os::THandle handle;
-            successCloning = kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[2 * i - 1], pipe_handles[2 * i],
+            successCloning = kiv_os_rtl::Clone_Process(programs[i].name, programs[i].data, pipe_handles[2 * static_cast<size_t>(i) - 1], pipe_handles[2 * static_cast<size_t>(i)],
                                       handle);
             if (!successCloning) {
                 cancel_all_programs(programs, pipe_handles, handles, file_handle_first_in, file_handle_last_out, running_progs_num, std_in);
@@ -238,8 +238,8 @@ void call_piped_programs(std::vector<program> programs, const kiv_hal::TRegister
             num_of_handles_closed++;
         } else {
             // else close the input or output of the pipes surrounding the process
-            kiv_os_rtl::Close_Handle(pipe_handles[2 * ind]);
-            kiv_os_rtl::Close_Handle(pipe_handles[2 * ind - 1]);
+            kiv_os_rtl::Close_Handle(pipe_handles[2 * static_cast<size_t>(ind)]);
+            kiv_os_rtl::Close_Handle(pipe_handles[2 * static_cast<size_t>(ind) - 1]);
             num_of_handles_closed++;
             num_of_handles_closed++;
         }

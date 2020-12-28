@@ -37,7 +37,7 @@ extern "C" size_t __stdcall freq(const kiv_hal::TRegisters &regs) {
 
                 // increase the frequency of current char
                 auto c = buffer[i];
-                frequencies[c + 128]++;
+                frequencies[static_cast<size_t>(c) + 128]++;
             }
             // kiv_os_rtl::Close_Handle(std_in);
         } else {
