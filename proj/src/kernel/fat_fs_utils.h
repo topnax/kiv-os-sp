@@ -15,12 +15,12 @@
 #include <algorithm>
 
 struct directory_item {
-	std::string filename; //nazev souboru
-	std::string extension; //pripona souboru
-	size_t filesize; //velikost souboru (byt)
-	int first_cluster; //prvni cluster souboru
+	std::string filename = ""; //nazev souboru
+	std::string extension = ""; //pripona souboru
+	size_t filesize = 0; //velikost souboru (byt)
+	int first_cluster = 0; //prvni cluster souboru
 
-	unsigned char attribute; //atribut souboru / slozky
+	unsigned char attribute = '0'; //atribut souboru / slozky
 };
 
 std::vector<unsigned char> load_first_fat_table_bytes();

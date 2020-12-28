@@ -330,7 +330,7 @@ kiv_os::NOS_Error Fat_Fs::rmdir(const char *name) {
     }
 
     //z fol_cont odstranit nechteny dir_entry - jedna polozka ma 32 bajtu
-    fol_cont.erase(fol_cont.begin() + ((index_to_remove) * 32), fol_cont.begin() + ((index_to_remove * 32) + 32)); 
+    fol_cont.erase(fol_cont.begin() + (static_cast<size_t>(index_to_remove) * 32), fol_cont.begin() + ((static_cast<size_t>(index_to_remove) * 32) + 32));
     for (int i = 0; i < 32; i++) { //doplnit 0 zbytek
         fol_cont.push_back(0);
     }
@@ -352,7 +352,7 @@ kiv_os::NOS_Error Fat_Fs::rmdir(const char *name) {
         std::vector<char> clust_to_save; // data jednoho clusteru
 
         for (int j = 0; j < SECTOR_SIZE_B; j++) {
-            clust_to_save.push_back(fol_cont.at((i * SECTOR_SIZE_B) + j));
+            clust_to_save.push_back(fol_cont.at((static_cast<size_t>(i) * SECTOR_SIZE_B) + j));
         }
 
         if (upper_root) {
@@ -413,7 +413,7 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
         content_clust.push_back(data_to_write.at(i));
     }
 
-    size_t written_bytes = 0 - bytes_to_save_clust;
+    size_t written_bytes = 0 - static_cast<size_t>(bytes_to_save_clust);
 
     //v bufferu je ulozen obsah vsech clusteru, ktere maji byt prepsany - zaciname od clusteru sector_num_vect, pripadne pak posun na dalsi, pokud buffer > 512 - teoreticky zapis na vice clusteru
     size_t clusters_count = data_to_write.size() / SECTOR_SIZE_B + (data_to_write.size() % SECTOR_SIZE_B != 0); //pocet clusteru, pres ktere bude buffer ulozen
@@ -421,13 +421,13 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
     std::vector<char> clust_data_write; //data pro zapis do jednoho clusteru
     for (int i = 0; i < clusters_count; i++) {
         if (i == (clusters_count - 1)) { //posledni cluster, nemusi byt vyuzity cely
-            for (int j = 0; j < data_to_write.size() - (i * SECTOR_SIZE_B); j++) {
-                clust_data_write.push_back(data_to_write.at(j + (i * SECTOR_SIZE_B)));
+            for (int j = 0; j < data_to_write.size() - (static_cast<size_t>(i) * SECTOR_SIZE_B); j++) {
+                clust_data_write.push_back(data_to_write.at(j + (static_cast<size_t>(i) * SECTOR_SIZE_B)));
             }
         }
         else { //ćluster, ktery neni posledni bude vyuzit cely
             for (int j = 0; j < SECTOR_SIZE_B; j++) {
-                clust_data_write.push_back(data_to_write.at(j + (i * SECTOR_SIZE_B)));
+                clust_data_write.push_back(data_to_write.at(j + (static_cast<size_t>(i) * SECTOR_SIZE_B)));
             }
         }
 
@@ -461,22 +461,22 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
             int first_index_hex_tab = static_cast<int>(static_cast<double>(index_to_edit) * 1.5); //index volneho clusteru v hex tabulce (na dvou bajtech)
 
             char free_cluster_index_first = first_fat_table_hex.at(first_index_hex_tab);
-            char free_cluster_index_sec = first_fat_table_hex.at(first_index_hex_tab + 1);
+            char free_cluster_index_sec = first_fat_table_hex.at(static_cast<size_t>(first_index_hex_tab) + 1);
 
             std::vector<unsigned char> modified_bytes = convert_num_to_bytes_fat(index_to_edit, first_fat_table_hex, free_clust_index);
             first_fat_table_hex.at(static_cast<int>(static_cast<double>(index_to_edit) * 1.5)) = modified_bytes.at(0);
-            first_fat_table_hex.at((static_cast<int>(static_cast<double>(index_to_edit) * 1.5)) + 1) = modified_bytes.at(1);
+            first_fat_table_hex.at((static_cast<size_t>(static_cast<double>(index_to_edit) * 1.5)) + 1) = modified_bytes.at(1);
             //v hex tabulkach upravit cislo posledniho clusteru puvodne prideleno souboru - KONEC
 
             //v hex tabulkach na indexu nove prideleneho clusteru udelit 4095 (konec souboru) - START
             first_index_hex_tab = static_cast<int>(static_cast<double>(free_clust_index) * 1.5); //index zabraneho clusteru
 
             free_cluster_index_first = first_fat_table_hex.at(first_index_hex_tab);
-            free_cluster_index_sec = first_fat_table_hex.at(first_index_hex_tab + 1);
+            free_cluster_index_sec = first_fat_table_hex.at(static_cast<size_t>(first_index_hex_tab) + 1);
 
             modified_bytes = convert_num_to_bytes_fat(free_clust_index, first_fat_table_hex, 4095);
             first_fat_table_hex.at(static_cast<int>(static_cast<double>(free_clust_index) * 1.5)) = modified_bytes.at(0);
-            first_fat_table_hex.at((static_cast<int>(static_cast<double>(free_clust_index) * 1.5)) + 1) = modified_bytes.at(1);
+            first_fat_table_hex.at((static_cast<size_t>(static_cast<double>(free_clust_index) * 1.5)) + 1) = modified_bytes.at(1);
             //v hex tabulkach na indexu nove prideleneho clusteru udelit 4095 (konec souboru) - KONEC
 
             write_data_to_fat_fs(free_clust_index, clust_data_write); //zapis dat na nove alokovany cluster
@@ -612,7 +612,7 @@ kiv_os::NOS_Error Fat_Fs::set_attributes(const char *name, uint8_t attributes) {
     if (folders_in_path.size() == 0) { //jsme v root slozce
         data_clust_fol = read_data_from_fat_fs(sectors_nums_data.at(cluster_num) - 31, 1); //-31; fce cte z dat sektoru
 
-        data_clust_fol.at(item_num_clust_rel * 32 + 11) = attributes;
+        data_clust_fol.at(static_cast<size_t>(item_num_clust_rel) * 32 + 11) = attributes;
 
         std::vector<char> data_to_save;
         for (int i = 0; i < data_clust_fol.size(); i++) {
@@ -624,7 +624,7 @@ kiv_os::NOS_Error Fat_Fs::set_attributes(const char *name, uint8_t attributes) {
     else {
         data_clust_fol = read_data_from_fat_fs(sectors_nums_data.at(cluster_num), 1); //fce cte z dat sektoru
 
-        data_clust_fol.at(item_num_clust_rel * 32 + 11) = attributes;
+        data_clust_fol.at(static_cast<size_t>(item_num_clust_rel) * 32 + 11) = attributes;
 
         std::vector<char> data_to_save;
         for (int i = 0; i < data_clust_fol.size(); i++) {
@@ -701,11 +701,11 @@ kiv_os::NOS_Error Fat_Fs::get_attributes(const char *name, uint8_t &out_attribut
     std::vector<unsigned char> data_clust_fol;
     if (folders_in_path.size() == 0) {
         data_clust_fol = read_data_from_fat_fs(sectors_nums_data.at(cluster_num) - 31, 1);
-        out_attributes = data_clust_fol.at(item_num_clust_rel * 32 + 11);
+        out_attributes = data_clust_fol.at(static_cast<size_t>(item_num_clust_rel) * 32 + 11);
     }
     else {
         data_clust_fol = read_data_from_fat_fs(sectors_nums_data.at(cluster_num), 1);
-        out_attributes = data_clust_fol.at(item_num_clust_rel * 32 + 11);
+        out_attributes = data_clust_fol.at(static_cast<size_t>(item_num_clust_rel) * 32 + 11);
     }
     return kiv_os::NOS_Error::Success;
 }
