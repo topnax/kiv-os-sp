@@ -99,7 +99,7 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
 
     int j = 0; // pointer to buffer containing one program's name (and potentially data)
     int prog_count = 0; // number of programs but also files in the whole pipeline
-    int actual_prog_count = 0; // number of programs alone in the pipeline
+    size_t actual_prog_count = 0; // number of programs alone in the pipeline
     bool echoQuotes = false;
 
     // this cycle goes through the user input and saves names and data of programs and names of files
@@ -244,8 +244,8 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
         }
         else {
             // assign the input of the current program as the output of the previous one
-            programs_vec[i].input.type = programs_vec[i - 1].output.type;
-            strncpy_s(programs_vec[i].input.name, programs_vec[i - 1].name, NAME_LEN);
+            programs_vec[i].input.type = programs_vec[static_cast<size_t>(i) - 1].output.type;
+            strncpy_s(programs_vec[i].input.name, programs_vec[static_cast<size_t>(i) - 1].name, NAME_LEN);
         }
 
         if (delims[i] == pipe_symb) {
@@ -253,16 +253,16 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
             // set the output type of the current program to pipe and to which program it connects (the next one)
             // the same is done for the input of the next program
             programs_vec[i].output.type = ProgramHandleType::Pipe;
-            strncpy_s(programs_vec[i].output.name, programs_vec[i + 1].name, NAME_LEN);
+            strncpy_s(programs_vec[i].output.name, programs_vec[static_cast<size_t>(i) + 1].name, NAME_LEN);
             
-            programs_vec[i + 1].input.type = ProgramHandleType::Pipe;
-            strncpy_s(programs_vec[i + 1].input.name, programs_vec[i].name, NAME_LEN);
+            programs_vec[static_cast<size_t>(i) + 1].input.type = ProgramHandleType::Pipe;
+            strncpy_s(programs_vec[static_cast<size_t>(i) + 1].input.name, programs_vec[i].name, NAME_LEN);
         }
         else if (delims[i] == out_symb) {
             // if there is > symbol between current program and the next one:
             // set the output type of the current program to file and the name of the file
             programs_vec[actual_prog_count - 1].output.type = ProgramHandleType::File;
-            strncpy_s(programs_vec[actual_prog_count - 1].output.name, programs_vec[i + 1].name, NAME_LEN);
+            strncpy_s(programs_vec[actual_prog_count - 1].output.name, programs_vec[static_cast<size_t>(i) + 1].name, NAME_LEN);
 
             //new_prog_count--;
         }
@@ -270,7 +270,7 @@ std::vector<program> parse_programs(char* input, std::string& errorMessage) {
             // if there is < symbol between current program and the next one:
             // set the input type of the first program to file and the name of the file
             programs_vec[0].input.type = ProgramHandleType::File;
-            strncpy_s(programs_vec[0].input.name, programs_vec[i + 1].name, NAME_LEN);
+            strncpy_s(programs_vec[0].input.name, programs_vec[static_cast<size_t>(i) + 1].name, NAME_LEN);
 
             //new_prog_count--;
         }
