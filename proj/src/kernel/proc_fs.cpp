@@ -69,7 +69,8 @@ kiv_os::NOS_Error Proc_Fs::read(File file, size_t size, size_t offset, std::vect
 }
 
 kiv_os::NOS_Error Proc_Fs::readdir(const char *name, std::vector<kiv_os::TDir_Entry> &entries) {
-    std::lock_guard<std::recursive_mutex> guard(Get_Pcb()->mutex);
+    auto &mutex = Get_Pcb()->mutex;
+    std::lock_guard<std::recursive_mutex> guard(mutex);
     auto pcb = Get_Pcb();
     for (Process *process : pcb->Get_Processes()) {
         auto entry = kiv_os::TDir_Entry{
@@ -85,8 +86,8 @@ kiv_os::NOS_Error Proc_Fs::readdir(const char *name, std::vector<kiv_os::TDir_En
 
 kiv_os::NOS_Error Proc_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8_t attributes, File &file) {
     // procfs ignores NOpen_File flags, because it does not allow creation of new files - the file always has to exist
-
-    std::lock_guard<std::recursive_mutex> guard(Get_Pcb()->mutex);
+    auto& mutex = Get_Pcb()->mutex;
+    std::lock_guard<std::recursive_mutex> guard(mutex);
     auto pcb = Get_Pcb();
 
     // check whether opening the root folder - that should print the simplified PCB table
