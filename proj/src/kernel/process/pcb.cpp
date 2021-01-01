@@ -36,6 +36,3 @@ std::vector<Process *> Process_Control_Block::Get_Processes() {
     return processes;
 }
 
-std::recursive_mutex *Process_Control_Block::Get_Mutex() {
-    return &mutex;
-}
