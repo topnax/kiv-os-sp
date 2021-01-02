@@ -337,7 +337,8 @@ void wait_for(kiv_hal::TRegisters &registers) {
             handleThatSignalledIndex = handleCount;
         } else {
             // we are modifying the listener vectors - guard following code using mutex
-            std::lock_guard<std::mutex> guard(Semaphores_Mutex);
+            lock.lock();
+            //std::lock_guard<std::mutex> guard(Semaphores_Mutex);
             for (uint8_t i = 0; i < handleCount; i++) {
                 // load a handle
                 auto t_handle = t_handles[i];
