@@ -359,7 +359,6 @@ void wait_for(kiv_hal::TRegisters &registers) {
                             if (listener->id == current_listener.id) {
                                 // if yes, then remove it from the list of the
                                 // acquire semaphore mutex before removing it
-                                std::lock_guard<std::mutex> l(listener->semaphore->mtx);
                                 listeners->erase(listeners->begin() + j);
                                 break;
                             }
