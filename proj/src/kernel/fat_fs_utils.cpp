@@ -435,7 +435,7 @@ std::vector<directory_item> get_dir_items(int num_sectors, std::vector<unsigned 
 * fat_table_dec = fat tabulka, dle ktere dojde k ziskani informaci o lokaci souboru (v dec formatu)
 * starting_sector = prvni sektor souboru
 /**/
-std::vector<int> retrieve_sectors_nums_fs(std::vector<int> fat_table_dec, int starting_sector) {
+std::vector<int> retrieve_sectors_nums_fs(const std::vector<int> &fat_table_dec, int starting_sector) {
     std::vector<int> sector_list; //seznam sektorů, na kterých se data souboru nachází
 
     int cluster_num = -1;
@@ -677,7 +677,7 @@ std::vector<unsigned char> convert_dec_num_to_hex(size_t num_dec) {
 /*
 * Aktualizuje velikost souboru ve slozce.
 /**/
-void update_size_file_in_folder(char *filename_path, size_t offset, size_t original_size, size_t newly_written_bytes, std::vector<int> fat_table_dec) {
+void update_size_file_in_folder(char *filename_path, size_t offset, size_t original_size, size_t newly_written_bytes, const std::vector<int> &fat_table_dec) {
     std::vector<std::string> folders_in_path = path_to_indiv_items(filename_path); //rozdeleni na indiv. polozky v ceste
     std::string filename = folders_in_path.at(folders_in_path.size() - 1); //nazev souboru
 

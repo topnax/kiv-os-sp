@@ -34,7 +34,7 @@ std::vector<kiv_os::TDir_Entry> retrieve_dir_items(size_t num_sectors, std::vect
 directory_item retrieve_item_clust(int start_cluster, std::vector<int> fat_table_dec, std::vector<std::string> path);
 std::vector<directory_item> retrieve_folders_cur_folder(std::vector<int> fat_table_dec, int working_dir_sector);
 std::vector<directory_item> get_dir_items(int num_sectors, std::vector<unsigned char> dir_cont);
-std::vector<int> retrieve_sectors_nums_fs(std::vector<int> fat_table_dec, int starting_sector);
+std::vector<int> retrieve_sectors_nums_fs(const std::vector<int> &fat_table_dec, int starting_sector);
 std::vector<std::string> path_to_indiv_items(const char *path_file);
 int retrieve_free_byte_count(int sector_num);
 int retrieve_free_cluster_index(std::vector<int> fat_table_dec);
@@ -42,7 +42,7 @@ unsigned char conv_char_arr_to_hex(char char_arr[2]);
 std::vector<unsigned char> convert_num_to_bytes_fat(int target_index, std::vector<unsigned char> fat_table_hex, int num_to_inject);
 void save_fat_tables(std::vector<unsigned char> fat_table);
 std::vector<unsigned char> convert_dec_num_to_hex(long num_dec);
-void update_size_file_in_folder(char* filename_path, size_t offset, size_t original_size, size_t newly_written_bytes, std::vector<int> fat_table_dec);
+void update_size_file_in_folder(char* filename_path, size_t offset, size_t original_size, size_t newly_written_bytes, const std::vector<int> &fat_table_dec);
 int create_folder(const char* folder_path, uint8_t attributes, std::vector<int>& fat_table_dec, std::vector<unsigned char>& first_fat_table_hex);
 std::vector<unsigned char> convert_dec_to_hex_start_clus(int start_clust);
 void write_folder_basics_cluster(int clust_to_write_index, int upper_fol_index);
