@@ -677,7 +677,7 @@ std::vector<unsigned char> convert_dec_num_to_hex(size_t num_dec) {
 /*
 * Aktualizuje velikost souboru ve slozce.
 /**/
-void update_size_file_in_folder(char *filename_path, size_t offset, size_t original_size, size_t newly_written_bytes, const std::vector<int> &fat_table_dec) {
+void update_size_file_in_folder(const char *filename_path, size_t offset, size_t original_size, size_t newly_written_bytes, const std::vector<int> &fat_table_dec) {
     std::vector<std::string> folders_in_path = path_to_indiv_items(filename_path); //rozdeleni na indiv. polozky v ceste
     std::string filename = folders_in_path.at(folders_in_path.size() - 1); //nazev souboru
 

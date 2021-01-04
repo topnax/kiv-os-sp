@@ -13,7 +13,7 @@ struct File {
     uint8_t attributes;
     size_t size;
     size_t position;
-    char *name;
+    std::string name;
 };
 
 /**

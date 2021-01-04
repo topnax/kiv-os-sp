@@ -112,13 +112,13 @@ void Open_File(kiv_hal::TRegisters &registers) {
     }
 }
 
-kiv_os::THandle Open_File(const char *input_file_name, kiv_os::NOpen_File flags, uint8_t attributes, kiv_os::NOS_Error &error) {
+kiv_os::THandle Open_File(const std::string &input_file_name, kiv_os::NOpen_File flags, uint8_t attributes, kiv_os::NOS_Error &error) {
     std::lock_guard<std::mutex> guard(Files::Open_Guard);
     Generic_File *file = nullptr;
 
-    if (strcmp(input_file_name, "\\sys\\tty") == 0) {
+    if (input_file_name == "\\sys\\tty") {
         file = new Tty_File();
-    } else if (strcmp(input_file_name, "\\sys\\kb") == 0) {
+    } else if (input_file_name == "\\sys\\kb") {
         file = new Keyboard_File();
     } else {
         std::filesystem::path resolved_path_relative_to_fs;

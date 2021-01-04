@@ -93,9 +93,7 @@ kiv_os::NOS_Error Filesystem_File::write(char *buffer, size_t buf_size, size_t &
 void Filesystem_File::close() {
 }
 
-Filesystem_File::~Filesystem_File() {
-    delete this->file.name;
-}
+Filesystem_File::~Filesystem_File() = default;
 
 bool Filesystem_File::has_attribute(kiv_os::NFile_Attributes attribute) const {
     return (static_cast<uint8_t>(this->file.attributes) & static_cast<uint8_t>(attribute)) != 0;

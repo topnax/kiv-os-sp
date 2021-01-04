@@ -37,7 +37,7 @@ kiv_os::NOS_Error Proc_Fs::read(File file, size_t size, size_t offset, std::vect
     // prepare a vector of characters where the generated content will be stored
     std::vector<char> generated;
 
-    if (strcmp(file.name, "\\") == 0 || strcmp(file.name, "\\.") == 0) {
+    if (file.name == "\\" || file.name == "\\.") {
         // reading procfs directory
         std::vector<kiv_os::TDir_Entry> entries;
         auto readdir_result = readdir("", entries);

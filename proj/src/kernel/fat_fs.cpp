@@ -23,7 +23,7 @@ kiv_os::NOS_Error Fat_Fs::read(File file, size_t size, size_t offset, std::vecto
         std::vector<kiv_os::TDir_Entry> folder_entries;
         std::vector<char> folder_entries_char;
 
-        kiv_os::NOS_Error read_dir_res = readdir(file.name, folder_entries);
+        kiv_os::NOS_Error read_dir_res = readdir(file.name.c_str(), folder_entries);
 
         if (read_dir_res == kiv_os::NOS_Error::Success) { //cteni ok, prevod na vector charu
             folder_entries_char = Fat_Fs::generate_dir_vector(folder_entries);
@@ -127,7 +127,7 @@ kiv_os::NOS_Error Fat_Fs::readdir(const char *name, std::vector<kiv_os::TDir_Ent
 
 kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8_t attributes, File &file) {
     file = File {};
-    file.name = const_cast<char*>(name);
+    file.name = name;
     file.position = 0; //aktualni pozice, zaciname na 
     //file.size - zjisteno v dalsi casti fce
     //file.handle - zjisteno v dalsi casti fce
@@ -204,7 +204,7 @@ kiv_os::NOS_Error Fat_Fs::open(const char *name, kiv_os::NOpen_File flags, uint8
 
     if (dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Volume_ID) || dir_item.attribute == static_cast<uint8_t>(kiv_os::NFile_Attributes::Directory)) { //jedna se o slozku, pridelit velikost vzorec: pocet_polozek_slozka * sizeof(TDir_Entry)
         std::vector<kiv_os::TDir_Entry> dir_entries_size; //pro zjisteni poctu polozek ve slozce
-        readdir(file.name, dir_entries_size);
+        readdir(file.name.c_str(), dir_entries_size);
         dir_item.filesize = dir_entries_size.size() * sizeof(kiv_os::TDir_Entry);
         file.size = dir_item.filesize;
     }
@@ -444,7 +444,7 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
                  //updatovat velikost souboru v nadrazene slozce
                 size_t newly_written_bytes = (offset + written_bytes) - file.size; //na jake misto jsem se dostal - puvodni velikost souboru = pocet pridanych bajtu
                 if (newly_written_bytes > 0) { //soubor byl zvetsen, update velikosti ve slozce...
-                    update_size_file_in_folder(file.name, offset, file.size, newly_written_bytes, first_fat_table_dec);
+                    update_size_file_in_folder(file.name.c_str(), offset, file.size, newly_written_bytes, first_fat_table_dec);
                     file.size = file.size + newly_written_bytes;
                     written = written_bytes;
                 }
@@ -492,7 +492,7 @@ kiv_os::NOS_Error Fat_Fs::write(File file, std::vector<char> buffer, size_t size
     //updatovat velikost souboru v nadrazene slozce
     size_t newly_written_bytes = (offset + written_bytes) - file.size; //na jake misto jsem se dostal - puvodni velikost souboru = pocet pridanych bajtu
     if (newly_written_bytes > 0) { //soubor byl zvetsen, update velikosti ve slozce...
-        update_size_file_in_folder(file.name, offset, file.size, newly_written_bytes, first_fat_table_dec);
+        update_size_file_in_folder(file.name.c_str(), offset, file.size, newly_written_bytes, first_fat_table_dec);
 
         file.size = file.size + newly_written_bytes;
     }
